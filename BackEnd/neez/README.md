@@ -20,3 +20,7 @@
 ## DB Config
 Configured via environment variables in `application.yml`:
 - DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
+
+## application.yml
+'application.yml'는 DB 관련 민감 정보 존재 -> GitHub를 사용하지 않고 개인적으로 전달
+- 저장 장소 : 'C:\Users\USER\Desktop\neez\BackEnd\neez\src\main\resources\application.yml'
