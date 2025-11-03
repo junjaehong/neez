@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:project-db-campus.smhrd.com}:${DB_PORT:3312}/${DB_NAME:Insa6_aiservice_p3_1}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
+    username: ${DB_USER:Insa6_aiservice_p3_1}
+    password: ${DB_PASS:aischool1}
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath:mapper/*.xml
+
+server:
+  port: 8083
