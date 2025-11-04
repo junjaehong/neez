@@ -1,6 +1,9 @@
 package com.bbey.neez.service;
 
-import com.bbey.neez.repository.BizCardReaderRepository;
+import com.bbey.neez.repository.BizCardRepository;
+import com.bbey.neez.entity.BizCard;
+import com.bbey.neez.entity.Company;
+import com.bbey.neez.repository.CompanyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,7 +26,13 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
     private String SECRET;
 
     @Autowired
-    private BizCardReaderRepository bizCardReaderRepository;
+    private BizCardRepository bizCardRepository;
+
+    @Autowired
+    private CompanyRepository companyRepository;
+
+    @Autowired
+    private com.bbey.neez.repository.UserRepository userRepository;
 
     /**
      * 컨트롤러에서 파일명만 넘기면
@@ -74,9 +83,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
             return parseNameCardFromJson(resp);
 
         } catch (Exception e) {
-            result.put("success", "false");
-            result.put("error", e.getMessage());
-            return result;
+            return Collections.emptyMap();
         }
     }
 
@@ -118,6 +125,68 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         map.put("address",   val(address));
 
         return map;
+    }
+
+    /**
+     * OCR로 뽑은 data를 실제 DB에 저장하는 메서드
+     */
+    @Override
+    public BizCard saveBizCardFromOcr(Map<String, String> data, Long user_idx) {
+        // 1. 회사부터 처리
+        String companyName = nvl(data.get("company"));
+        Long companyIdx = null;
+        if (!companyName.isEmpty()) {
+            companyIdx = companyRepository
+                    .findByName(companyName)
+                    .map(Company::getIdx)
+                    .orElseGet(() -> {
+                        Company c = new Company();
+                        c.setName(companyName);
+                        c.setCreated_at(java.time.LocalDateTime.now());
+                        c.setUpdated_at(java.time.LocalDateTime.now());
+                        return companyRepository.save(c).getIdx();
+                    });
+        }
+
+        // 2. 명함 저장
+        BizCard card = new BizCard();
+        // user_idx가 null 또는 <=0이거나 존재하지 않으면, 자동으로 더미 Users 레코드를 만들어 그 id를 사용합니다.
+        Long finalUserId = null;
+        if (user_idx != null && user_idx > 0L) {
+            if (userRepository.existsById(user_idx)) {
+                finalUserId = user_idx;
+            } else {
+                System.out.println("Warning: user_idx=" + user_idx + " not found in users table. Will create placeholder user.");
+            }
+        }
+
+        if (finalUserId == null) {
+            // 생성 시 필요한 최소 필드만 넣습니다. 실제 비즈니스에서는 별도 정책 필요.
+            com.bbey.neez.entity.Users u = new com.bbey.neez.entity.Users();
+            u.setName("auto_generated");
+            u.setCreated_at(java.time.LocalDateTime.now());
+            u.setUpdated_at(java.time.LocalDateTime.now());
+            com.bbey.neez.entity.Users savedUser = userRepository.save(u);
+            finalUserId = savedUser.getIdx();
+            System.out.println("Info: created placeholder user with id=" + finalUserId);
+        }
+
+        // entity의 user_idx는 String 타입이므로 문자열로 저장
+        card.setUser_idx(finalUserId);
+        card.setName(nvl(data.get("name")));
+        card.setCompany_idx(companyIdx != null ? companyIdx : 0L);
+        card.setDepartment(nvl(data.get("department")));
+        card.setPosition(nvl(data.get("position")));
+        card.setEmail(nvl(data.get("email")));
+        card.setPhone_number(nvl(data.get("mobile")));     // 휴대폰
+        card.setLine_number(nvl(data.get("tel")));         // 회사번호
+        card.setFax_number(nvl(data.get("fax")));
+        card.setAddress(nvl(data.get("address")));
+        card.setMemo("");                                  // OCR에서는 없으니까 빈값
+        card.setCreated_at(java.time.LocalDateTime.now());
+        card.setUpdated_at(java.time.LocalDateTime.now());
+
+        return bizCardRepository.save(card);
     }
 
     // ── 이하 유틸은 네 기존 코드 그대로 ─────────────────────────────
@@ -198,5 +267,9 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
 
     private static String val(String s) {
         return (s == null || s.isEmpty()) ? "" : s;
+    }
+
+    private String nvl(String s) {
+        return (s == null) ? "" : s;
     }
 }

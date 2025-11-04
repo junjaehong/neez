@@ -38,10 +38,12 @@
     </dependency>
 
     <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <optional>true</optional>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>1.18.32</version> <!-- 버전은 최신 가능 -->
+        <scope>provided</scope>
     </dependency>
+
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
