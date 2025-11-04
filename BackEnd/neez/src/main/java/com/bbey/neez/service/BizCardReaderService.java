@@ -1,6 +1,9 @@
 package com.bbey.neez.service;
 
+import java.util.Map;
+
 public interface BizCardReaderService {
 
-    public String readBizCard();
+    public Map<String, String> readBizCard(String fileName);
+
 }
