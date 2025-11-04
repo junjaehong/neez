@@ -11,15 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 @RequestMapping("/bizcard")
 public class BizCardReaderController {
 
-    private final BizCardReaderService bizCardReaderServiceImpl;
-
     @Autowired
-    public BizCardReaderController(BizCardReaderService bizCardReaderServiceImpl) {
-        this.bizCardReaderServiceImpl = bizCardReaderServiceImpl;
-    }
+    private BizCardReaderService bizCardReaderService;
 
-    @PostMapping("/read")
-    public BizCardResponse readBizCard(@RequestBody BizCardRequest request) {
-        return bizCardReaderServiceImpl.readBizCard(request);
+    @RequestMapping("/read")
+    public String readBizCard(){
+        return bizCardReaderService.readBizCard();
     }
 }

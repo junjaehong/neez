@@ -1,4 +1,4 @@
-package com.bbey.neez;
+package com.bbey.neez.controller;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
