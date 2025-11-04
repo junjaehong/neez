@@ -35,3 +35,4 @@ build/
 ### Application Configuration ###
 #/ Ignore all YAMLs was too wide; only ignore the local application config
 /src/main/resources/application.yml
+/src/main/resources/application.properties
