@@ -15,7 +15,7 @@ import javax.persistence.Table;
 public class Company {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long idx;
+    private Long idx;
     private String name;
     private String domain;
     private String industry;
@@ -26,7 +26,7 @@ public class Company {
     private LocalDateTime updated_at;
 
     // 명시적 getter/setter 추가: Lombok이 동작하지 않는 환경에서도 컴파일이 되도록 방어적으로 구현
-    public long getIdx() { return this.idx; }
+    public Long getIdx() { return this.idx; }
 
     public void setName(String name) { this.name = name; }
 

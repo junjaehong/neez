@@ -48,12 +48,19 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
 
             // placeholder면 모의 응답
             if (APIGW_URL != null && APIGW_URL.contains("example-api-gateway")) {
-                String mock = "{\"mock\":\"ok\"}";
-                result.put("success", "true");
-                result.put("raw", mock);
-                result.put("data", null);
-                return result;
+                Map<String, String> mockMap = new LinkedHashMap<>();
+                mockMap.put("company", "");
+                mockMap.put("name", "");
+                mockMap.put("department", "");
+                mockMap.put("position", "");
+                mockMap.put("tel", "");
+                mockMap.put("mobile", "");
+                mockMap.put("fax", "");
+                mockMap.put("email", "");
+                mockMap.put("address", "");
+                return mockMap;
             }
+
 
             HttpURLConnection conn = (HttpURLConnection) new URL(APIGW_URL).openConnection();
             conn.setRequestMethod("POST");
@@ -171,10 +178,10 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
             System.out.println("Info: created placeholder user with id=" + finalUserId);
         }
 
-        // entity의 user_idx는 String 타입이므로 문자열로 저장
+        // entity의 user_idx는 Long 타입
         card.setUser_idx(finalUserId);
         card.setName(nvl(data.get("name")));
-        card.setCompany_idx(companyIdx != null ? companyIdx : 0L);
+        card.setCompany_idx(companyIdx);
         card.setDepartment(nvl(data.get("department")));
         card.setPosition(nvl(data.get("position")));
         card.setEmail(nvl(data.get("email")));

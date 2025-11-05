@@ -32,7 +32,7 @@ public class BizCard {
     // 방어적 setter들 (Lombok 미적용 환경 대비)
     public void setUser_idx(Long user_idx) { this.user_idx = user_idx; }
     public void setName(String name) { this.name = name; }
-    public void setCompany_idx(long company_idx) { this.company_idx = company_idx; }
+    public void setCompany_idx(Long company_idx) { this.company_idx = company_idx; }
     public void setDepartment(String department) { this.department = department; }
     public void setPosition(String position) { this.position = position; }
     public void setEmail(String email) { this.email = email; }
