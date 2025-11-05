@@ -6,10 +6,12 @@ import com.bbey.neez.entity.BizCardSaveResult;
 
 public interface BizCardReaderService {
 
-    public Map<String, String> readBizCard(String fileName);
+    // OCR로 파일 읽어서 Map으로 뽑는 거 (기존 그대로)
+    Map<String, String> readBizCard(String fileName);
 
-    public BizCardSaveResult saveBizCardFromOcr(Map<String, String> data, Long user_idx);
+    // OCR로 뽑은 Map을 DB에 저장하는 거
+    BizCardSaveResult saveBizCardFromOcr(Map<String, String> data, Long userIdx);
 
-    public BizCardSaveResult saveManualBizCard(Map<String, String> data, Long user_idx);
-
+    // 수기 등록도 같은 로직 타게
+    BizCardSaveResult saveManualBizCard(Map<String, String> data, Long userIdx);
 }

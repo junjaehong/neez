@@ -41,3 +41,5 @@ Configured via environment variables in `application.yml`:
       "memo": "인공지능사관학교 동기"
    }
 
+## SWAGGER TEST URL
+- http://localhost:8083/swagger-ui/#

@@ -2,11 +2,11 @@ package com.bbey.neez.controller;
 
 import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.service.BizCardReaderService;
+import com.bbey.neez.entity.BizCardSaveResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.bbey.neez.entity.BizCardSaveResult;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,19 +18,21 @@ public class BizCardReaderController {
     @Autowired
     private BizCardReaderService bizCardReaderService;
 
-    @RequestMapping("/read/{fileName}")
-    public ResponseEntity<Map<String, Object>> ocrAndSave(@PathVariable String fileName, @RequestParam(value = "user_idx", required=false) Long user_idx) {
+    // OCR → 저장
+    @PostMapping("/read")
+    public ResponseEntity<Map<String, Object>> ocrAndSave(@RequestBody Map<String, String> body) {
         Map<String, Object> resp = new LinkedHashMap<>();
         try {
-            Map<String, String> data = bizCardReaderService.readBizCard(fileName);
+            String fileName = body.get("fileName");
+            Long userIdx = body.containsKey("user_idx") ? Long.valueOf(body.get("user_idx")) : null;
 
-            BizCardSaveResult result = bizCardReaderService.saveBizCardFromOcr(data, user_idx);
-            BizCard saved = result.getBizCard();
+            Map<String, String> data = bizCardReaderService.readBizCard(fileName);
+            BizCardSaveResult result = bizCardReaderService.saveBizCardFromOcr(data, userIdx);
 
             resp.put("success", true);
-            resp.put("existing", result.isExisting());  // ✅ 이제 진짜값
+            resp.put("existing", result.isExisting());
             resp.put("ocr_data", data);
-            resp.put("card", saved);
+            resp.put("card", result.getBizCard());
             return ResponseEntity.ok(resp);
 
         } catch (Exception e) {
@@ -41,18 +43,22 @@ public class BizCardReaderController {
         }
     }
 
+    // 수기 등록
     @PostMapping("/manual")
-    public ResponseEntity<Map<String, Object>> createManual(@RequestBody Map<String, String> data) {
+    public ResponseEntity<Map<String, Object>> createManual(@RequestBody(required = false) Map<String, String> data) {
         Map<String, Object> resp = new LinkedHashMap<>();
-
         try {
-            // user_idx를 Long으로 변환
+            if (data == null) {
+                resp.put("success", false);
+                resp.put("message", "JSON body is required");
+                return ResponseEntity.badRequest().body(resp);
+            }
+
             Long userIdx = null;
             if (data.containsKey("user_idx") && data.get("user_idx") != null && !data.get("user_idx").isEmpty()) {
                 userIdx = Long.valueOf(data.get("user_idx"));
             }
 
-            // 서비스 호출
             BizCardSaveResult result = bizCardReaderService.saveManualBizCard(data, userIdx);
 
             resp.put("success", true);
@@ -68,5 +74,4 @@ public class BizCardReaderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
         }
     }
-
 }
