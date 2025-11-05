@@ -19,4 +19,7 @@ public interface BizCardReaderService {
     Map<String, Object> getBizCardDetail(Long id);
 
     BizCard updateBizCard(Long idx, Map<String, String> data);
+
+    BizCard updateBizCardMemo(Long id, String memo);
+
 }

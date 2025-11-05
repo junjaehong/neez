@@ -196,6 +196,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         return new BizCardSaveResult(saved, false);
     }
 
+    // 4) 명함 + 회사명까지 묶어서 주는 메서드
     @Override
     public Map<String, Object> getBizCardDetail(Long idx) {
         BizCard card = bizCardRepository.findById(idx)
@@ -247,6 +248,8 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         return cardMap;
     }
 
+    
+    // 5) 명함 정보만 수정하는 메서드
     @Override
     public BizCard updateBizCard(Long idx, Map<String, String> data) {
         BizCard card = bizCardRepository.findById(idx)
@@ -284,48 +287,48 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         String address = data.get("address");
         if (address != null) card.setAddress(address);
 
-        // 메모는 지금 “파일 경로만 DB에 저장” 구조라서,
-        // 수정 요청에서 memo가 오면 파일에 append 하고 경로만 다시 넣자
-        String newMemo = data.get("memo");
-        if (newMemo != null && !newMemo.isEmpty()) {
-            // 이름 기준으로 파일 다시 열기
-            String fileNameBase = (card.getName() != null && !card.getName().isEmpty())
-                    ? card.getName()
-                    : ("user-" + card.getUserIdx());
+        card.setUpdatedAt(java.time.LocalDateTime.now());
+        return bizCardRepository.save(card);
+    }
 
-            java.nio.file.Path memoPath = java.nio.file.Paths.get(
-                    "src", "main", "resources", "Memo", fileNameBase + ".txt"
-            );
-            try {
-                if (memoPath.getParent() != null && !java.nio.file.Files.exists(memoPath.getParent())) {
-                    java.nio.file.Files.createDirectories(memoPath.getParent());
-                }
-                // 파일 있으면 한 줄 내려서 추가
-                if (java.nio.file.Files.exists(memoPath)) {
-                    String toAppend = System.lineSeparator() + newMemo + System.lineSeparator();
-                    java.nio.file.Files.write(
-                            memoPath,
-                            toAppend.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                            java.nio.file.StandardOpenOption.APPEND
-                    );
-                } else {
-                    java.nio.file.Files.write(
-                            memoPath,
-                            (newMemo + System.lineSeparator()).getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                            java.nio.file.StandardOpenOption.CREATE
-                    );
-                }
-                // DB에는 경로만
-                card.setMemo(memoPath.toString());
-            } catch (java.io.IOException e) {
-                System.out.println("memo update failed: " + e.getMessage());
+    // 6) 명함 메모만 따로 수정하는 메서드
+    @Override
+    public BizCard updateBizCardMemo(Long id, String memo) {
+        BizCard card = bizCardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
+
+        // 파일 이름은 명함 이름 기준, 없으면 user-idx
+        String baseName = (card.getName() != null && !card.getName().isEmpty())
+                ? card.getName()
+                : ("user-" + card.getUserIdx());
+
+        java.nio.file.Path memoPath = java.nio.file.Paths.get(
+                "src", "main", "resources", "Memo", baseName + ".txt"
+        );
+
+        try {
+            if (memoPath.getParent() != null && !java.nio.file.Files.exists(memoPath.getParent())) {
+                java.nio.file.Files.createDirectories(memoPath.getParent());
             }
+
+            // 새 메모로 갈아끼우는지, 붙이는지는 네 정책인데
+            // 여기선 “갈아끼우기”로 예시
+            java.nio.file.Files.write(
+                    memoPath,
+                    (memo + System.lineSeparator()).getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
+            );
+
+            // DB에는 경로만
+            card.setMemo(memoPath.toString());
+        } catch (Exception e) {
+            System.out.println("memo update failed: " + e.getMessage());
         }
 
         card.setUpdatedAt(java.time.LocalDateTime.now());
         return bizCardRepository.save(card);
     }
-
 
 
     // ============================================================================================================================

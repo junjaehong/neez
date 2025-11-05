@@ -117,4 +117,38 @@ public class BizCardReaderController {
         }
     }
 
+    // 명함 메모만 가져오기
+    @GetMapping("/{id}/memo")
+    public ResponseEntity<?> getMemo(@PathVariable Long id) {
+        Map<String, Object> card = bizCardReaderService.getBizCardDetail(id);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("success", true);
+        resp.put("memo_content", card.get("memo_content"));
+        resp.put("memo_path", card.get("memo_path"));
+        return ResponseEntity.ok(resp);
+    }
+
+    // 명함 메모만 수정하기
+    @PatchMapping("/{id}/memo")
+    public ResponseEntity<?> updateBizCardMemo(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body
+    ) {
+        String memo = body.get("memo");
+        if (memo == null) {
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("success", false);
+            err.put("message", "memo is required");
+            return ResponseEntity.badRequest().body(err);
+        }
+
+        BizCard updated = bizCardReaderService.updateBizCardMemo(id, memo);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("success", true);
+        resp.put("card", updated);
+        return ResponseEntity.ok(resp);
+    }
+
+
 }
