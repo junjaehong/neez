@@ -14,4 +14,9 @@ public interface BizCardReaderService {
 
     // 수기 등록도 같은 로직 타게
     BizCardSaveResult saveManualBizCard(Map<String, String> data, Long userIdx);
+
+    // ✅ 명함 + 회사명까지 묶어서 주는 메서드
+    Map<String, Object> getBizCardDetail(Long id);
+
+    BizCard updateBizCard(Long idx, Map<String, String> data);
 }

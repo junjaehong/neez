@@ -196,6 +196,137 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         return new BizCardSaveResult(saved, false);
     }
 
+    @Override
+    public Map<String, Object> getBizCardDetail(Long idx) {
+        BizCard card = bizCardRepository.findById(idx)
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
+
+        String companyName = null;
+        if (card.getCompanyIdx() != null && card.getCompanyIdx() > 0) {
+            companyName = companyRepository.findById(card.getCompanyIdx())
+                    .map(Company::getName)
+                    .orElse(null);
+        }
+
+        // 🟢 memo 내용 읽기
+        String memoContent = "";
+        if (card.getMemo() != null && !card.getMemo().isEmpty()) {
+            java.nio.file.Path memoPath = java.nio.file.Paths.get(card.getMemo());
+            try {
+                if (java.nio.file.Files.exists(memoPath)) {
+                    memoContent = new String(
+                            java.nio.file.Files.readAllBytes(memoPath),
+                            java.nio.charset.StandardCharsets.UTF_8
+                    );
+                }
+            } catch (Exception e) {
+                System.out.println("메모 파일 읽기 실패: " + e.getMessage());
+                memoContent = "(메모 파일을 불러오는 중 오류가 발생했습니다)";
+            }
+        }
+
+        // 카드 + 회사명을 하나의 Map으로 만든다
+        Map<String, Object> cardMap = new LinkedHashMap<>();
+        cardMap.put("idx", card.getIdx());
+        cardMap.put("user_idx", card.getUserIdx());
+        cardMap.put("name", card.getName());
+        cardMap.put("company_idx", card.getCompanyIdx());
+        cardMap.put("company_name", companyName);
+        cardMap.put("department", card.getDepartment());
+        cardMap.put("position", card.getPosition());
+        cardMap.put("email", card.getEmail());
+        cardMap.put("phone_number", card.getPhoneNumber());
+        cardMap.put("line_number", card.getLineNumber());
+        cardMap.put("fax_number", card.getFaxNumber());
+        cardMap.put("address", card.getAddress());
+        cardMap.put("memo_path", card.getMemo());   // 경로는 참고용으로 남기고
+        cardMap.put("memo_content", memoContent);   // 실제 내용은 여기 추가
+        cardMap.put("created_at", card.getCreatedAt());
+        cardMap.put("updated_at", card.getUpdatedAt());
+
+        return cardMap;
+    }
+
+    @Override
+    public BizCard updateBizCard(Long idx, Map<String, String> data) {
+        BizCard card = bizCardRepository.findById(idx)
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
+
+        // 들어온 값만 덮어쓰기 (null/빈문자면 안 바꾸는 방식)
+        String name = data.get("name");
+        if (name != null && !name.isEmpty()) {
+            card.setName(name);
+        }
+
+        String companyIdxStr = data.get("company_idx");
+        if (companyIdxStr != null && !companyIdxStr.isEmpty()) {
+            card.setCompanyIdx(Long.valueOf(companyIdxStr));
+        }
+
+        String dept = data.get("department");
+        if (dept != null) card.setDepartment(dept);
+
+        String position = data.get("position");
+        if (position != null) card.setPosition(position);
+
+        String email = data.get("email");
+        if (email != null) card.setEmail(email);
+
+        String mobile = data.get("mobile");
+        if (mobile != null) card.setPhoneNumber(mobile);
+
+        String tel = data.get("tel");
+        if (tel != null) card.setLineNumber(tel);
+
+        String fax = data.get("fax");
+        if (fax != null) card.setFaxNumber(fax);
+
+        String address = data.get("address");
+        if (address != null) card.setAddress(address);
+
+        // 메모는 지금 “파일 경로만 DB에 저장” 구조라서,
+        // 수정 요청에서 memo가 오면 파일에 append 하고 경로만 다시 넣자
+        String newMemo = data.get("memo");
+        if (newMemo != null && !newMemo.isEmpty()) {
+            // 이름 기준으로 파일 다시 열기
+            String fileNameBase = (card.getName() != null && !card.getName().isEmpty())
+                    ? card.getName()
+                    : ("user-" + card.getUserIdx());
+
+            java.nio.file.Path memoPath = java.nio.file.Paths.get(
+                    "src", "main", "resources", "Memo", fileNameBase + ".txt"
+            );
+            try {
+                if (memoPath.getParent() != null && !java.nio.file.Files.exists(memoPath.getParent())) {
+                    java.nio.file.Files.createDirectories(memoPath.getParent());
+                }
+                // 파일 있으면 한 줄 내려서 추가
+                if (java.nio.file.Files.exists(memoPath)) {
+                    String toAppend = System.lineSeparator() + newMemo + System.lineSeparator();
+                    java.nio.file.Files.write(
+                            memoPath,
+                            toAppend.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                            java.nio.file.StandardOpenOption.APPEND
+                    );
+                } else {
+                    java.nio.file.Files.write(
+                            memoPath,
+                            (newMemo + System.lineSeparator()).getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                            java.nio.file.StandardOpenOption.CREATE
+                    );
+                }
+                // DB에는 경로만
+                card.setMemo(memoPath.toString());
+            } catch (java.io.IOException e) {
+                System.out.println("memo update failed: " + e.getMessage());
+            }
+        }
+
+        card.setUpdatedAt(java.time.LocalDateTime.now());
+        return bizCardRepository.save(card);
+    }
+
+
 
     // ============================================================================================================================
     // ============================================================================================================================
