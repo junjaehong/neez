@@ -1,17 +1,21 @@
 package com.bbey.neez.service;
 
-import com.bbey.neez.repository.BizCardRepository;
 import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.entity.Company;
+import com.bbey.neez.entity.Users;
+import com.bbey.neez.repository.BizCardRepository;
 import com.bbey.neez.repository.CompanyRepository;
+import com.bbey.neez.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import com.bbey.neez.entity.BizCardSaveResult;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,17 +36,10 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
     private CompanyRepository companyRepository;
 
     @Autowired
-    private com.bbey.neez.repository.UserRepository userRepository;
+    private UserRepository userRepository;
 
-    /**
-     * 컨트롤러에서 파일명만 넘기면
-     * 1) OCR 호출하고
-     * 2) 명함 필드만 뽑아서
-     * 3) JSON으로 내려줄 수 있게 Map으로 돌려준다.
-     */
     @Override
     public Map<String, String> readBizCard(String fileName) {
-        Map<String, String> result = new LinkedHashMap<>();
         try {
             String payload = buildPayloadWithFile("src/main/resources/BizCard/" + fileName);
 
@@ -61,7 +58,6 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
                 return mockMap;
             }
 
-
             HttpURLConnection conn = (HttpURLConnection) new URL(APIGW_URL).openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -76,17 +72,10 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
             InputStream is = (code == 200) ? conn.getInputStream() : conn.getErrorStream();
             String resp = readAll(is);
 
-            // 원본 저장(선택)
             try (FileOutputStream fos = new FileOutputStream("result.json")) {
                 fos.write(resp.getBytes("UTF-8"));
             }
 
-            // 여기서 우리가 쓰는 명함 필드만 추출
-            Map<String, String> cardData = parseNameCardFromJson(resp);
-
-            // result.put("success", code == 200);
-            // result.put("raw", resp);          // 필요하면 원본도 내려보내
-            // result.put("data", cardData);     // 프론트에서 쓸 핵심값
             return parseNameCardFromJson(resp);
 
         } catch (Exception e) {
@@ -94,9 +83,90 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         }
     }
 
-    /**
-     * OCR JSON에서 필요한 값만 뽑아오는 부분
-     */
+    @Override
+    public BizCardSaveResult saveBizCardFromOcr(Map<String, String> data, Long user_idx) {
+        // 1. 회사 처리
+        String companyName = nvl(data.get("company"));
+        Long companyIdx = null;
+        if (!companyName.isEmpty()) {
+            companyIdx = companyRepository
+                    .findByName(companyName)
+                    .map(Company::getIdx)
+                    .orElseGet(() -> {
+                        Company c = new Company();
+                        c.setName(companyName);
+                        c.setCreated_at(LocalDateTime.now());
+                        c.setUpdated_at(LocalDateTime.now());
+                        return companyRepository.save(c).getIdx();
+                    });
+        }
+
+        // 2. 사용자 처리
+        Long finalUserId;
+        if (user_idx != null && user_idx > 0 && userRepository.existsById(user_idx)) {
+            finalUserId = user_idx;
+        } else {
+            Users u = new Users();
+            u.setName("auto_generated");
+            u.setCreated_at(LocalDateTime.now());
+            u.setUpdated_at(LocalDateTime.now());
+            finalUserId = userRepository.save(u).getIdx();
+        }
+
+        // 람다에서 쓸 수 있게 final 변수로 따로 고정
+        final Long fixedCompanyIdx = companyIdx;
+        final Long fixedUserId = finalUserId;
+
+        // 3. 중복 체크 (이름+이메일)
+        String name = nvl(data.get("name"));
+        String email = nvl(data.get("email"));
+
+        if (!name.isEmpty() && !email.isEmpty()) {
+            return bizCardRepository.findByNameAndEmail(name, email)
+                    .map(existingCard -> new BizCardSaveResult(existingCard, true))
+                    .orElseGet(() -> {
+                        BizCard card = new BizCard();
+                        card.setUserIdx(fixedUserId);
+                        card.setName(name);
+                        card.setCompanyIdx(fixedCompanyIdx);
+                        card.setDepartment(nvl(data.get("department")));
+                        card.setPosition(nvl(data.get("position")));
+                        card.setEmail(email);
+                        card.setPhoneNumber(nvl(data.get("mobile")));
+                        card.setLineNumber(nvl(data.get("tel")));
+                        card.setFaxNumber(nvl(data.get("fax")));
+                        card.setAddress(nvl(data.get("address")));
+                        card.setMemo("");
+                        card.setCreatedAt(LocalDateTime.now());
+                        card.setUpdatedAt(LocalDateTime.now());
+                        BizCard saved = bizCardRepository.save(card);
+                        return new BizCardSaveResult(saved, false);
+                    });
+        }
+
+        // 이름/이메일이 없으면 무조건 신규
+        BizCard card = new BizCard();
+        card.setUserIdx(fixedUserId);
+        card.setName(name);
+        card.setCompanyIdx(fixedCompanyIdx);
+        card.setDepartment(nvl(data.get("department")));
+        card.setPosition(nvl(data.get("position")));
+        card.setEmail(email);
+        card.setPhoneNumber(nvl(data.get("mobile")));
+        card.setLineNumber(nvl(data.get("tel")));
+        card.setFaxNumber(nvl(data.get("fax")));
+        card.setAddress(nvl(data.get("address")));
+        card.setMemo("");
+        card.setCreatedAt(LocalDateTime.now());
+        card.setUpdatedAt(LocalDateTime.now());
+        BizCard saved = bizCardRepository.save(card);
+        return new BizCardSaveResult(saved, false);
+    }
+
+
+
+    // ====== 아래는 기존 유틸 ======
+
     private Map<String, String> parseNameCardFromJson(String json) {
         String name       = extractFirstText(json, "\"name\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
         String department = extractFirstText(json, "\"department\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
@@ -120,6 +190,10 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
                 extractFirstText(json, "\"office\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"")
         );
 
+        if (name != null && !name.matches(".*[a-zA-Z].*")) {
+            name = name.replaceAll("\\s+", "");
+        }
+
         Map<String, String> map = new LinkedHashMap<>();
         map.put("company",   val(company));
         map.put("name",      val(name));
@@ -133,70 +207,6 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
 
         return map;
     }
-
-    /**
-     * OCR로 뽑은 data를 실제 DB에 저장하는 메서드
-     */
-    @Override
-    public BizCard saveBizCardFromOcr(Map<String, String> data, Long user_idx) {
-        // 1. 회사부터 처리
-        String companyName = nvl(data.get("company"));
-        Long companyIdx = null;
-        if (!companyName.isEmpty()) {
-            companyIdx = companyRepository
-                    .findByName(companyName)
-                    .map(Company::getIdx)
-                    .orElseGet(() -> {
-                        Company c = new Company();
-                        c.setName(companyName);
-                        c.setCreated_at(java.time.LocalDateTime.now());
-                        c.setUpdated_at(java.time.LocalDateTime.now());
-                        return companyRepository.save(c).getIdx();
-                    });
-        }
-
-        // 2. 명함 저장
-        BizCard card = new BizCard();
-        // user_idx가 null 또는 <=0이거나 존재하지 않으면, 자동으로 더미 Users 레코드를 만들어 그 id를 사용합니다.
-        Long finalUserId = null;
-        if (user_idx != null && user_idx > 0L) {
-            if (userRepository.existsById(user_idx)) {
-                finalUserId = user_idx;
-            } else {
-                System.out.println("Warning: user_idx=" + user_idx + " not found in users table. Will create placeholder user.");
-            }
-        }
-
-        if (finalUserId == null) {
-            // 생성 시 필요한 최소 필드만 넣습니다. 실제 비즈니스에서는 별도 정책 필요.
-            com.bbey.neez.entity.Users u = new com.bbey.neez.entity.Users();
-            u.setName("auto_generated");
-            u.setCreated_at(java.time.LocalDateTime.now());
-            u.setUpdated_at(java.time.LocalDateTime.now());
-            com.bbey.neez.entity.Users savedUser = userRepository.save(u);
-            finalUserId = savedUser.getIdx();
-            System.out.println("Info: created placeholder user with id=" + finalUserId);
-        }
-
-        // entity의 user_idx는 Long 타입
-        card.setUser_idx(finalUserId);
-        card.setName(nvl(data.get("name")));
-        card.setCompany_idx(companyIdx);
-        card.setDepartment(nvl(data.get("department")));
-        card.setPosition(nvl(data.get("position")));
-        card.setEmail(nvl(data.get("email")));
-        card.setPhone_number(nvl(data.get("mobile")));     // 휴대폰
-        card.setLine_number(nvl(data.get("tel")));         // 회사번호
-        card.setFax_number(nvl(data.get("fax")));
-        card.setAddress(nvl(data.get("address")));
-        card.setMemo("");                                  // OCR에서는 없으니까 빈값
-        card.setCreated_at(java.time.LocalDateTime.now());
-        card.setUpdated_at(java.time.LocalDateTime.now());
-
-        return bizCardRepository.save(card);
-    }
-
-    // ── 이하 유틸은 네 기존 코드 그대로 ─────────────────────────────
 
     private static String buildPayloadWithFile(String filePath) throws IOException {
         File f = new File(filePath);
