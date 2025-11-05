@@ -24,3 +24,20 @@ Configured via environment variables in `application.yml`:
 ## application.yml
 'application.yml'는 DB 관련 민감 정보 존재 -> GitHub를 사용하지 않고 개인적으로 전달
 - 저장 장소 : 'C:\Users\USER\Desktop\neez\BackEnd\neez\src\main\resources\application.yml'
+
+## 명함 정보 수기 등록 메뉴얼
+- 아래 형식에 맞는 **json 형식**으로 데이터 전송 필요 (FROM FrontENd)
+   {
+      "user_idx": "1",
+      "name": "김현대",
+      "company": "비비와이",
+      "department": "AI서비스개발팀",
+      "position": "주니어 백엔드",
+      "email": "hyundai.kim@example.com",
+      "mobile": "010-1234-5678",
+      "tel": "02-123-4567",
+      "fax": "02-123-4568",
+      "address": "광주광역시 북구 첨단과기로",
+      "memo": "인공지능사관학교 동기"
+   }
+

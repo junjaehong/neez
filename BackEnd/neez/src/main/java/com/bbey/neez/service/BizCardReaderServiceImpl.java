@@ -19,6 +19,12 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 
 @Service
 public class BizCardReaderServiceImpl implements BizCardReaderService {
@@ -89,16 +95,17 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         String companyName = nvl(data.get("company"));
         Long companyIdx = null;
         if (!companyName.isEmpty()) {
-            companyIdx = companyRepository
-                    .findByName(companyName)
-                    .map(Company::getIdx)
-                    .orElseGet(() -> {
-                        Company c = new Company();
-                        c.setName(companyName);
-                        c.setCreated_at(LocalDateTime.now());
-                        c.setUpdated_at(LocalDateTime.now());
-                        return companyRepository.save(c).getIdx();
-                    });
+            // 람다 안 씀
+            java.util.Optional<Company> opt = companyRepository.findByName(companyName);
+            if (opt.isPresent()) {
+                companyIdx = opt.get().getIdx();
+            } else {
+                Company c = new Company();
+                c.setName(companyName);
+                c.setCreated_at(java.time.LocalDateTime.now());
+                c.setUpdated_at(java.time.LocalDateTime.now());
+                companyIdx = companyRepository.save(c).getIdx();
+            }
         }
 
         // 2. 사용자 처리
@@ -106,66 +113,117 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         if (user_idx != null && user_idx > 0 && userRepository.existsById(user_idx)) {
             finalUserId = user_idx;
         } else {
-            Users u = new Users();
+            com.bbey.neez.entity.Users u = new com.bbey.neez.entity.Users();
             u.setName("auto_generated");
-            u.setCreated_at(LocalDateTime.now());
-            u.setUpdated_at(LocalDateTime.now());
+            u.setCreated_at(java.time.LocalDateTime.now());
+            u.setUpdated_at(java.time.LocalDateTime.now());
             finalUserId = userRepository.save(u).getIdx();
         }
 
-        // 람다에서 쓸 수 있게 final 변수로 따로 고정
-        final Long fixedCompanyIdx = companyIdx;
-        final Long fixedUserId = finalUserId;
-
-        // 3. 중복 체크 (이름+이메일)
-        String name = nvl(data.get("name"));
+        // 3. 중복 명함 체크 (이름 + 이메일)
+        String name  = nvl(data.get("name"));
         String email = nvl(data.get("email"));
 
         if (!name.isEmpty() && !email.isEmpty()) {
-            return bizCardRepository.findByNameAndEmail(name, email)
-                    .map(existingCard -> new BizCardSaveResult(existingCard, true))
-                    .orElseGet(() -> {
-                        BizCard card = new BizCard();
-                        card.setUserIdx(fixedUserId);
-                        card.setName(name);
-                        card.setCompanyIdx(fixedCompanyIdx);
-                        card.setDepartment(nvl(data.get("department")));
-                        card.setPosition(nvl(data.get("position")));
-                        card.setEmail(email);
-                        card.setPhoneNumber(nvl(data.get("mobile")));
-                        card.setLineNumber(nvl(data.get("tel")));
-                        card.setFaxNumber(nvl(data.get("fax")));
-                        card.setAddress(nvl(data.get("address")));
-                        card.setMemo("");
-                        card.setCreatedAt(LocalDateTime.now());
-                        card.setUpdatedAt(LocalDateTime.now());
-                        BizCard saved = bizCardRepository.save(card);
-                        return new BizCardSaveResult(saved, false);
-                    });
+            java.util.Optional<BizCard> existedOpt = bizCardRepository.findByNameAndEmail(name, email);
+            if (existedOpt.isPresent()) {
+                // 이미 있던 명함이면 그대로 리턴
+                return new BizCardSaveResult(existedOpt.get(), true);
+            }
         }
 
-        // 이름/이메일이 없으면 무조건 신규
+        // 4. 새 명함 생성
         BizCard card = new BizCard();
-        card.setUserIdx(fixedUserId);
+        card.setUserIdx(finalUserId);
         card.setName(name);
-        card.setCompanyIdx(fixedCompanyIdx);
+        card.setCompanyIdx(companyIdx); // null이면 null로 감
         card.setDepartment(nvl(data.get("department")));
         card.setPosition(nvl(data.get("position")));
         card.setEmail(email);
-        card.setPhoneNumber(nvl(data.get("mobile")));
-        card.setLineNumber(nvl(data.get("tel")));
+        card.setPhoneNumber(nvl(data.get("mobile"))); // 휴대폰
+        card.setLineNumber(nvl(data.get("tel")));     // 회사번호
         card.setFaxNumber(nvl(data.get("fax")));
         card.setAddress(nvl(data.get("address")));
-        card.setMemo("");
-        card.setCreatedAt(LocalDateTime.now());
-        card.setUpdatedAt(LocalDateTime.now());
+        card.setCreatedAt(java.time.LocalDateTime.now());
+        card.setUpdatedAt(java.time.LocalDateTime.now());
+
+        // 5. 메모 파일 처리 (DB에는 경로만)
+        String reqMemo = nvl(data.get("memo"));     // 요청으로 온 메모
+        String nameForFile = nvl(data.get("name")); // 파일명으로 쓸 우선값
+
+        // 이름이 비어 있으면 user 기반으로라도 파일명 만들어서 아예 안 빠지게
+        if (nameForFile.isEmpty()) {
+            nameForFile = "user-" + finalUserId;
+        }
+
+        // 파일 경로를 항상 하나 만든다
+        java.nio.file.Path memoPath = java.nio.file.Paths.get(
+                "src", "main", "resources", "Memo", nameForFile + ".txt"
+        );
+
+        String memoToStoreInDb = "";  // 결국 DB에 넣을 값
+
+        try {
+            // 디렉터리 없으면 만들기
+            if (memoPath.getParent() != null && !java.nio.file.Files.exists(memoPath.getParent())) {
+                java.nio.file.Files.createDirectories(memoPath.getParent());
+            }
+
+            // 파일이 없고, 요청 메모가 있으면 새로 만들고 내용 쓰기
+            if (!java.nio.file.Files.exists(memoPath)) {
+                if (!reqMemo.isEmpty()) {
+                    java.nio.file.Files.write(
+                            memoPath,
+                            (reqMemo + System.lineSeparator()).getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                            java.nio.file.StandardOpenOption.CREATE
+                    );
+                } else {
+                    // 메모가 아예 없으면 빈 파일이라도 만들 수 있음 (선택)
+                    java.nio.file.Files.write(
+                            memoPath,
+                            new byte[0],
+                            java.nio.file.StandardOpenOption.CREATE
+                    );
+                }
+            } else {
+                // 파일이 이미 있으면, 요청에 메모가 있을 때만 이어붙이기
+                if (!reqMemo.isEmpty()) {
+                    String contentsToAppend = System.lineSeparator() + reqMemo + System.lineSeparator();
+                    java.nio.file.Files.write(
+                            memoPath,
+                            contentsToAppend.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                            java.nio.file.StandardOpenOption.APPEND
+                    );
+                }
+            }
+
+            // 여기까지 오면 DB에는 경로만 저장
+            memoToStoreInDb = memoPath.toString();
+
+        } catch (java.io.IOException e) {
+            System.out.println("메모 파일 처리 중 오류: " + e.getMessage());
+            memoToStoreInDb = ""; // 실패했으면 빈 값
+        }
+
+        // 최종적으로 DB에는 경로만
+        card.setMemo(memoToStoreInDb);
+
         BizCard saved = bizCardRepository.save(card);
         return new BizCardSaveResult(saved, false);
     }
 
+    // 수기 등록
+    @Override
+    public BizCardSaveResult saveManualBizCard(Map<String, String> data, Long user_idx) {
+        return saveBizCardFromOcr(data, user_idx);
+    }
 
 
-    // ====== 아래는 기존 유틸 ======
+    // ============================================================================================================================
+    // ============================================================================================================================
+    // =============================================== 아래는 기존 유틸 ============================================================
+    // ============================================================================================================================
+    // ============================================================================================================================
 
     private Map<String, String> parseNameCardFromJson(String json) {
         String name       = extractFirstText(json, "\"name\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");

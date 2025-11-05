@@ -10,4 +10,6 @@ public interface BizCardReaderService {
 
     public BizCardSaveResult saveBizCardFromOcr(Map<String, String> data, Long user_idx);
 
+    public BizCardSaveResult saveManualBizCard(Map<String, String> data, Long user_idx);
+
 }

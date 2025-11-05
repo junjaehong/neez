@@ -41,4 +41,32 @@ public class BizCardReaderController {
         }
     }
 
+    @PostMapping("/manual")
+    public ResponseEntity<Map<String, Object>> createManual(@RequestBody Map<String, String> data) {
+        Map<String, Object> resp = new LinkedHashMap<>();
+
+        try {
+            // user_idx를 Long으로 변환
+            Long userIdx = null;
+            if (data.containsKey("user_idx") && data.get("user_idx") != null && !data.get("user_idx").isEmpty()) {
+                userIdx = Long.valueOf(data.get("user_idx"));
+            }
+
+            // 서비스 호출
+            BizCardSaveResult result = bizCardReaderService.saveManualBizCard(data, userIdx);
+
+            resp.put("success", true);
+            resp.put("existing", result.isExisting());
+            resp.put("card", result.getBizCard());
+            resp.put("input_data", data);
+            return ResponseEntity.ok(resp);
+
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("error", e.getClass().getSimpleName());
+            resp.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
 }
