@@ -6,6 +6,7 @@ import com.bbey.neez.entity.Users;
 import com.bbey.neez.repository.BizCardRepository;
 import com.bbey.neez.repository.CompanyRepository;
 import com.bbey.neez.repository.UserRepository;
+import com.bbey.neez.component.MemoStorage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,9 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private MemoStorage memoStorage;
 
     // 1) 인터페이스랑 시그니처 맞추기
     @Override
@@ -155,12 +159,26 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
 
         // --- 메모 파일 처리 후 DB에는 경로만 ---
         String reqMemo = nvl(data.get("memo"));
-        String nameForFile = name;
-        if (nameForFile == null || nameForFile.isEmpty()) {
-            nameForFile = "user-" + finalUserId;
+        // PK는 아직 안 나왔으니까 일단 임시 파일명
+        String tempFileName = null;
+        if (!reqMemo.isEmpty()) {
+            // 일단 사용자 기준 임시 이름
+            String baseName = (name != null && !name.isEmpty())
+                    ? name
+                    : "user-" + finalUserId;
+
+            // 이름으로 바로 파일 만들면 충돌할 수 있으니 뒤에 타임스탬프 붙여도 됨
+            tempFileName = baseName + "-" + System.currentTimeMillis() + ".txt";
+
+            try {
+                memoStorage.write(tempFileName, reqMemo);
+            } catch (IOException e) {
+                System.out.println("메모 파일 처리 실패: " + e.getMessage());
+                tempFileName = null;
+            }
         }
 
-        Path memoPath = Paths.get("src", "main", "resources", "Memo", nameForFile + ".txt");
+        Path memoPath = Paths.get("src", "main", "resources", "Memo", tempFileName);
         String memoToStore = "";
         try {
             if (memoPath.getParent() != null && !Files.exists(memoPath.getParent())) {
@@ -212,15 +230,9 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         // 🟢 memo 내용 읽기
         String memoContent = "";
         if (card.getMemo() != null && !card.getMemo().isEmpty()) {
-            java.nio.file.Path memoPath = java.nio.file.Paths.get(card.getMemo());
             try {
-                if (java.nio.file.Files.exists(memoPath)) {
-                    memoContent = new String(
-                            java.nio.file.Files.readAllBytes(memoPath),
-                            java.nio.charset.StandardCharsets.UTF_8
-                    );
-                }
-            } catch (Exception e) {
+                memoContent = memoStorage.read(card.getMemo());  // 파일명만 넘김
+            } catch (IOException e) {
                 System.out.println("메모 파일 읽기 실패: " + e.getMessage());
                 memoContent = "(메모 파일을 불러오는 중 오류가 발생했습니다)";
             }
@@ -297,32 +309,15 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         BizCard card = bizCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
 
-        // 파일 이름은 명함 이름 기준, 없으면 user-idx
-        String baseName = (card.getName() != null && !card.getName().isEmpty())
-                ? card.getName()
-                : ("user-" + card.getUserIdx());
-
-        java.nio.file.Path memoPath = java.nio.file.Paths.get(
-                "src", "main", "resources", "Memo", baseName + ".txt"
-        );
+        String fileName = "card-" + id + "-memo.txt";
 
         try {
-            if (memoPath.getParent() != null && !java.nio.file.Files.exists(memoPath.getParent())) {
-                java.nio.file.Files.createDirectories(memoPath.getParent());
-            }
-
-            // 새 메모로 갈아끼우는지, 붙이는지는 네 정책인데
-            // 여기선 “갈아끼우기”로 예시
-            java.nio.file.Files.write(
-                    memoPath,
-                    (memo + System.lineSeparator()).getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
-            );
-
-            // DB에는 경로만
-            card.setMemo(memoPath.toString());
+            // 실제 파일 저장은 MemoStorage가 처리
+            memoStorage.write(fileName, memo);
+            // DB에는 파일명만 저장
+            card.setMemo(fileName);
         } catch (Exception e) {
+            // 필요하면 로깅
             System.out.println("memo update failed: " + e.getMessage());
         }
 
@@ -330,6 +325,15 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         return bizCardRepository.save(card);
     }
 
+    public String getBizCardMemoContent(Long id) throws IOException {
+        BizCard card = bizCardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
+
+        if (card.getMemo() == null || card.getMemo().isEmpty()) {
+            return "";
+        }
+        return memoStorage.read(card.getMemo());
+    }
 
     // ============================================================================================================================
     // ============================================================================================================================

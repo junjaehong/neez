@@ -22,4 +22,6 @@ public interface BizCardReaderService {
 
     BizCard updateBizCardMemo(Long id, String memo);
 
+    String getBizCardMemoContent(Long id) throws Exception;
+
 }

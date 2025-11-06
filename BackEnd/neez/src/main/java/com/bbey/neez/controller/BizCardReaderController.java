@@ -4,6 +4,7 @@ import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.service.BizCardReaderService;
 import com.bbey.neez.entity.BizCardSaveResult;
 import com.bbey.neez.repository.CompanyRepository;
+import com.bbey.neez.component.MemoStorage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,9 @@ public class BizCardReaderController {
 
     @Autowired
     private CompanyRepository companyRepository;
+
+    @Autowired
+    private MemoStorage memoStorage;
 
     // OCR → 저장
     @PostMapping("/read")
@@ -120,13 +124,20 @@ public class BizCardReaderController {
     // 명함 메모만 가져오기
     @GetMapping("/{id}/memo")
     public ResponseEntity<?> getMemo(@PathVariable Long id) {
-        Map<String, Object> card = bizCardReaderService.getBizCardDetail(id);
         Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("success", true);
-        resp.put("memo_content", card.get("memo_content"));
-        resp.put("memo_path", card.get("memo_path"));
-        return ResponseEntity.ok(resp);
+        try {
+            String memoContent = bizCardReaderService.getBizCardMemoContent(id);
+            resp.put("success", true);
+            resp.put("memo_content", memoContent);
+            resp.put("memo_file", "card-" + id + "-memo.txt");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(resp);
+        }
     }
+
 
     // 명함 메모만 수정하기
     @PatchMapping("/{id}/memo")
