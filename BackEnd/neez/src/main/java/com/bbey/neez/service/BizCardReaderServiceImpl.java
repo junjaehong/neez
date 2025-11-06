@@ -174,9 +174,9 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
 
     // 4) 명함 + 회사명 + 메모내용까지 묶어서 주는 메서드
     @Override
-    public Map<String, Object> getBizCardDetail(Long idx) {
-        BizCard card = bizCardRepository.findById(idx)
-                .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
+    public Map<String, Object> getBizCardDetail(Long id) {
+        BizCard card = bizCardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
 
         String companyName = null;
         if (card.getCompanyIdx() != null && card.getCompanyIdx() > 0) {
