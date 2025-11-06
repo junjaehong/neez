@@ -31,4 +31,5 @@ public class Users {
 
     @Column(nullable = false)
     private LocalDateTime updated_at = LocalDateTime.now();
+    
 }
