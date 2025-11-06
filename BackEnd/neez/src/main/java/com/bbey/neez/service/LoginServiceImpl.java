@@ -1,7 +1,6 @@
 package com.bbey.neez.service;
 
 import org.springframework.stereotype.Service;
-import com.bbey.neez.service.LoginService;
 
 @Service
 public class LoginServiceImpl implements LoginService {
