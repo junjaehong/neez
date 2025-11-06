@@ -6,13 +6,15 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.nio.file.Files;
+
 
 @Component
 public class FileMemoStorage implements MemoStorage {
 
     private final Path memoDir;
 
-    public MemoStorage(@Value("${app.memo-dir}") String memoDirStr) throws IOException {
+    public FileMemoStorage(@Value("${app.memo-dir}") String memoDirStr) throws IOException {
         // Java 8에서는 Path.of(...) 없음 → Paths.get(...)
         this.memoDir = Paths.get(memoDirStr);
         if (!Files.exists(this.memoDir)) {

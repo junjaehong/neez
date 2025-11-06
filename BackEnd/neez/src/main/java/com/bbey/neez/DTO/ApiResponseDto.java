@@ -1,4 +1,4 @@
-package com.bbey.neez.dto;
+package com.bbey.neez.DTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

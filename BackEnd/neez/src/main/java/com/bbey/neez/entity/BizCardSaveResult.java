@@ -1,7 +1,5 @@
 package com.bbey.neez.entity;
 
-import com.bbey.neez.entity.BizCard;
-
 public class BizCardSaveResult {
     private final BizCard bizCard;
     private final boolean existing;

@@ -1,8 +1,8 @@
 package com.bbey.neez.controller;
 
-import com.bbey.neez.dto.ApiResponseDto;
-import com.bbey.neez.dto.BizCardDto;
-import com.bbey.neez.dto.MemoDto;
+import com.bbey.neez.DTO.ApiResponseDto;
+import com.bbey.neez.DTO.BizCardDto;
+import com.bbey.neez.DTO.MemoDto;
 import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.entity.BizCardSaveResult;
 import com.bbey.neez.service.BizCardReaderService;
