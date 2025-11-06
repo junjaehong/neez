@@ -1,31 +1,26 @@
 package com.bbey.neez.service;
 
+import com.bbey.neez.component.MemoStorage;
 import com.bbey.neez.entity.BizCard;
+import com.bbey.neez.entity.BizCardSaveResult;
 import com.bbey.neez.entity.Company;
 import com.bbey.neez.entity.Users;
 import com.bbey.neez.repository.BizCardRepository;
 import com.bbey.neez.repository.CompanyRepository;
 import com.bbey.neez.repository.UserRepository;
-import com.bbey.neez.component.MemoStorage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import com.bbey.neez.entity.BizCardSaveResult;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.nio.charset.StandardCharsets;
-import java.io.IOException;
 
 @Service
 public class BizCardReaderServiceImpl implements BizCardReaderService {
@@ -48,7 +43,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
     @Autowired
     private MemoStorage memoStorage;
 
-    // 1) 인터페이스랑 시그니처 맞추기
+    // 1) 명함 이미지(OCR) 분석
     @Override
     public Map<String, String> readBizCard(String fileName) {
         try {
@@ -83,6 +78,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
             InputStream is = (code == 200) ? conn.getInputStream() : conn.getErrorStream();
             String resp = readAll(is);
 
+            // 디버깅용 저장
             try (FileOutputStream fos = new FileOutputStream("result.json")) {
                 fos.write(resp.getBytes("UTF-8"));
             }
@@ -94,7 +90,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         }
     }
 
-    // 2) OCR·수기 둘 다 이거 태움
+    // 2) 수기 등록도 동일 로직 태움
     @Override
     public BizCardSaveResult saveManualBizCard(Map<String, String> data, Long userIdx) {
         return saveBizCardFromOcr(data, userIdx);
@@ -177,7 +173,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         return new BizCardSaveResult(saved, false);
     }
 
-    // 4) 명함 + 회사명까지 묶어서 주는 메서드
+    // 4) 명함 + 회사명 + 메모내용까지 묶어서 주는 메서드
     @Override
     public Map<String, Object> getBizCardDetail(Long idx) {
         BizCard card = bizCardRepository.findById(idx)
@@ -190,18 +186,17 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
                     .orElse(null);
         }
 
-        // 🟢 memo 내용 읽기
+        // 메모 내용 읽기
         String memoContent = "";
         if (card.getMemo() != null && !card.getMemo().isEmpty()) {
             try {
-                memoContent = memoStorage.read(card.getMemo());  // 파일명만 넘김
+                memoContent = memoStorage.read(card.getMemo());
             } catch (IOException e) {
                 System.out.println("메모 파일 읽기 실패: " + e.getMessage());
                 memoContent = "(메모 파일을 불러오는 중 오류가 발생했습니다)";
             }
         }
 
-        // 카드 + 회사명을 하나의 Map으로 만든다
         Map<String, Object> cardMap = new LinkedHashMap<>();
         cardMap.put("idx", card.getIdx());
         cardMap.put("user_idx", card.getUserIdx());
@@ -215,22 +210,20 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         cardMap.put("line_number", card.getLineNumber());
         cardMap.put("fax_number", card.getFaxNumber());
         cardMap.put("address", card.getAddress());
-        cardMap.put("memo_path", card.getMemo());   // 경로는 참고용으로 남기고
-        cardMap.put("memo_content", memoContent);   // 실제 내용은 여기 추가
+        cardMap.put("memo_path", card.getMemo());
+        cardMap.put("memo_content", memoContent);
         cardMap.put("created_at", card.getCreatedAt());
         cardMap.put("updated_at", card.getUpdatedAt());
 
         return cardMap;
     }
 
-    
-    // 5) 명함 정보만 수정하는 메서드
+    // 5) 명함 정보만 수정
     @Override
     public BizCard updateBizCard(Long idx, Map<String, String> data) {
         BizCard card = bizCardRepository.findById(idx)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
 
-        // 들어온 값만 덮어쓰기 (null/빈문자면 안 바꾸는 방식)
         String name = data.get("name");
         if (name != null && !name.isEmpty()) {
             card.setName(name);
@@ -262,11 +255,11 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         String address = data.get("address");
         if (address != null) card.setAddress(address);
 
-        card.setUpdatedAt(java.time.LocalDateTime.now());
+        card.setUpdatedAt(LocalDateTime.now());
         return bizCardRepository.save(card);
     }
 
-    // 6) 명함 메모만 따로 수정하는 메서드
+    // 6) 명함 메모만 따로 수정
     @Override
     public BizCard updateBizCardMemo(Long id, String memo) {
         BizCard card = bizCardRepository.findById(id)
@@ -275,19 +268,18 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         String fileName = "card-" + card.getIdx() + ".txt";
 
         try {
-            // 실제 파일 저장은 MemoStorage가 처리
             memoStorage.write(fileName, memo);
-            // DB에는 파일명만 저장
             card.setMemo(fileName);
         } catch (Exception e) {
-            // 필요하면 로깅
             System.out.println("memo update failed: " + e.getMessage());
         }
 
-        card.setUpdatedAt(java.time.LocalDateTime.now());
+        card.setUpdatedAt(LocalDateTime.now());
         return bizCardRepository.save(card);
     }
 
+    // 7) 메모 내용만 조회
+    @Override
     public String getBizCardMemoContent(Long id) throws IOException {
         BizCard card = bizCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
@@ -298,11 +290,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         return memoStorage.read(card.getMemo());
     }
 
-    // ============================================================================================================================
-    // ============================================================================================================================
-    // =============================================== 아래는 기존 유틸 ============================================================
-    // ============================================================================================================================
-    // ============================================================================================================================
+    // ========================= 유틸 =========================
 
     private Map<String, String> parseNameCardFromJson(String json) {
         String name       = extractFirstText(json, "\"name\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
