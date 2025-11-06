@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/bizcard")
+@RequestMapping("/api/bizcard")
 public class BizCardReaderController {
 
     @Autowired
@@ -129,7 +129,7 @@ public class BizCardReaderController {
             String memoContent = bizCardReaderService.getBizCardMemoContent(id);
             resp.put("success", true);
             resp.put("memo_content", memoContent);
-            resp.put("memo_file", "card-" + id + "-memo.txt");
+            resp.put("memo_file", "card-" + id + ".txt");
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
             resp.put("success", false);

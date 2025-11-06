@@ -157,60 +157,23 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         card.setCreatedAt(LocalDateTime.now());
         card.setUpdatedAt(LocalDateTime.now());
 
-        // --- 메모 파일 처리 후 DB에는 경로만 ---
+        // 1) 일단 메모 없이 저장해서 PK부터 받는다
+        BizCard saved = bizCardRepository.save(card);
+
+        // 2) 메모가 들어왔으면 이제 PK로 파일명 만든다
         String reqMemo = nvl(data.get("memo"));
-        // PK는 아직 안 나왔으니까 일단 임시 파일명
-        String tempFileName = null;
         if (!reqMemo.isEmpty()) {
-            // 일단 사용자 기준 임시 이름
-            String baseName = (name != null && !name.isEmpty())
-                    ? name
-                    : "user-" + finalUserId;
-
-            // 이름으로 바로 파일 만들면 충돌할 수 있으니 뒤에 타임스탬프 붙여도 됨
-            tempFileName = baseName + "-" + System.currentTimeMillis() + ".txt";
-
+            String fileName = "card-" + saved.getIdx() + ".txt";
             try {
-                memoStorage.write(tempFileName, reqMemo);
+                memoStorage.write(fileName, reqMemo);
+                saved.setMemo(fileName);
+                saved.setUpdatedAt(LocalDateTime.now());
+                saved = bizCardRepository.save(saved);  // 메모 파일명 반영해서 다시 저장
             } catch (IOException e) {
                 System.out.println("메모 파일 처리 실패: " + e.getMessage());
-                tempFileName = null;
             }
         }
 
-        Path memoPath = Paths.get("src", "main", "resources", "Memo", tempFileName);
-        String memoToStore = "";
-        try {
-            if (memoPath.getParent() != null && !Files.exists(memoPath.getParent())) {
-                Files.createDirectories(memoPath.getParent());
-            }
-
-            if (!Files.exists(memoPath)) {
-                // 새 파일
-                if (!reqMemo.isEmpty()) {
-                    Files.write(memoPath,
-                            (reqMemo + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
-                            StandardOpenOption.CREATE);
-                } else {
-                    Files.write(memoPath, new byte[0], StandardOpenOption.CREATE);
-                }
-            } else {
-                // 기존 파일에 추가
-                if (!reqMemo.isEmpty()) {
-                    String contentToAppend = System.lineSeparator() + reqMemo + System.lineSeparator();
-                    Files.write(memoPath,
-                            contentToAppend.getBytes(StandardCharsets.UTF_8),
-                            StandardOpenOption.APPEND);
-                }
-            }
-            memoToStore = memoPath.toString();
-        } catch (Exception e) {
-            System.out.println("메모 파일 처리 실패: " + e.getMessage());
-            memoToStore = "";
-        }
-        card.setMemo(memoToStore);
-
-        BizCard saved = bizCardRepository.save(card);
         return new BizCardSaveResult(saved, false);
     }
 
@@ -309,7 +272,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         BizCard card = bizCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
 
-        String fileName = "card-" + id + "-memo.txt";
+        String fileName = "card-" + card.getIdx() + ".txt";
 
         try {
             // 실제 파일 저장은 MemoStorage가 처리
