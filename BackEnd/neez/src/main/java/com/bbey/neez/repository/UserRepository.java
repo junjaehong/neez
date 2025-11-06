@@ -5,5 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<Users, Long> {
+
+    // ✅ 로그인 시 사용
     Optional<Users> findByUserId(String userId);
+
+    // ✅ 아이디 찾기 시 이름+이메일로 사용자 찾기
+    Optional<Users> findByNameAndEmail(String name, String email);
+
+    // ✅ 비밀번호 찾기 시 아이디+이메일로 사용자 찾기
+    Optional<Users> findByUserIdAndEmail(String userId, String email);
 }
