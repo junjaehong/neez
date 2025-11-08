@@ -92,6 +92,36 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         }
     }
 
+    // 1-2-1) 명함 이미지 업로드
+    @Value("${upload.bizcard.dir:src/main/resources/BizCard}")
+    private String uploadDir;
+
+    // 1-2-2) 명함 이미지 저장
+    @Override
+    public String storeBizCardImage(org.springframework.web.multipart.MultipartFile file) throws IOException {
+        // 디렉토리 없으면 생성
+        java.io.File dir = new java.io.File(uploadDir);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        // 저장할 파일명: time + 원본확장자
+        String original = file.getOriginalFilename();
+        String ext = "";
+        if (original != null && original.lastIndexOf('.') != -1) {
+            ext = original.substring(original.lastIndexOf('.'));
+        }
+        String storedName = "biz_" + System.currentTimeMillis() + ext;
+
+        java.io.File dest = new java.io.File(dir, storedName);
+        file.transferTo(dest);
+
+        // readBizCard 에서는 "src/main/resources/BizCard/파일명" 이렇게 쓰고 있었으니까
+        // 거기에 맞춰서 파일명만 리턴
+        return storedName;
+    }
+
+
     // 2) 수기 등록도 동일 로직 태움
     @Override
     public BizCardSaveResult saveManualBizCard(Map<String, String> data, Long userIdx) {
@@ -343,6 +373,65 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
     @Override
     public Page<BizCardDto> searchBizCards(Long userIdx, String keyword, Pageable pageable) {
         Page<BizCard> page = bizCardRepository.searchByKeyword(userIdx, keyword, pageable);
+
+        return page.map(card -> {
+            String companyName = null;
+            if (card.getCompanyIdx() != null) {
+                companyName = companyRepository.findById(card.getCompanyIdx())
+                        .map(Company::getName)
+                        .orElse(null);
+            }
+            String memoContent = "";
+            if (card.getMemo() != null && !card.getMemo().isEmpty()) {
+                try {
+                    memoContent = memoStorage.read(card.getMemo());
+                } catch (Exception ignored) {}
+            }
+            return new BizCardDto(
+                    card.getIdx(),
+                    card.getUserIdx(),
+                    card.getName(),
+                    companyName,
+                    card.getDepartment(),
+                    card.getPosition(),
+                    card.getEmail(),
+                    card.getPhoneNumber(),
+                    card.getLineNumber(),
+                    card.getFaxNumber(),
+                    card.getAddress(),
+                    memoContent
+            );
+        });
+    }
+
+    // ✅ 복원
+    @Override
+    public void restoreBizCard(Long id) {
+        BizCard card = bizCardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
+
+        card.setIsDeleted(false);
+        card.setUpdatedAt(LocalDateTime.now());
+        bizCardRepository.save(card);
+    }
+
+    // ✅ 개수
+    @Override
+    public long countBizCardsByUser(Long userIdx) {
+        return bizCardRepository.countByUserIdxAndIsDeletedFalse(userIdx);
+    }
+
+    // ✅ 중복확인
+    @Override
+    public boolean existsBizCard(Long userIdx, String name, String email) {
+        if (name == null || email == null) return false;
+        return bizCardRepository.existsByUserIdxAndNameAndEmailAndIsDeletedFalse(userIdx, name, email);
+    }
+
+    // ✅ 소프트 삭제된 명함 조회
+    @Override
+    public Page<BizCardDto> getDeletedBizCardsByUserIdx(Long userIdx, Pageable pageable) {
+        Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedTrue(userIdx, pageable);
 
         return page.map(card -> {
             String companyName = null;

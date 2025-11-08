@@ -17,6 +17,11 @@ public interface BizCardReaderService {
     Map<String, String> readBizCard(String fileName);
 
     /**
+     * 명함 이미지를 저장소에 저장하고, 저장된 파일명을 반환한다.
+     */
+    String storeBizCardImage(org.springframework.web.multipart.MultipartFile file) throws IOException;
+
+    /**
      * OCR로 뽑은 데이터를 실제 BizCard 엔티티로 저장한다.
      * 동일 명함(이름+이메일)이 있으면 existing=true로 반환.
      */
@@ -62,4 +67,16 @@ public interface BizCardReaderService {
      * 사용자 명함 중에서 키워드로 검색한다.
      */
     Page<BizCardDto> searchBizCards(Long userIdx, String keyword, Pageable pageable);
+
+     // ✅ 복원
+    void restoreBizCard(Long id);
+
+    // ✅ 개수
+    long countBizCardsByUser(Long userIdx);
+
+    // ✅ 중복확인
+    boolean existsBizCard(Long userIdx, String name, String email);
+
+    // ✅ 소프트 삭제된 명함 조회
+    Page<BizCardDto> getDeletedBizCardsByUserIdx(Long userIdx, Pageable pageable);
 }

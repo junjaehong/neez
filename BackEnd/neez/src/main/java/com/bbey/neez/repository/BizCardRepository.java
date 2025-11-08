@@ -27,5 +27,13 @@ public interface BizCardRepository extends JpaRepository<BizCard, Long> {
             "   lower(b.department) like lower(concat('%', :keyword, '%'))" +
             ")")
     Page<BizCard> searchByKeyword(@Param("userIdx") Long userIdx, @Param("keyword") String keyword, Pageable pageable);
-    
+
+     // 사용자별 살아있는 명함 개수
+    long countByUserIdxAndIsDeletedFalse(Long userIdx);
+
+    // 사용자별 이름+이메일로 살아있는 명함 존재 여부
+    boolean existsByUserIdxAndNameAndEmailAndIsDeletedFalse(Long userIdx, String name, String email);
+
+    // ✅ 소프트 삭제된 명함 조회
+    Page<BizCard> findByUserIdxAndIsDeletedTrue(Long userIdx, Pageable pageable);
 }
