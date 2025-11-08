@@ -6,16 +6,20 @@ import com.bbey.neez.DTO.MemoDto;
 import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.entity.BizCardSaveResult;
 import com.bbey.neez.service.BizCardReaderService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/bizcards")
+@Tag(name = "BizCard API", description = "명함 관리 기능 (OCR 등록, 조회, 수정, 삭제, 복구 등)")
 public class BizCardReaderController {
 
     private final BizCardReaderService bizCardReaderService;
@@ -24,7 +28,9 @@ public class BizCardReaderController {
         this.bizCardReaderService = bizCardReaderService;
     }
 
-    // ✅ 1. OCR → 저장
+    // ✅ 1. 명함 OCR 등록 + 저장
+    // ✅ 1-1. OCR → 저장
+    @Operation(summary = "명함 OCR 등록", description = "서버에 존재하는 명함 이미지 파일명을 기반으로 OCR 분석 후 명함 정보를 저장합니다.")
     @PostMapping("/read")
     public ResponseEntity<ApiResponseDto<BizCardDto>> ocrAndSave(@RequestBody Map<String, String> body) {
         try {
@@ -35,17 +41,11 @@ public class BizCardReaderController {
             BizCardSaveResult result = bizCardReaderService.saveBizCardFromOcr(ocrData, userIdx);
 
             String companyName = ocrData.getOrDefault("company", null);
-
             BizCardDto dto = toBizCardDto(result.getBizCard(), companyName, null);
 
             return ResponseEntity.ok(
-                    new ApiResponseDto<>(
-                            true,
-                            result.isExisting() ? "already exists" : "ok",
-                            dto
-                    )
+                    new ApiResponseDto<>(true, result.isExisting() ? "already exists" : "ok", dto)
             );
-
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponseDto<>(false, e.getMessage(), null));
@@ -53,34 +53,19 @@ public class BizCardReaderController {
     }
 
     // ✅ 1-2. OCR → 저장 (파일 업로드 버전)
-    @PostMapping("/read/upload")
+    @Operation(summary = "명함 이미지 업로드 + OCR 등록", description = "이미지 파일을 업로드하고 OCR 분석 후 명함 정보를 자동으로 저장합니다.")
+    @PostMapping(value = "/read/upload", consumes = "multipart/form-data")
     public ResponseEntity<ApiResponseDto<BizCardDto>> uploadAndOcr(
-            @RequestPart("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestPart("file") MultipartFile file,
             @RequestPart(value = "user_idx", required = false) Long userIdx
     ) {
         try {
-            // 1) 파일을 서버에 저장
             String storedFileName = bizCardReaderService.storeBizCardImage(file);
-
-            // 2) 기존 OCR 로직 재사용 (파일명만 넘겨줌)
             Map<String, String> ocrData = bizCardReaderService.readBizCard(storedFileName);
             BizCardSaveResult result = bizCardReaderService.saveBizCardFromOcr(ocrData, userIdx);
 
             String companyName = ocrData.getOrDefault("company", null);
-            BizCardDto dto = new BizCardDto(
-                    result.getBizCard().getIdx(),
-                    result.getBizCard().getUserIdx(),
-                    result.getBizCard().getName(),
-                    companyName,
-                    result.getBizCard().getDepartment(),
-                    result.getBizCard().getPosition(),
-                    result.getBizCard().getEmail(),
-                    result.getBizCard().getPhoneNumber(),
-                    result.getBizCard().getLineNumber(),
-                    result.getBizCard().getFaxNumber(),
-                    result.getBizCard().getAddress(),
-                    null
-            );
+            BizCardDto dto = toBizCardDto(result.getBizCard(), companyName, null);
 
             return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", dto));
         } catch (Exception e) {
@@ -89,34 +74,26 @@ public class BizCardReaderController {
         }
     }
 
-
     // ✅ 2. 수기 등록
+    @Operation(summary = "명함 수기 등록", description = "수기로 입력한 명함 정보를 JSON 형식으로 받아 저장합니다.")
     @PostMapping("/manual")
-    public ResponseEntity<ApiResponseDto<BizCardDto>> createManual(
-            @RequestBody(required = false) Map<String, String> data
-    ) {
+    public ResponseEntity<ApiResponseDto<BizCardDto>> createManual(@RequestBody(required = false) Map<String, String> data) {
         if (data == null) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponseDto<>(false, "JSON body is required", null));
         }
 
         try {
-            Long userIdx = null;
-            if (data.containsKey("user_idx") && data.get("user_idx") != null && !data.get("user_idx").isEmpty()) {
-                userIdx = Long.valueOf(data.get("user_idx"));
-            }
+            Long userIdx = (data.containsKey("user_idx") && !data.get("user_idx").isEmpty())
+                    ? Long.valueOf(data.get("user_idx"))
+                    : null;
 
             BizCardSaveResult result = bizCardReaderService.saveManualBizCard(data, userIdx);
             BizCardDto dto = toBizCardDto(result.getBizCard(), data.get("company"), null);
 
             return ResponseEntity.ok(
-                    new ApiResponseDto<>(
-                            true,
-                            result.isExisting() ? "already exists" : "ok",
-                            dto
-                    )
+                    new ApiResponseDto<>(true, result.isExisting() ? "already exists" : "ok", dto)
             );
-
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponseDto<>(false, e.getMessage(), null));
@@ -124,11 +101,11 @@ public class BizCardReaderController {
     }
 
     // ✅ 3. 명함 하나 가져오기
+    @Operation(summary = "명함 상세 조회", description = "명함의 상세정보 (회사명, 메모 내용 포함)를 조회합니다.")
     @GetMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<BizCardDto>> getBizCard(@PathVariable Long idx) {
         try {
             Map<String, Object> card = bizCardReaderService.getBizCardDetail(idx);
-
             BizCardDto dto = new BizCardDto(
                     (Long) card.get("idx"),
                     (Long) card.get("user_idx"),
@@ -152,6 +129,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 4. UserIdx에 해당하는 명함 페이징으로 가져오기
+    @Operation(summary = "사용자 명함 목록 조회", description = "특정 사용자의 명함 목록을 페이징 형태로 조회합니다.")
     @GetMapping("/user/{userIdx}/page")
     public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> getBizCardsPage(
             @PathVariable Long userIdx,
@@ -164,6 +142,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 5. 명함 수정하기
+    @Operation(summary = "명함 정보 수정", description = "명함의 기본 정보를 수정합니다.")
     @PutMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<BizCardDto>> updateBizCard(
             @PathVariable Long idx,
@@ -180,6 +159,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 6. 명함 메모만 가져오기
+    @Operation(summary = "명함 메모 조회", description = "명함에 연결된 메모 파일 내용을 조회합니다.")
     @GetMapping("/{id}/memo")
     public ResponseEntity<ApiResponseDto<MemoDto>> getMemo(@PathVariable Long id) {
         try {
@@ -193,6 +173,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 7. 명함 메모만 수정하기
+    @Operation(summary = "명함 메모 수정", description = "명함의 메모 내용을 수정합니다.")
     @PatchMapping("/{id}/memo")
     public ResponseEntity<ApiResponseDto<MemoDto>> updateBizCardMemo(
             @PathVariable Long id,
@@ -210,6 +191,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 8. 명함 삭제하기 (소프트 삭제)
+    @Operation(summary = "명함 삭제 (Soft Delete)", description = "명함을 실제 삭제하지 않고 is_deleted=true로 표시합니다.")
     @DeleteMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<Void>> deleteBizCard(@PathVariable Long idx) {
         try {
@@ -222,6 +204,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 9. 명함 검색
+    @Operation(summary = "명함 검색", description = "사용자 명함 중 이름, 이메일, 부서명으로 검색합니다.")
     @GetMapping("/user/{userIdx}/search")
     public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> search(
             @PathVariable Long userIdx,
@@ -235,6 +218,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 10. 명함 복원
+    @Operation(summary = "명함 복구", description = "is_deleted=true 상태의 명함을 복구합니다.")
     @PatchMapping("/{id}/restore")
     public ResponseEntity<ApiResponseDto<Void>> restoreBizCard(@PathVariable Long id) {
         try {
@@ -247,6 +231,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 11. 사용자 명함 개수
+    @Operation(summary = "명함 개수 조회", description = "특정 사용자의 전체 명함 개수를 조회합니다.")
     @GetMapping("/user/{userIdx}/count")
     public ResponseEntity<ApiResponseDto<Long>> countBizCards(@PathVariable Long userIdx) {
         long count = bizCardReaderService.countBizCardsByUser(userIdx);
@@ -254,6 +239,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 12. 중복 확인 (name + email)
+    @Operation(summary = "명함 중복 여부 확인", description = "사용자의 명함 중 동일한 이름 + 이메일이 존재하는지 확인합니다.")
     @GetMapping("/user/{userIdx}/exists")
     public ResponseEntity<ApiResponseDto<Boolean>> existsBizCard(
             @PathVariable Long userIdx,
@@ -265,6 +251,7 @@ public class BizCardReaderController {
     }
 
     // ✅ 13. 소프트 삭제된 명함 조회
+    @Operation(summary = "삭제된 명함 조회 (휴지통)", description = "소프트 삭제된 명함 목록을 페이징 형태로 조회합니다.")
     @GetMapping("/user/{userIdx}/deleted")
     public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> getDeletedBizCards(
             @PathVariable Long userIdx,
