@@ -11,6 +11,8 @@ import com.bbey.neez.repository.CompanyRepository;
 import com.bbey.neez.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -152,11 +154,11 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         card.setAddress(nvl(data.get("address")));
         card.setCreatedAt(LocalDateTime.now());
         card.setUpdatedAt(LocalDateTime.now());
+        card.setIsDeleted(false);
 
-        // 1) 일단 메모 없이 저장해서 PK부터 받는다
         BizCard saved = bizCardRepository.save(card);
 
-        // 2) 메모가 들어왔으면 이제 PK로 파일명 만든다
+        // 메모 있을 때만 파일 저장
         String reqMemo = nvl(data.get("memo"));
         if (!reqMemo.isEmpty()) {
             String fileName = "card-" + saved.getIdx() + ".txt";
@@ -164,7 +166,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
                 memoStorage.write(fileName, reqMemo);
                 saved.setMemo(fileName);
                 saved.setUpdatedAt(LocalDateTime.now());
-                saved = bizCardRepository.save(saved);  // 메모 파일명 반영해서 다시 저장
+                saved = bizCardRepository.save(saved);
             } catch (IOException e) {
                 System.out.println("메모 파일 처리 실패: " + e.getMessage());
             }
@@ -290,32 +292,25 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         return memoStorage.read(card.getMemo());
     }
 
-    // 8) UserIdx에 해당하는 명함들 전부 가져오기
+    // 8) UserIdx에 해당하는 명함들 페이징으로 가져오기 (삭제 안 된 것만)
     @Override
-    public List<BizCardDto> getBizCardsByUserIdx(Long userIdx) {
-        List<BizCard> cards = bizCardRepository.findAllByUserIdx(userIdx);
-        List<BizCardDto> dtoList = new ArrayList<>();
+    public Page<BizCardDto> getBizCardsByUserIdx(Long userIdx, Pageable pageable) {
+        Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedFalse(userIdx, pageable);
 
-        for (BizCard card : cards) {
-            // 회사 이름
+        return page.map(card -> {
             String companyName = null;
             if (card.getCompanyIdx() != null) {
                 companyName = companyRepository.findById(card.getCompanyIdx())
                         .map(Company::getName)
                         .orElse(null);
             }
-
-            // 메모 내용
             String memoContent = "";
             if (card.getMemo() != null && !card.getMemo().isEmpty()) {
                 try {
                     memoContent = memoStorage.read(card.getMemo());
-                } catch (IOException e) {
-                    memoContent = "(메모 읽기 실패)";
-                }
+                } catch (Exception ignored) {}
             }
-
-            BizCardDto dto = new BizCardDto(
+            return new BizCardDto(
                     card.getIdx(),
                     card.getUserIdx(),
                     card.getName(),
@@ -329,33 +324,57 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
                     card.getAddress(),
                     memoContent
             );
-            dtoList.add(dto);
-        }
-
-        return dtoList;
+        });
     }
 
-    // 9) 명함 삭제
+    // 9) 소프트 삭제
     @Override
-    public void deleteBizCard(Long idx) {
-        BizCard card = bizCardRepository.findById(idx)
-                .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
+    public void deleteBizCard(Long id) {
+        BizCard card = bizCardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
 
-        // 메모 파일도 삭제
-        if (card.getMemo() != null && !card.getMemo().isEmpty()) {
-            try {
-                memoStorage.delete(card.getMemo());
-            } catch (IOException e) {
-                System.out.println("메모 파일 삭제 실패: " + e.getMessage());
+        card.setIsDeleted(true);
+        card.setUpdatedAt(LocalDateTime.now());
+
+        bizCardRepository.save(card);
+    }
+
+    // 10) 명함 검색
+    @Override
+    public Page<BizCardDto> searchBizCards(Long userIdx, String keyword, Pageable pageable) {
+        Page<BizCard> page = bizCardRepository.searchByKeyword(userIdx, keyword, pageable);
+
+        return page.map(card -> {
+            String companyName = null;
+            if (card.getCompanyIdx() != null) {
+                companyName = companyRepository.findById(card.getCompanyIdx())
+                        .map(Company::getName)
+                        .orElse(null);
             }
-        }
-
-        // DB에서 명함 삭제
-        bizCardRepository.deleteById(idx);
+            String memoContent = "";
+            if (card.getMemo() != null && !card.getMemo().isEmpty()) {
+                try {
+                    memoContent = memoStorage.read(card.getMemo());
+                } catch (Exception ignored) {}
+            }
+            return new BizCardDto(
+                    card.getIdx(),
+                    card.getUserIdx(),
+                    card.getName(),
+                    companyName,
+                    card.getDepartment(),
+                    card.getPosition(),
+                    card.getEmail(),
+                    card.getPhoneNumber(),
+                    card.getLineNumber(),
+                    card.getFaxNumber(),
+                    card.getAddress(),
+                    memoContent
+            );
+        });
     }
 
     // ========================= 유틸 =========================
-
     private Map<String, String> parseNameCardFromJson(String json) {
         String name       = extractFirstText(json, "\"name\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
         String department = extractFirstText(json, "\"department\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
@@ -373,7 +392,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
         String company = firstNonNull(
                 extractFirstText(json, "\"company\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\""),
                 extractFirstText(json, "\"companyName\"\\s*:\\s*\\[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\""),
-                extractFirstText(json, "\"organization\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\""),
+                extractFirstText(json, "\"organization\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\*\"(.*?)\""),
                 extractFirstText(json, "\"org\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\""),
                 extractFirstText(json, "\"corp\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\""),
                 extractFirstText(json, "\"office\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"")
@@ -454,12 +473,15 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
                         continue;
                     } catch (NumberFormatException ignore) {}
                 }
-                if (n == '"' || n == '\\' || n == '/') { out.append(n); i++; continue; }
-                if (n == 'b') { out.append('\b'); i++; continue; }
-                if (n == 'f') { out.append('\f'); i++; continue; }
-                if (n == 'n') { out.append('\n'); i++; continue; }
-                if (n == 'r') { out.append('\r'); i++; continue; }
-                if (n == 't') { out.append('\t'); i++; continue; }
+                switch (n) {
+                    case '"': case '\\': case '/':
+                        out.append(n); i++; continue;
+                    case 'b': out.append('\b'); i++; continue;
+                    case 'f': out.append('\f'); i++; continue;
+                    case 'n': out.append('\n'); i++; continue;
+                    case 'r': out.append('\r'); i++; continue;
+                    case 't': out.append('\t'); i++; continue;
+                }
             }
             out.append(c);
         }
@@ -473,7 +495,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
 
     private static String val(String s) {
         return (s == null || s.isEmpty()) ? "" : s;
-    }
+        }
 
     private String nvl(String s) {
         return (s == null) ? "" : s;

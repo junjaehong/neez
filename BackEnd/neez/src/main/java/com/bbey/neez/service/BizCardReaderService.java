@@ -3,17 +3,16 @@ package com.bbey.neez.service;
 import com.bbey.neez.DTO.BizCardDto;
 import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.entity.BizCardSaveResult;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 public interface BizCardReaderService {
 
     /**
      * OCR로 명함 이미지 파일을 읽어서 필드별로 뽑아낸다.
-     * @param fileName 리소스/스토리지에 있는 명함 이미지 파일 이름
-     * @return company, name, department, position, tel, mobile, fax, email, address 등 키를 가진 Map
      */
     Map<String, String> readBizCard(String fileName);
 
@@ -29,8 +28,7 @@ public interface BizCardReaderService {
     BizCardSaveResult saveManualBizCard(Map<String, String> data, Long userIdx);
 
     /**
-     * 명함 하나를 상세 조회해서
-     * 회사명, 메모내용까지 Map으로 내려준다.
+     * 명함 하나를 상세 조회해서 회사명, 메모내용까지 내려준다.
      */
     Map<String, Object> getBizCardDetail(Long id);
 
@@ -41,19 +39,27 @@ public interface BizCardReaderService {
 
     /**
      * 명함의 메모만 따로 수정한다.
-     * 실제 파일은 MemoStorage에 쓰고, DB에는 파일명만 저장한다.
      */
     BizCard updateBizCardMemo(Long id, String memo);
 
     /**
      * 명함의 메모 내용만 문자열로 가져온다.
-     * @throws IOException 메모 파일을 읽을 수 없을 때
      */
     String getBizCardMemoContent(Long id) throws IOException;
 
-    // BizCardReaderService 에 시그니처 추가
-    List<BizCardDto> getBizCardsByUserIdx(Long userIdx);
+    /**
+     * 특정 사용자(userIdx)의 명함을 페이징으로 조회한다.
+     * 삭제된(isDeleted=true) 명함은 제외한다.
+     */
+    Page<BizCardDto> getBizCardsByUserIdx(Long userIdx, Pageable pageable);
 
-    void deleteBizCard(Long idx);
-    
+    /**
+     * 명함을 실제로 삭제하지 않고 소프트 삭제 처리한다.
+     */
+    void deleteBizCard(Long id);
+
+    /**
+     * 사용자 명함 중에서 키워드로 검색한다.
+     */
+    Page<BizCardDto> searchBizCards(Long userIdx, String keyword, Pageable pageable);
 }
