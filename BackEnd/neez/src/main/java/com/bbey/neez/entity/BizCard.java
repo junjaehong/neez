@@ -7,40 +7,56 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "bizCards")   // 실제 테이블명에 맞춰서 사용
+@Table(name = "bizCards")
 public class BizCard {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idx;
-    @Column(name = "user_idx")
-    private Long userIdx;
+    private Long idx;                   // ← PK는 Long 유지 (persist 전엔 null)
+
+    @Column(name = "user_idx", nullable = false)
+    private long userIdx;               // ← 항상 채워지니까 long
+
     private String name;
+
     @Column(name = "company_idx")
-    private Long companyIdx;
+    private Long companyIdx;            // ← 회사가 없을 수 있으니까 Long 유지
+
     private String department;
     private String position;
     private String email;
+
     @Column(name = "phone_number")
     private String phoneNumber;
+
     @Column(name = "line_number")
     private String lineNumber;
+
     @Column(name = "fax_number")
     private String faxNumber;
+
     private String address;
-    // 메모 파일 경로 (card-1.txt 이런 식)
     private String memo;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    // 소프트 삭제 플래그
-    @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted = false;
 
-    // Lombok @Data가 있어서 원래는 필요 없지만,
-    // 너가 수동 setter도 두고 있어서 유지해줌
-    public void setIsDeleted(Boolean isDeleted) {
-        this.isDeleted = isDeleted;
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;  // ← Boolean → boolean 으로
+
+    // 필요하면 커스텀 setter 남겨도 됨
+    public void setUserIdx(long userIdx) {
+        this.userIdx = userIdx;
+    }
+
+    public void setCompanyIdx(Long companyIdx) {
+        this.companyIdx = companyIdx;
+    }
+
+    public void setIsDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 }

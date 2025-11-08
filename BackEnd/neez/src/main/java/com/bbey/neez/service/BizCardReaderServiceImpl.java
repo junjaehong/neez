@@ -172,7 +172,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
 
         // --- 신규 엔티티 생성 ---
         BizCard card = new BizCard();
-        card.setUserIdx(finalUserId);
+        card.setUserIdx(finalUserId != null ? finalUserId : 0L);
         card.setName(name);
         card.setCompanyIdx(companyIdx);
         card.setDepartment(nvl(data.get("department")));
