@@ -23,6 +23,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Service
 public class BizCardReaderServiceImpl implements BizCardReaderService {
@@ -589,4 +591,17 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
     private String nvl(String s) {
         return (s == null) ? "" : s;
     }
+
+    // ✅ 바이트 배열로 명함 이미지 저장
+    @Override
+    public String storeBizCardImage(byte[] bytes, String filename) throws IOException {
+    Path dir = Paths.get("src/main/resources/BizCard");
+    if (!Files.exists(dir)) {
+        Files.createDirectories(dir);
+    }
+    Path target = dir.resolve(filename);
+    Files.write(target, bytes);
+    return filename;
+}
+
 }

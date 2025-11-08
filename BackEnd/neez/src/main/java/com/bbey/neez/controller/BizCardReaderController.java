@@ -19,6 +19,8 @@ import com.bbey.neez.DTO.request.BizCardOcrRequest;
 import com.bbey.neez.DTO.request.BizCardManualRequest;
 import com.bbey.neez.DTO.request.BizCardUpdateRequest;
 import com.bbey.neez.DTO.request.BizCardMemoUpdateRequest;
+import org.springframework.http.MediaType;
+
 
 import java.util.Map;
 
@@ -65,18 +67,47 @@ public class BizCardReaderController {
             summary = "명함 이미지 업로드 + OCR 등록",
             description = "이미지 파일을 업로드하고 OCR 분석 후 명함 정보를 자동으로 저장합니다."
     )
-    @PostMapping(value = "/read/upload", consumes = "multipart/form-data")
+    @PostMapping(
+        value = "/read/upload",
+        consumes = { MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_OCTET_STREAM_VALUE }
+    )
     public ResponseEntity<ApiResponseDto<BizCardDto>> uploadAndOcr(
-            @RequestPart("file") MultipartFile file,
-            @RequestPart(value = "user_idx", required = false) Long userIdx
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @RequestPart(value = "user_idx", required = false) Long userIdx,
+            @RequestBody(required = false) byte[] rawBytes  // octet-stream 일 때
     ) {
         try {
-            String storedFileName = bizCardReaderService.storeBizCardImage(file);
+            String storedFileName;
+
+            if (file != null) {
+                // multipart 들어온 경우
+                storedFileName = bizCardReaderService.storeBizCardImage(file);
+            } else if (rawBytes != null) {
+                // octet-stream 들어온 경우
+                storedFileName = bizCardReaderService.storeBizCardImage(rawBytes, "upload.jpg");
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponseDto<>(false, "file is required", null));
+            }
+
             Map<String, String> ocrData = bizCardReaderService.readBizCard(storedFileName);
             BizCardSaveResult result = bizCardReaderService.saveBizCardFromOcr(ocrData, userIdx);
 
             String companyName = ocrData.getOrDefault("company", null);
-            BizCardDto dto = toBizCardDto(result.getBizCard(), companyName, null);
+            BizCardDto dto = new BizCardDto(
+                    result.getBizCard().getIdx(),
+                    result.getBizCard().getUserIdx(),
+                    result.getBizCard().getName(),
+                    companyName,
+                    result.getBizCard().getDepartment(),
+                    result.getBizCard().getPosition(),
+                    result.getBizCard().getEmail(),
+                    result.getBizCard().getPhoneNumber(),
+                    result.getBizCard().getLineNumber(),
+                    result.getBizCard().getFaxNumber(),
+                    result.getBizCard().getAddress(),
+                    null
+            );
 
             return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", dto));
         } catch (Exception e) {
@@ -84,6 +115,7 @@ public class BizCardReaderController {
                     .body(new ApiResponseDto<>(false, e.getMessage(), null));
         }
     }
+
 
     // ✅ 2. 수기 등록
     @Operation(

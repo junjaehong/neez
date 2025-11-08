@@ -79,4 +79,6 @@ public interface BizCardReaderService {
 
     // ✅ 소프트 삭제된 명함 조회
     Page<BizCardDto> getDeletedBizCardsByUserIdx(Long userIdx, Pageable pageable);
+
+    String storeBizCardImage(byte[] bytes, String filename) throws IOException;
 }
