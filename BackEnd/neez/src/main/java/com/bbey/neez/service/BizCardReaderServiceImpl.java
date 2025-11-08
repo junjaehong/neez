@@ -1,5 +1,6 @@
 package com.bbey.neez.service;
 
+import com.bbey.neez.DTO.BizCardDto;
 import com.bbey.neez.component.MemoStorage;
 import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.entity.BizCardSaveResult;
@@ -287,6 +288,70 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
             return "";
         }
         return memoStorage.read(card.getMemo());
+    }
+
+    // 8) UserIdx에 해당하는 명함들 전부 가져오기
+    @Override
+    public List<BizCardDto> getBizCardsByUserIdx(Long userIdx) {
+        List<BizCard> cards = bizCardRepository.findAllByUserIdx(userIdx);
+        List<BizCardDto> dtoList = new ArrayList<>();
+
+        for (BizCard card : cards) {
+            // 회사 이름
+            String companyName = null;
+            if (card.getCompanyIdx() != null) {
+                companyName = companyRepository.findById(card.getCompanyIdx())
+                        .map(Company::getName)
+                        .orElse(null);
+            }
+
+            // 메모 내용
+            String memoContent = "";
+            if (card.getMemo() != null && !card.getMemo().isEmpty()) {
+                try {
+                    memoContent = memoStorage.read(card.getMemo());
+                } catch (IOException e) {
+                    memoContent = "(메모 읽기 실패)";
+                }
+            }
+
+            BizCardDto dto = new BizCardDto(
+                    card.getIdx(),
+                    card.getUserIdx(),
+                    card.getName(),
+                    companyName,
+                    card.getDepartment(),
+                    card.getPosition(),
+                    card.getEmail(),
+                    card.getPhoneNumber(),
+                    card.getLineNumber(),
+                    card.getFaxNumber(),
+                    card.getAddress(),
+                    memoContent
+            );
+            dtoList.add(dto);
+        }
+
+        return dtoList;
+    }
+
+    // 9) 명함 삭제
+    @Override
+    public void deleteBizCard(Long idx) {
+        BizCard card = bizCardRepository.findById(idx)
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
+
+        // 메모 파일도 삭제
+        if (card.getMemo() != null && !card.getMemo().isEmpty()) {
+            try {
+                memoStorage.delete(card.getMemo());
+            } catch (IOException e) {
+                System.out.println("메모 파일 삭제 실패: " + e.getMessage());
+            }
+        }
+
+        // DB에서 명함 삭제
+        bizCardRepository.deleteById(idx);
     }
 
     // ========================= 유틸 =========================

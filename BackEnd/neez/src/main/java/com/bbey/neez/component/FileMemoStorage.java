@@ -41,4 +41,11 @@ public class FileMemoStorage implements MemoStorage {
         }
         return "";
     }
+
+    public void delete(String memo) throws IOException {
+        Path target = memoDir.resolve(memo);
+        if (Files.exists(target)) {
+            Files.delete(target);
+        }
+    }
 }

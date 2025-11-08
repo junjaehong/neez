@@ -1,9 +1,11 @@
 package com.bbey.neez.service;
 
+import com.bbey.neez.DTO.BizCardDto;
 import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.entity.BizCardSaveResult;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 public interface BizCardReaderService {
@@ -48,4 +50,10 @@ public interface BizCardReaderService {
      * @throws IOException 메모 파일을 읽을 수 없을 때
      */
     String getBizCardMemoContent(Long id) throws IOException;
+
+    // BizCardReaderService 에 시그니처 추가
+    List<BizCardDto> getBizCardsByUserIdx(Long userIdx);
+
+    void deleteBizCard(Long idx);
+    
 }
