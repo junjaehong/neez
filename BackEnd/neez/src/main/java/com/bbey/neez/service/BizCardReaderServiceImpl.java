@@ -51,7 +51,9 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
     @Override
     public Map<String, String> readBizCard(String fileName) {
         try {
-            String payload = buildPayloadWithFile("src/main/resources/BizCard/" + fileName);
+            String fullPath = uploadDir + File.separator + fileName;
+
+            String payload = buildPayloadWithFile(fullPath);
 
             // mock 모드
             if (APIGW_URL != null && APIGW_URL.contains("example-api-gateway")) {
@@ -86,6 +88,8 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
             try (FileOutputStream fos = new FileOutputStream("result.json")) {
                 fos.write(resp.getBytes("UTF-8"));
             }
+
+            System.out.println("OCR Response: " + parseNameCardFromJson(resp));
 
             return parseNameCardFromJson(resp);
 
