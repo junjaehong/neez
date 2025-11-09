@@ -2,7 +2,8 @@ package com.bbey.neez.controller;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.CompanyEvaluationDto;
-import com.bbey.neez.service.CompanyAnalysisService;
+import com.bbey.neez.service.Company.CompanyAnalysisService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;

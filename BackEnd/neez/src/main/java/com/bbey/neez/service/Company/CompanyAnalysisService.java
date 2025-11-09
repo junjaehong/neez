@@ -1,4 +1,4 @@
-package com.bbey.neez.service;
+package com.bbey.neez.service.Company;
 
 import com.bbey.neez.DTO.CompanyEvaluationDto;
 
