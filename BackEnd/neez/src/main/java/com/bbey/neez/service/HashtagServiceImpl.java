@@ -8,6 +8,7 @@ import com.bbey.neez.repository.CardHashTagRepository;
 import com.bbey.neez.repository.HashTagRepository;
 import com.bbey.neez.repository.CompanyRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -158,7 +159,13 @@ public class HashtagServiceImpl implements HashtagService {
 
     @Override
     public List<HashTag> getTopTags(int limit) {
-        return hashTagRepository.findTopUsedTags(limit);
+        // ORDER BY COUNT(...) DESC 는 쿼리 안에 already 있으니까 정렬 안 줘도 되지만
+        // 혹시 모를 상황 대비해서 한 번 더 정렬 넣어도 됨.
+        return hashTagRepository
+                .findTopUsedTags(PageRequest.of(0, limit))
+                .stream()
+                .limit(limit)   // 혹시 더 와도 자르기
+                .collect(Collectors.toList());
     }
 
     private String normalize(String tagName) {
