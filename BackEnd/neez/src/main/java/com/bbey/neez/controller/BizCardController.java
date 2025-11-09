@@ -15,7 +15,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/bizcards")
@@ -65,6 +67,7 @@ public class BizCardController {
     public ResponseEntity<ApiResponseDto<BizCardDto>> getBizCard(@PathVariable Long idx) {
         try {
             Map<String, Object> card = bizCardService.getBizCardDetail(idx);
+            List<String> tags = (List<String>) (card.get("tags") != null ? card.get("tags") : new ArrayList<>());
             BizCardDto dto = new BizCardDto(
                     (Long) card.get("idx"),
                     (Long) card.get("user_idx"),
@@ -77,7 +80,8 @@ public class BizCardController {
                     (String) card.get("line_number"),
                     (String) card.get("fax_number"),
                     (String) card.get("address"),
-                    (String) card.get("memo_content")
+                    (String) card.get("memo_content"),
+                    tags
             );
             return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", dto));
         } catch (Exception e) {
@@ -214,7 +218,8 @@ public class BizCardController {
                 card.getLineNumber(),
                 card.getFaxNumber(),
                 card.getAddress(),
-                memoContent
+                memoContent,
+                null    // 태그는 여기서 안 넣음
         );
     }
 }
