@@ -1,36 +1,46 @@
 package com.bbey.neez.entity;
 
 import lombok.Data;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import java.time.LocalDateTime;
+
+import javax.persistence.*;
 import java.math.BigDecimal;
-import javax.persistence.Table;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
 @Table(name = "companies")
 public class Company {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idx;
+
+    @Column(name = "name", nullable = false)
     private String name;
+
+    @Column(name = "domain")
     private String domain;
+
+    @Column(name = "industry")
     private String industry;
+
+    // AI가 뽑아온 요약/설명
+    @Column(name = "detail", columnDefinition = "TEXT")
+    private String detail;
+
+    @Column(name = "source")
     private String source;
+
+    // 0~1 신뢰도
+    @Column(name = "confidence", precision = 3, scale = 2)
     private BigDecimal confidence;
+
+    @Column(name = "last_refreshed_at")
     private LocalDateTime last_refreshed_at;
+
+    @Column(name = "created_at")
     private LocalDateTime created_at;
+
+    @Column(name = "updated_at")
     private LocalDateTime updated_at;
-
-    // 명시적 getter/setter 추가: Lombok이 동작하지 않는 환경에서도 컴파일이 되도록 방어적으로 구현
-    public Long getIdx() { return this.idx; }
-
-    public void setName(String name) { this.name = name; }
-
-    public void setCreated_at(LocalDateTime created_at) { this.created_at = created_at; }
-
-    public void setUpdated_at(LocalDateTime updated_at) { this.updated_at = updated_at; }
 }
