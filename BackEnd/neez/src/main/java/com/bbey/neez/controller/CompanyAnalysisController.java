@@ -19,7 +19,7 @@ public class CompanyAnalysisController {
         this.companyAnalysisService = companyAnalysisService;
     }
 
-    @Operation(summary = "회사 종합 분석", description = "뉴스 감성 + 재무 건전성 + ESG 프록시를 종합해서 점수를 반환합니다.")
+    @Operation(summary = "회사 종합 분석", description = "뉴스 감성 + DART 재무 + ESG 프록시를 합산한 종합 점수를 반환합니다.")
     @GetMapping("/analyze")
     public ResponseEntity<ApiResponseDto<CompanyScoreDto>> analyze(@RequestParam String name) {
         CompanyScoreDto dto = companyAnalysisService.evaluateCompany(name);
