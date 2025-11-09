@@ -67,7 +67,7 @@ DB 연결 정보는 .env 또는 시스템 환경 변수에서 관리합니다.
 ## 🧾 Swagger UI
 
 Swagger(OpenAPI)로 API 문서 확인 가능
-- URL: http://localhost:8080/swagger-ui/index.html
+- URL: http://localhost:8083/swagger-ui/index.html
 - 의존성 추가 (pom.xml):
   ```
   <dependency>
