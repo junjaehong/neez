@@ -1,6 +1,7 @@
 package com.bbey.neez.component;
 
-import lombok.RequiredArgsConstructor;
+import com.bbey.neez.DTO.NaverNewsItem;
+import com.bbey.neez.DTO.NaverNewsResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -8,13 +9,17 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Arrays;
 
 @Component
-@RequiredArgsConstructor
 public class NaverNewsClient {
+
+    // 네이버 뉴스 검색 기본 URL
+    private static final String SEARCH_URL = "https://openapi.naver.com/v1/search/news.json";
+
+    private final RestTemplate restTemplate;
 
     @Value("${naver.client-id}")
     private String clientId;
@@ -22,15 +27,23 @@ public class NaverNewsClient {
     @Value("${naver.client-secret}")
     private String clientSecret;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    public NaverNewsClient() {
+        this.restTemplate = new RestTemplate();
+    }
 
-    public List<Map<String, Object>> searchNews(String query, int display) {
+    /**
+     * 키워드로 뉴스 검색
+     * @param keyword 회사명 등
+     * @param display 가져올 개수
+     */
+    public List<NaverNewsItem> searchNews(String keyword, int display) {
         URI uri = UriComponentsBuilder
-                .fromUriString("https://openapi.naver.com/v1/search/news.json")
-                .queryParam("query", query)
+                .fromHttpUrl(SEARCH_URL)
+                .queryParam("query", keyword)
                 .queryParam("display", display)
                 .queryParam("sort", "date")
-                .build(true)
+                .encode(StandardCharsets.UTF_8)   // 한글 인코딩
+                .build()
                 .toUri();
 
         HttpHeaders headers = new HttpHeaders();
@@ -39,9 +52,25 @@ public class NaverNewsClient {
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> resp = restTemplate.exchange(uri, HttpMethod.GET, entity, Map.class);
-        Map body = resp.getBody();
-        if (body == null) return Arrays.asList();
-        return (List<Map<String, Object>>) body.get("items");
+        ResponseEntity<NaverNewsResponse> response =
+                restTemplate.exchange(
+                        uri,
+                        HttpMethod.GET,
+                        entity,
+                        NaverNewsResponse.class
+                );
+
+        if (response.getStatusCode().is2xxSuccessful()
+                && response.getBody() != null
+                && response.getBody().getItems() != null) {
+            return response.getBody().getItems();
+        }
+
+        return Collections.emptyList();
+    }
+
+    // 기본 개수 5개짜리 오버로드
+    public List<NaverNewsItem> searchNews(String keyword) {
+        return searchNews(keyword, 5);
     }
 }

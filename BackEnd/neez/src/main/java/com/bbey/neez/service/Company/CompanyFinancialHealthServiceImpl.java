@@ -1,5 +1,6 @@
 package com.bbey.neez.service.Company;
 
+import com.bbey.neez.component.DartAccountMapping;
 import com.bbey.neez.entity.Company;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
@@ -12,24 +13,25 @@ public class CompanyFinancialHealthServiceImpl implements CompanyFinancialHealth
 
     private final DartCorpCodeService corpCodeService;
     private final DartFinancialClient dartFinancialClient;
+    private final DartAccountMapping dartAccountMapping;
 
     public CompanyFinancialHealthServiceImpl(DartCorpCodeService corpCodeService,
-                                             DartFinancialClient dartFinancialClient) {
+                                             DartFinancialClient dartFinancialClient,
+                                             DartAccountMapping dartAccountMapping) {
         this.corpCodeService = corpCodeService;
         this.dartFinancialClient = dartFinancialClient;
+        this.dartAccountMapping = dartAccountMapping;
     }
 
     @Override
-    public BigDecimal evaluate(Company company) {
+    public BigDecimal evaluate(Company company, String year, String reportCode) {
         try {
             String corpCode = corpCodeService.findCorpCodeByName(company.getName());
             if (corpCode == null) {
-                // 못 찾으면 중간점
                 return new BigDecimal("0.60");
             }
 
-            // 최근 연도는 일단 하드코딩. 나중에 LocalDateTime.now().getYear() 써도 됨
-            JsonNode node = dartFinancialClient.getFinancialStatements(corpCode, "2024", "11011");
+            JsonNode node = dartFinancialClient.getFinancialStatements(corpCode, year, reportCode);
             JsonNode list = node.path("list");
             if (list.isMissingNode()) {
                 return new BigDecimal("0.60");
@@ -44,11 +46,11 @@ public class CompanyFinancialHealthServiceImpl implements CompanyFinancialHealth
                 String amountStr = item.path("thstrm_amount").asText("0").replaceAll(",", "");
                 BigDecimal amount = new BigDecimal(amountStr.isEmpty() ? "0" : amountStr);
 
-                if (accountName.contains("자산총계")) {
+                if (dartAccountMapping.matches(accountName, dartAccountMapping.totalAssetNames())) {
                     totalAssets = amount;
-                } else if (accountName.contains("부채총계")) {
+                } else if (dartAccountMapping.matches(accountName, dartAccountMapping.totalLiabilityNames())) {
                     totalLiabilities = amount;
-                } else if (accountName.contains("매출액") || accountName.contains("영업수익")) {
+                } else if (dartAccountMapping.matches(accountName, dartAccountMapping.revenueNames())) {
                     revenue = amount;
                 }
             }
@@ -61,6 +63,7 @@ public class CompanyFinancialHealthServiceImpl implements CompanyFinancialHealth
                     .setScale(2, RoundingMode.HALF_UP);
 
         } catch (Exception e) {
+            // 로그만 남겨도 됨
             return new BigDecimal("0.60");
         }
     }
@@ -72,23 +75,21 @@ public class CompanyFinancialHealthServiceImpl implements CompanyFinancialHealth
         BigDecimal debtRatio = liabilities
                 .divide(assets, 4, RoundingMode.HALF_UP)
                 .multiply(new BigDecimal("100")); // %
-        // 100% 이하면 최고점
+
         if (debtRatio.compareTo(new BigDecimal("100")) <= 0) {
             return new BigDecimal("1.00");
         }
-        // 200% 이상이면 최저점 0.30
         if (debtRatio.compareTo(new BigDecimal("200")) >= 0) {
             return new BigDecimal("0.30");
         }
-        // 100~200 사이 선형
+
         BigDecimal diff = debtRatio.subtract(new BigDecimal("100")); // 0~100
         BigDecimal ratio = diff.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP); // 0~1
-        BigDecimal penalty = ratio.multiply(new BigDecimal("0.70")); // 0~0.7
+        BigDecimal penalty = ratio.multiply(new BigDecimal("0.70"));
         return new BigDecimal("1.00").subtract(penalty).setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal scoreByRevenue(BigDecimal revenue) {
-        // 100억 이하 -> 0.4, 1,000억 이상 -> 1.0
         BigDecimal boundLow = new BigDecimal("10000000000");   // 100억
         BigDecimal boundHigh = new BigDecimal("100000000000"); // 1,000억
 
@@ -99,10 +100,9 @@ public class CompanyFinancialHealthServiceImpl implements CompanyFinancialHealth
             return new BigDecimal("0.40");
         }
 
-        // 100억~1,000억 사이 선형
         BigDecimal range = boundHigh.subtract(boundLow);
         BigDecimal pos = revenue.subtract(boundLow);
-        BigDecimal ratio = pos.divide(range, 4, RoundingMode.HALF_UP); // 0~1
+        BigDecimal ratio = pos.divide(range, 4, RoundingMode.HALF_UP);
         return new BigDecimal("0.40")
                 .add(ratio.multiply(new BigDecimal("0.60")))
                 .setScale(2, RoundingMode.HALF_UP);
