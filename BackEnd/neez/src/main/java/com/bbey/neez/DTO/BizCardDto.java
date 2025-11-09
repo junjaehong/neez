@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -46,4 +47,7 @@ public class BizCardDto {
 
     @Schema(description = "메모 내용", example = "네이버 담당자, 다음 주 회의 예정")
     private String memoContent;
+
+    @Schema(description = "해시태그 목록", example = "[\"회의\", \"네이버\", \"중요\"]")
+    private List<String> hashTags;
 }

@@ -24,15 +24,18 @@ public class BizCardServiceImpl implements BizCardService {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final MemoStorage memoStorage;
+    private final HashtagService hashtagService;
 
     public BizCardServiceImpl(BizCardRepository bizCardRepository,
                               CompanyRepository companyRepository,
                               UserRepository userRepository,
-                              MemoStorage memoStorage) {
+                              MemoStorage memoStorage,
+                              HashtagService hashtagService) {
         this.bizCardRepository = bizCardRepository;
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
         this.memoStorage = memoStorage;
+        this.hashtagService = hashtagService;
     }
 
     private String nvl(String s) {
@@ -41,7 +44,7 @@ public class BizCardServiceImpl implements BizCardService {
 
     @Override
     public BizCardSaveResult saveFromOcrData(Map<String, String> data, Long userIdx) {
-        // 회사
+        // --- 회사 처리 ---
         String companyName = nvl(data.get("company"));
         Long companyIdx = null;
         if (!companyName.isEmpty()) {
@@ -57,7 +60,7 @@ public class BizCardServiceImpl implements BizCardService {
             }
         }
 
-        // 유저
+        // --- 유저 처리 ---
         Long finalUserId;
         if (userIdx != null && userIdx > 0 && userRepository.existsById(userIdx)) {
             finalUserId = userIdx;
@@ -69,7 +72,7 @@ public class BizCardServiceImpl implements BizCardService {
             finalUserId = userRepository.save(u).getIdx();
         }
 
-        // 중복 검사
+        // --- 중복 검사 (이름+이메일) ---
         String name  = nvl(data.get("name"));
         String email = nvl(data.get("email"));
         if (!name.isEmpty() && !email.isEmpty()) {
@@ -79,7 +82,7 @@ public class BizCardServiceImpl implements BizCardService {
             }
         }
 
-        // 신규 저장
+        // --- 신규 엔티티 생성 ---
         BizCard card = new BizCard();
         card.setUserIdx(finalUserId != null ? finalUserId : 0L);
         card.setName(name);
@@ -97,7 +100,7 @@ public class BizCardServiceImpl implements BizCardService {
 
         BizCard saved = bizCardRepository.save(card);
 
-        // 메모가 있으면 파일 저장
+        // 메모 있으면 파일 저장
         String reqMemo = nvl(data.get("memo"));
         if (!reqMemo.isEmpty()) {
             String fileName = "card-" + saved.getIdx() + ".txt";
@@ -116,6 +119,7 @@ public class BizCardServiceImpl implements BizCardService {
 
     @Override
     public BizCardSaveResult saveManual(Map<String, String> data, Long userIdx) {
+        // 수기 등록도 같은 저장 로직 태움
         return saveFromOcrData(data, userIdx);
     }
 
@@ -131,6 +135,7 @@ public class BizCardServiceImpl implements BizCardService {
                     .orElse(null);
         }
 
+        // 메모 내용
         String memoContent = "";
         if (card.getMemo() != null && !card.getMemo().isEmpty()) {
             try {
@@ -139,6 +144,9 @@ public class BizCardServiceImpl implements BizCardService {
                 memoContent = "(메모 파일을 불러오는 중 오류가 발생했습니다)";
             }
         }
+
+        // ✅ 해시태그도 같이
+        List<String> hashtags = hashtagService.getTagsOfCard(id);
 
         Map<String, Object> cardMap = new LinkedHashMap<>();
         cardMap.put("idx", card.getIdx());
@@ -155,10 +163,31 @@ public class BizCardServiceImpl implements BizCardService {
         cardMap.put("address", card.getAddress());
         cardMap.put("memo_path", card.getMemo());
         cardMap.put("memo_content", memoContent);
+        cardMap.put("hashtags", hashtags);
         cardMap.put("created_at", card.getCreatedAt());
         cardMap.put("updated_at", card.getUpdatedAt());
 
         return cardMap;
+    }
+
+    @Override
+    public BizCardDto getBizCardDetailDto(Long id) {
+        Map<String, Object> m = getBizCardDetail(id);
+        return new BizCardDto(
+                (Long) m.get("idx"),
+                (Long) m.get("user_idx"),
+                (String) m.get("name"),
+                (String) m.get("company_name"),
+                (String) m.get("department"),
+                (String) m.get("position"),
+                (String) m.get("email"),
+                (String) m.get("phone_number"),
+                (String) m.get("line_number"),
+                (String) m.get("fax_number"),
+                (String) m.get("address"),
+                (String) m.get("memo_content"),
+                (List<String>) m.get("hashtags")
+        );
     }
 
     @Override
@@ -205,6 +234,7 @@ public class BizCardServiceImpl implements BizCardService {
     public void deleteBizCard(Long id) {
         BizCard card = bizCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
+
         card.setIsDeleted(true);
         card.setUpdatedAt(LocalDateTime.now());
         bizCardRepository.save(card);
@@ -214,6 +244,7 @@ public class BizCardServiceImpl implements BizCardService {
     public void restoreBizCard(Long id) {
         BizCard card = bizCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
+
         card.setIsDeleted(false);
         card.setUpdatedAt(LocalDateTime.now());
         bizCardRepository.save(card);
@@ -248,6 +279,7 @@ public class BizCardServiceImpl implements BizCardService {
         return bizCardRepository.existsByUserIdxAndNameAndEmailAndIsDeletedFalse(userIdx, name, email);
     }
 
+    // ================== 헬퍼 ==================
     private BizCardDto toDto(BizCard card) {
         String companyName = null;
         if (card.getCompanyIdx() != null) {
@@ -255,12 +287,17 @@ public class BizCardServiceImpl implements BizCardService {
                     .map(Company::getName)
                     .orElse(null);
         }
+
         String memoContent = "";
         if (card.getMemo() != null && !card.getMemo().isEmpty()) {
             try {
                 memoContent = memoStorage.read(card.getMemo());
             } catch (Exception ignored) {}
         }
+
+        // ✅ 여기서도 태그 같이 내려줌
+        List<String> hashtags = hashtagService.getTagsOfCard(card.getIdx());
+
         return new BizCardDto(
                 card.getIdx(),
                 card.getUserIdx(),
@@ -273,7 +310,8 @@ public class BizCardServiceImpl implements BizCardService {
                 card.getLineNumber(),
                 card.getFaxNumber(),
                 card.getAddress(),
-                memoContent
+                memoContent,
+                hashtags
         );
     }
 }

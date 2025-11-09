@@ -112,7 +112,8 @@ public class BizCardOcrController {
                 card.getLineNumber(),
                 card.getFaxNumber(),
                 card.getAddress(),
-                memoContent
+                memoContent,
+                null    // 태그는 여기서 안 넣음
         );
     }
 }
