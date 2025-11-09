@@ -18,9 +18,9 @@ public interface HashtagService {
 
     // 카드에 달린 태그 이름들
     List<String> getTagsOfCard(Long cardId);
-
+    
     // 태그로 카드들 찾기 (페이징)
-    Page<BizCardDto> getCardsByTag(String tagName, Pageable pageable);
+    Page<BizCardDto> getCardsByTags(List<String> tagNames, Pageable pageable);
 
     // 카드에서 태그 떼기
     void removeTagFromCard(Long cardId, String tagName);

@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -86,55 +88,59 @@ public class HashtagServiceImpl implements HashtagService {
     }
 
     @Override
-    public Page<BizCardDto> getCardsByTag(String tagName, Pageable pageable) {
-        String normalized = normalize(tagName);
+    public Page<BizCardDto> getCardsByTags(List<String> tagNames, Pageable pageable) {
+        // 1) 태그 정규화
+        List<String> normalized = tagNames.stream()
+                .filter(Objects::nonNull)
+                .map(this::normalize)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
 
-        HashTag tag = hashTagRepository.findByName(normalized)
-                .orElseThrow(() -> new RuntimeException("HashTag not found: " + normalized));
+        if (normalized.isEmpty()) {
+            return Page.empty(pageable);
+        }
 
-        Page<CardHashTag> page = cardHashTagRepository.findByTag(tag, pageable);
+        // 2) 이 태그들을 전부 갖고 있는 카드 id 목록만 먼저 뽑음
+        List<Long> cardIds = cardHashTagRepository.findCardIdsByAllTags(normalized, normalized.size());
+        if (cardIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
 
-        return page.map(m -> {
-            BizCard card = m.getCard();
-            // 삭제된 건 걸러내고 싶으면 여기서 필터링
-            if (card.isDeleted()) {
-                return null; // 나중에 프론트에서 null 제거해도 되고, 여기서 throw해도 됨
-            }
+        // 3) 여기서부터는 페이징
+        return bizCardRepository.findByIdxInAndIsDeletedFalse(cardIds, pageable)
+                .map(card -> {
+                    String companyName = null;
+                    if (card.getCompanyIdx() != null) {
+                        companyName = companyRepository.findById(card.getCompanyIdx())
+                                .map(Company::getName)
+                                .orElse(null);
+                    }
 
-            String companyName = null;
-            if (card.getCompanyIdx() != null) {
-                companyName = companyRepository.findById(card.getCompanyIdx())
-                        .map(Company::getName)
-                        .orElse(null);
-            }
+                    String memoContent = "";
+                    if (card.getMemo() != null && !card.getMemo().isEmpty()) {
+                        try { memoContent = memoStorage.read(card.getMemo()); } catch (Exception ignored) {}
+                    }
 
-            String memoContent = "";
-            if (card.getMemo() != null && !card.getMemo().isEmpty()) {
-                try {
-                    memoContent = memoStorage.read(card.getMemo());
-                } catch (IOException ignored) {}
-            }
+                    List<String> tagsOfCard = getTagsOfCard(card.getIdx());
 
-            // 태그 목록도 포함
-            List<String> tagsOfCard = getTagsOfCard(card.getIdx());
-
-            return new BizCardDto(
-                    card.getIdx(),
-                    card.getUserIdx(),
-                    card.getName(),
-                    companyName,
-                    card.getDepartment(),
-                    card.getPosition(),
-                    card.getEmail(),
-                    card.getPhoneNumber(),
-                    card.getLineNumber(),
-                    card.getFaxNumber(),
-                    card.getAddress(),
-                    memoContent,
-                    tagsOfCard
-            );
-        });
+                    return new BizCardDto(
+                            card.getIdx(),
+                            card.getUserIdx(),
+                            card.getName(),
+                            companyName,
+                            card.getDepartment(),
+                            card.getPosition(),
+                            card.getEmail(),
+                            card.getPhoneNumber(),
+                            card.getLineNumber(),
+                            card.getFaxNumber(),
+                            card.getAddress(),
+                            memoContent,
+                            tagsOfCard
+                    );
+                });
     }
+
 
     @Override
     public void removeTagFromCard(Long cardId, String tagName) {

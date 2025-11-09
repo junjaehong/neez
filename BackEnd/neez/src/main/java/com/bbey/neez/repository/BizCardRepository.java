@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface BizCardRepository extends JpaRepository<BizCard, Long> {
 
@@ -36,4 +37,7 @@ public interface BizCardRepository extends JpaRepository<BizCard, Long> {
 
     // ✅ 소프트 삭제된 명함 조회
     Page<BizCard> findByUserIdxAndIsDeletedTrue(Long userIdx, Pageable pageable);
+
+    // ✅ 여러 id + 살아있는 것만 페이징
+    Page<BizCard> findByIdxInAndIsDeletedFalse(List<Long> ids, Pageable pageable);
 }

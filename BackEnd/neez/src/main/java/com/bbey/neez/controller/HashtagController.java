@@ -6,12 +6,15 @@ import com.bbey.neez.entity.HashTag;
 import com.bbey.neez.service.HashtagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -41,16 +44,22 @@ public class HashtagController {
         return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", tags));
     }
 
-    @Operation(summary = "해시태그로 명함 목록 조회 (페이징)")
-    @GetMapping("/hashtags/{tagName}/bizcards")
-    public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> getCardsByTag(
-            @PathVariable String tagName,
+    @Operation(summary = "해시태그로 명함 검색")
+    @GetMapping("/hashtags/search")
+    public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> searchByTags(
+            @Parameter(description = "콤마(,)로 구분된 해시태그 목록", example = "고객사,vip")
+            @RequestParam("tags") String tags,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        List<String> tagList = Arrays.stream(tags.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+
         PageRequest pageable = PageRequest.of(page, size);
-        Page<BizCardDto> cards = hashtagService.getCardsByTag(tagName, pageable);
-        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", cards));
+        Page<BizCardDto> result = hashtagService.getCardsByTags(tagList, pageable);
+        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", result));
     }
 
     @Operation(summary = "명함에서 해시태그 제거")
