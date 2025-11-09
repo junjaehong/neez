@@ -8,8 +8,11 @@ import java.math.BigDecimal;
 public class CompanyEsgProxyServiceImpl implements CompanyEsgProxyService {
 
     @Override
-    public BigDecimal evaluateEsgProxy(Company company) {
-        // TODO: 산업별 기본 ESG 점수 매핑 가능
-        return new BigDecimal("0.65");
+    public BigDecimal evaluate(Company company) {
+        // TODO: 나중에 ESG 뉴스 비중, 업종별 ESG 테이블로 교체
+        if (company.getSource() != null && company.getSource().equalsIgnoreCase("krx")) {
+            return new BigDecimal("0.68");
+        }
+        return new BigDecimal("0.6");
     }
 }

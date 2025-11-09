@@ -4,5 +4,5 @@ import com.bbey.neez.entity.Company;
 import java.math.BigDecimal;
 
 public interface CompanyFinancialHealthService {
-    BigDecimal evaluateFinancialHealth(Company company);
+    BigDecimal evaluate(Company company);
 }
