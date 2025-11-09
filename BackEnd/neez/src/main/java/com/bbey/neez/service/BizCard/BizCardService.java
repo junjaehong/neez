@@ -1,4 +1,4 @@
-package com.bbey.neez.service;
+package com.bbey.neez.service.BizCard;
 
 import com.bbey.neez.DTO.BizCardDto;
 import com.bbey.neez.entity.BizCard;

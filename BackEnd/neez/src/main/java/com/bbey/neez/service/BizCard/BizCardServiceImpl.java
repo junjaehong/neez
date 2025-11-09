@@ -1,4 +1,4 @@
-package com.bbey.neez.service;
+package com.bbey.neez.service.BizCard;
 
 import com.bbey.neez.DTO.BizCardDto;
 import com.bbey.neez.component.MemoStorage;
@@ -9,6 +9,7 @@ import com.bbey.neez.entity.Users;
 import com.bbey.neez.repository.BizCardRepository;
 import com.bbey.neez.repository.CompanyRepository;
 import com.bbey.neez.repository.UserRepository;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;

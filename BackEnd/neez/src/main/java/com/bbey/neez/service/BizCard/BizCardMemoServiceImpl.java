@@ -1,4 +1,4 @@
-package com.bbey.neez.service;
+package com.bbey.neez.service.BizCard;
 
 import com.bbey.neez.component.MemoStorage;
 import com.bbey.neez.entity.BizCard;

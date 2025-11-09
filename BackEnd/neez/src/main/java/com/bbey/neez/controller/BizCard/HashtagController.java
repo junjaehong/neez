@@ -1,9 +1,10 @@
-package com.bbey.neez.controller;
+package com.bbey.neez.controller.BizCard;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.BizCardDto;
 import com.bbey.neez.entity.HashTag;
-import com.bbey.neez.service.HashtagService;
+import com.bbey.neez.service.BizCard.HashtagService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Parameter;

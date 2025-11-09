@@ -1,10 +1,11 @@
-package com.bbey.neez.controller;
+package com.bbey.neez.controller.BizCard;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.MemoDto;
 import com.bbey.neez.entity.BizCard;
+import com.bbey.neez.service.BizCard.BizCardMemoService;
 import com.bbey.neez.DTO.request.BizCardMemoUpdateRequest;
-import com.bbey.neez.service.BizCardMemoService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;

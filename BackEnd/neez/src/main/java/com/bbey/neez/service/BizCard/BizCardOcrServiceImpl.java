@@ -1,4 +1,4 @@
-package com.bbey.neez.service;
+package com.bbey.neez.service.BizCard;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
