@@ -1,0 +1,38 @@
+.join-container {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.join-box {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  min-height: 700px;
+}
+
+.join-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.join-header .logo {
+  flex: 1;
+  text-align: center;
+  margin-right: 40px;
+}
+
+.join-form {
+  margin-top: 20px;
+}
+
+.join-form .input-field {
+  margin-bottom: 15px;
+}
+
+.join-form .button {
+  margin-top: 30px;
+}
