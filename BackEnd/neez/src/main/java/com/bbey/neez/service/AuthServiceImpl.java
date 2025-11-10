@@ -1,8 +1,8 @@
 package com.bbey.neez.service;
 
+import com.bbey.neez.DTO.auth.*;
 import com.bbey.neez.entity.Users;
 import com.bbey.neez.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -13,84 +13,87 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
 
-    @Autowired
     public AuthServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
     // ✅ 회원가입
     @Override
-    public String register(String userId, String password, String name, String email) {
-        if (userRepository.findByUserId(userId).isPresent()) {
-            return "⚠️ 이미 존재하는 아이디입니다.";
+    public AuthResponse register(RegisterRequest req) {
+        if (userRepository.findByUserId(req.getUserId()).isPresent()) {
+            return new AuthResponse(false, "이미 존재하는 아이디입니다.");
         }
 
         Users u = new Users();
-        u.setUserId(userId);
-        u.setPassword(password);
-        u.setName(name);
-        u.setEmail(email);
+        u.setUserId(req.getUserId());
+        u.setPassword(req.getPassword());
+        u.setName(req.getName());
+        u.setEmail(req.getEmail());
         u.setCreated_at(LocalDateTime.now());
         u.setUpdated_at(LocalDateTime.now());
         userRepository.save(u);
-        return "✅ 회원가입 성공: " + userId;
+
+        return new AuthResponse(true, "회원가입 성공", req.getUserId());
     }
 
     // ✅ 로그인
     @Override
-    public String login(String userId, String password) {
-        Optional<Users> optUser = userRepository.findByUserId(userId);
-        if (!optUser.isPresent()) return "❌ 존재하지 않는 아이디입니다.";
+    public AuthResponse login(LoginRequest req) {
+        Optional<Users> optUser = userRepository.findByUserId(req.getUserId());
+        if (!optUser.isPresent()) {
+            return new AuthResponse(false, "존재하지 않는 아이디입니다.");
+        }
         Users user = optUser.get();
-
-        if (!user.getPassword().equals(password))
-            return "❌ 비밀번호가 일치하지 않습니다.";
-
-        return "✅ 로그인 성공: " + user.getName();
+        if (!user.getPassword().equals(req.getPassword())) {
+            return new AuthResponse(false, "비밀번호가 일치하지 않습니다.");
+        }
+        return new AuthResponse(true, "로그인 성공", user.getName());
     }
 
     // ✅ 로그아웃
     @Override
-    public String logout(String userId) {
-        return "👋 로그아웃 완료: " + userId;
+    public AuthResponse logout(LogoutRequest req) {
+        // 실제 세션 만료 로직은 별도
+        return new AuthResponse(true, "로그아웃 완료", req.getUserId());
     }
 
     // ✅ 회원탈퇴
     @Override
-    public String delete(String userId, String password) {
-        Optional<Users> optUser = userRepository.findByUserId(userId);
-        if (!optUser.isPresent()) return "❌ 존재하지 않는 사용자입니다.";
+    public AuthResponse delete(DeleteRequest req) {
+        Optional<Users> optUser = userRepository.findByUserId(req.getUserId());
+        if (!optUser.isPresent()) {
+            return new AuthResponse(false, "존재하지 않는 사용자입니다.");
+        }
         Users user = optUser.get();
-
-        if (!user.getPassword().equals(password))
-            return "❌ 비밀번호가 일치하지 않습니다.";
-
+        if (!user.getPassword().equals(req.getPassword())) {
+            return new AuthResponse(false, "비밀번호가 일치하지 않습니다.");
+        }
         userRepository.delete(user);
-        return "🗑 회원탈퇴 완료: " + userId;
+        return new AuthResponse(true, "회원탈퇴 완료", req.getUserId());
     }
 
     // ✅ 아이디 찾기
     @Override
-    public String findUserId(String name, String email) {
+    public AuthResponse findUserId(FindIdRequest req) {
         return userRepository.findAll().stream()
-                .filter(u -> name.equals(u.getName()) && email.equals(u.getEmail()))
+                .filter(u -> req.getName().equals(u.getName()) && req.getEmail().equals(u.getEmail()))
                 .findFirst()
-                .map(u -> "✅ 아이디: " + u.getUserId())
-                .orElse("❌ 일치하는 사용자가 없습니다.");
+                .map(u -> new AuthResponse(true, "아이디 조회 성공", u.getUserId()))
+                .orElse(new AuthResponse(false, "일치하는 사용자가 없습니다."));
     }
 
     // ✅ 비밀번호 찾기 (임시 비밀번호 생성)
     @Override
-    public String resetPassword(String userId, String email) {
-        return userRepository.findByUserId(userId)
-                .filter(u -> email.equals(u.getEmail()))
+    public AuthResponse resetPassword(ResetPasswordRequest req) {
+        return userRepository.findByUserId(req.getUserId())
+                .filter(u -> req.getEmail().equals(u.getEmail()))
                 .map(u -> {
-                    String tempPw = "pw" + (int)(Math.random() * 9000 + 1000);
+                    String tempPw = "pw" + (int) (Math.random() * 9000 + 1000);
                     u.setPassword(tempPw);
                     u.setUpdated_at(LocalDateTime.now());
                     userRepository.save(u);
-                    return "✅ 임시 비밀번호가 발급되었습니다: " + tempPw;
+                    return new AuthResponse(true, "임시 비밀번호가 발급되었습니다.", tempPw);
                 })
-                .orElse("❌ 일치하는 정보가 없습니다.");
+                .orElse(new AuthResponse(false, "일치하는 정보가 없습니다."));
     }
 }
