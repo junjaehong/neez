@@ -28,10 +28,10 @@ public class BizCardServiceImpl implements BizCardService {
     private final HashtagService hashtagService;
 
     public BizCardServiceImpl(BizCardRepository bizCardRepository,
-                              CompanyRepository companyRepository,
-                              UserRepository userRepository,
-                              MemoStorage memoStorage,
-                              HashtagService hashtagService) {
+                                CompanyRepository companyRepository,
+                                UserRepository userRepository,
+                                MemoStorage memoStorage,
+                                HashtagService hashtagService) {
         this.bizCardRepository = bizCardRepository;
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
