@@ -77,7 +77,7 @@ public class BizCardServiceImpl implements BizCardService {
         String name  = nvl(data.get("name"));
         String email = nvl(data.get("email"));
         if (!name.isEmpty() && !email.isEmpty()) {
-            Optional<BizCard> existedOpt = bizCardRepository.findByNameAndEmail(name, email);
+            Optional<BizCard> existedOpt = bizCardRepository.findByUserIdxAndNameAndEmail(userIdx, name, email);
             if (existedOpt.isPresent()) {
                 return new BizCardSaveResult(existedOpt.get(), true);
             }

@@ -15,6 +15,9 @@ public interface BizCardRepository extends JpaRepository<BizCard, Long> {
     // 이름 + 이메일로 중복 체크
     Optional<BizCard> findByNameAndEmail(String name, String email);
 
+    // 추가: 사용자까지 포함해서 찾기
+    Optional<BizCard> findByUserIdxAndNameAndEmail(Long userIdx, String name, String email);
+
     // 페이징 + 소프트 삭제 제외
     Page<BizCard> findByUserIdxAndIsDeletedFalse(Long userIdx, Pageable pageable);
 
