@@ -9,7 +9,7 @@ import com.bbey.neez.entity.Users;
 import com.bbey.neez.repository.BizCardRepository;
 import com.bbey.neez.repository.CompanyRepository;
 import com.bbey.neez.repository.UserRepository;
-
+import com.bbey.neez.service.Company.CompanyInfoExtractService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,17 +26,20 @@ public class BizCardServiceImpl implements BizCardService {
     private final UserRepository userRepository;
     private final MemoStorage memoStorage;
     private final HashtagService hashtagService;
+    private final CompanyInfoExtractService companyInfoExtractService;
 
     public BizCardServiceImpl(BizCardRepository bizCardRepository,
                                 CompanyRepository companyRepository,
                                 UserRepository userRepository,
                                 MemoStorage memoStorage,
-                                HashtagService hashtagService) {
+                                HashtagService hashtagService,
+                                CompanyInfoExtractService companyInfoExtractService) {
         this.bizCardRepository = bizCardRepository;
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
         this.memoStorage = memoStorage;
         this.hashtagService = hashtagService;
+        this.companyInfoExtractService = companyInfoExtractService;
     }
 
     private String nvl(String s) {
@@ -45,19 +48,22 @@ public class BizCardServiceImpl implements BizCardService {
 
     @Override
     public BizCardSaveResult saveFromOcrData(Map<String, String> data, Long userIdx) {
-        // --- 회사 처리 ---
+        // --- 회사 처리 (자동 매칭) ---
         String companyName = nvl(data.get("company"));
+        String address     = nvl(data.get("address"));
         Long companyIdx = null;
-        if (!companyName.isEmpty()) {
-            Optional<Company> opt = companyRepository.findByName(companyName);
-            if (opt.isPresent()) {
-                companyIdx = opt.get().getIdx();
+
+        if (!companyName.isEmpty() && !address.isEmpty()) {
+            Optional<Company> compOpt = companyInfoExtractService.extractAndSave(companyName, address);
+            if (compOpt.isPresent()) {
+                companyIdx = compOpt.get().getIdx();
             } else {
+                // 자동 매칭 실패시: 이름만으로 최소 Company 하나 만들어둘 거면 주석 풀어서 사용
+                /*
                 Company c = new Company();
                 c.setName(companyName);
-                c.setCreated_at(LocalDateTime.now());
-                c.setUpdated_at(LocalDateTime.now());
                 companyIdx = companyRepository.save(c).getIdx();
+                */
             }
         }
 
@@ -67,23 +73,27 @@ public class BizCardServiceImpl implements BizCardService {
             finalUserId = userIdx;
         } else {
             Users u = new Users();
+            u.setUserId("auto_" + System.currentTimeMillis());
+            u.setPassword("temp");
             u.setName("auto_generated");
+            u.setEmail("auto@example.com");
             u.setCreated_at(LocalDateTime.now());
             u.setUpdated_at(LocalDateTime.now());
             finalUserId = userRepository.save(u).getIdx();
         }
 
-        // --- 중복 검사 (이름+이메일) ---
+        // --- 중복 검사 (사용자 + 이름 + 이메일) ---
         String name  = nvl(data.get("name"));
         String email = nvl(data.get("email"));
         if (!name.isEmpty() && !email.isEmpty()) {
-            Optional<BizCard> existedOpt = bizCardRepository.findByUserIdxAndNameAndEmail(userIdx, name, email);
+            Optional<BizCard> existedOpt =
+                    bizCardRepository.findByUserIdxAndNameAndEmail(finalUserId, name, email);
             if (existedOpt.isPresent()) {
                 return new BizCardSaveResult(existedOpt.get(), true);
             }
         }
 
-        // --- 신규 엔티티 생성 ---
+        // --- 신규 명함 생성 ---
         BizCard card = new BizCard();
         card.setUserIdx(finalUserId != null ? finalUserId : 0L);
         card.setName(name);
@@ -94,7 +104,7 @@ public class BizCardServiceImpl implements BizCardService {
         card.setPhoneNumber(nvl(data.get("mobile")));
         card.setLineNumber(nvl(data.get("tel")));
         card.setFaxNumber(nvl(data.get("fax")));
-        card.setAddress(nvl(data.get("address")));
+        card.setAddress(address);
         card.setCreatedAt(LocalDateTime.now());
         card.setUpdatedAt(LocalDateTime.now());
         card.setIsDeleted(false);
@@ -120,7 +130,7 @@ public class BizCardServiceImpl implements BizCardService {
 
     @Override
     public BizCardSaveResult saveManual(Map<String, String> data, Long userIdx) {
-        // 수기 등록도 같은 저장 로직 태움
+        // 수기 등록도 같은 로직 태움
         return saveFromOcrData(data, userIdx);
     }
 
@@ -136,7 +146,6 @@ public class BizCardServiceImpl implements BizCardService {
                     .orElse(null);
         }
 
-        // 메모 내용
         String memoContent = "";
         if (card.getMemo() != null && !card.getMemo().isEmpty()) {
             try {
@@ -146,7 +155,6 @@ public class BizCardServiceImpl implements BizCardService {
             }
         }
 
-        // ✅ 해시태그도 같이
         List<String> hashtags = hashtagService.getTagsOfCard(id);
 
         Map<String, Object> cardMap = new LinkedHashMap<>();
@@ -197,9 +205,7 @@ public class BizCardServiceImpl implements BizCardService {
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
 
         String name = data.get("name");
-        if (name != null && !name.isEmpty()) {
-            card.setName(name);
-        }
+        if (name != null && !name.isEmpty()) card.setName(name);
 
         String companyIdxStr = data.get("company_idx");
         if (companyIdxStr != null && !companyIdxStr.isEmpty()) {
@@ -280,7 +286,6 @@ public class BizCardServiceImpl implements BizCardService {
         return bizCardRepository.existsByUserIdxAndNameAndEmailAndIsDeletedFalse(userIdx, name, email);
     }
 
-    // ================== 헬퍼 ==================
     private BizCardDto toDto(BizCard card) {
         String companyName = null;
         if (card.getCompanyIdx() != null) {
@@ -296,7 +301,6 @@ public class BizCardServiceImpl implements BizCardService {
             } catch (Exception ignored) {}
         }
 
-        // ✅ 여기서도 태그 같이 내려줌
         List<String> hashtags = hashtagService.getTagsOfCard(card.getIdx());
 
         return new BizCardDto(
