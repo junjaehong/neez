@@ -56,4 +56,11 @@ public class AuthController {
     public String findPassword(@RequestParam String userId, @RequestParam String email) {
         return authService.resetPassword(userId, email);
     }
+
+    @Operation(summary = "이메일 인증")
+    @GetMapping("/verify")
+    public ApiResponseDto<AuthResponse> verify(@RequestParam("token") String token) {
+        AuthResponse res = authService.verifyEmail(token);
+        return new ApiResponseDto<>(res.isSuccess(), res.getMessage(), res);
+    }
 }
