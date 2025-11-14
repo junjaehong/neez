@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "명함 정보 DTO")
+@Schema(description = "명함 정보 DTO (명함 원문 회사명 + 연결된 회사 ID 포함)")
 public class BizCardDto {
 
     @Schema(description = "명함 고유 ID", example = "10")
@@ -21,10 +21,17 @@ public class BizCardDto {
     @Schema(description = "이름", example = "홍길동")
     private String name;
 
-    @Schema(description = "명함에 적힌 회사명(원문)", example = "네이버파이낸셜")
+    @Schema(
+            description = "명함에 적힌 회사 이름(원문 그대로 저장된 값)",
+            example = "삼성생명 대구금융SFP지점"
+    )
     private String cardCompanyName;
 
-    @Schema(description = "companies 테이블 FK", example = "3")
+    @Schema(
+            description = "companies 테이블과 연결된 회사 IDX (없을 수도 있음)",
+            example = "3",
+            nullable = true
+    )
     private Long companyIdx;
 
     @Schema(description = "부서명", example = "개발1팀")
@@ -45,12 +52,12 @@ public class BizCardDto {
     @Schema(description = "팩스 번호", example = "02-333-2222")
     private String faxNumber;
 
-    @Schema(description = "주소", example = "서울시 강남구 테헤란로 123")
+    @Schema(description = "주소", example = "대구광역시 중구 달구벌대로 2095 ...")
     private String address;
 
-    @Schema(description = "메모 내용", example = "네이버 담당자, 다음 주 회의 예정")
+    @Schema(description = "메모 내용(파일에서 읽어온 내용)", example = "다음 주 화요일 미팅 예정")
     private String memoContent;
 
-    @Schema(description = "해시태그 목록", example = "[\"회의\", \"네이버\", \"중요\"]")
+    @Schema(description = "해시태그 목록", example = "[\"중요\", \"삼성\", \"생명보험\"]")
     private List<String> hashTags;
 }
