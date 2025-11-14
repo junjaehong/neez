@@ -6,8 +6,8 @@ import com.bbey.neez.entity.BizCardSaveResult;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 public interface BizCardService {
 
@@ -15,13 +15,11 @@ public interface BizCardService {
 
     BizCardSaveResult saveManual(Map<String, String> data, Long userIdx);
 
-    // 이건 기존처럼 Map으로도 주고,
     Map<String, Object> getBizCardDetail(Long id);
 
-    // 필요하면 DTO로도 바로 주는 메서드 하나 더
     BizCardDto getBizCardDetailDto(Long id);
 
-    BizCard updateBizCard(Long idx, Map<String, String> data);
+    BizCard updateBizCard(Long idx, Map<String, String> data, boolean rematchCompany);
 
     void deleteBizCard(Long id);
 

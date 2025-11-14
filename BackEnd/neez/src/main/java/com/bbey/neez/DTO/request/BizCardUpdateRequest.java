@@ -1,3 +1,4 @@
+// 명함 기본정보 수정 DTO
 package com.bbey.neez.DTO.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -6,17 +7,15 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Schema(description = "명함 기본정보 수정 요청 DTO")
 public class BizCardUpdateRequest {
 
-    @Schema(description = "명함 소유자 변경 시 사용자 IDX", example = "1")
+    @Schema(description = "명함 소유자 변경 시", example = "1")
     private Long user_idx;
 
-    @Schema(
-            description = "직접 특정 회사와 연결하고 싶을 때 companies.idx",
-            example = "10",
-            nullable = true
-    )
+    @Schema(description = "명함에 적힌 회사명(원문) 수정", example = "삼성생명 대구금융SFP지점")
+    private String company; // cardCompanyName 용
+
+    @Schema(description = "회사 IDX를 직접 지정할 때", example = "10")
     private Long company_idx;
 
     @Schema(description = "이름", example = "홍길동(수정)")
@@ -42,4 +41,7 @@ public class BizCardUpdateRequest {
 
     @Schema(description = "주소", example = "서울시 성동구 뚝섬로 ...")
     private String address;
+
+    @Schema(description = "회사 정보 다시 자동 매칭 수행 여부", example = "true")
+    private Boolean rematchCompany;
 }
