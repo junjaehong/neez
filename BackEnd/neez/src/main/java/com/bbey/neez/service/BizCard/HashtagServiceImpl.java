@@ -26,14 +26,14 @@ public class HashtagServiceImpl implements HashtagService {
     private final BizCardRepository bizCardRepository;
     private final HashTagRepository hashTagRepository;
     private final CardHashTagRepository cardHashTagRepository;
-    private final CompanyRepository companyRepository;
+    private final CompanyRepository companyRepository; // 지금은 사용 안 해도 남겨둬도 무방
     private final MemoStorage memoStorage;
 
     public HashtagServiceImpl(BizCardRepository bizCardRepository,
-                                HashTagRepository hashTagRepository,
-                                CardHashTagRepository cardHashTagRepository,
-                                CompanyRepository companyRepository,
-                                MemoStorage memoStorage) {
+                              HashTagRepository hashTagRepository,
+                              CardHashTagRepository cardHashTagRepository,
+                              CompanyRepository companyRepository,
+                              MemoStorage memoStorage) {
         this.bizCardRepository = bizCardRepository;
         this.hashTagRepository = hashTagRepository;
         this.cardHashTagRepository = cardHashTagRepository;
@@ -110,25 +110,22 @@ public class HashtagServiceImpl implements HashtagService {
         // 3) 여기서부터는 페이징
         return bizCardRepository.findByIdxInAndIsDeletedFalse(cardIds, pageable)
                 .map(card -> {
-                    String companyName = null;
-                    if (card.getCompanyIdx() != null) {
-                        companyName = companyRepository.findById(card.getCompanyIdx())
-                                .map(Company::getName)
-                                .orElse(null);
-                    }
-
                     String memoContent = "";
                     if (card.getMemo() != null && !card.getMemo().isEmpty()) {
-                        try { memoContent = memoStorage.read(card.getMemo()); } catch (Exception ignored) {}
+                        try {
+                            memoContent = memoStorage.read(card.getMemo());
+                        } catch (IOException ignored) {}
                     }
 
                     List<String> tagsOfCard = getTagsOfCard(card.getIdx());
 
+                    // ✅ BizCardDto 시그니처에 맞게 생성
                     return new BizCardDto(
                             card.getIdx(),
                             card.getUserIdx(),
                             card.getName(),
-                            companyName,
+                            card.getCardCompanyName(), // 명함에 적힌 회사명
+                            card.getCompanyIdx(),      // 연결된 회사 ID
                             card.getDepartment(),
                             card.getPosition(),
                             card.getEmail(),
@@ -142,7 +139,6 @@ public class HashtagServiceImpl implements HashtagService {
                 });
     }
 
-
     @Override
     public void removeTagFromCard(Long cardId, String tagName) {
         BizCard card = bizCardRepository.findById(cardId)
@@ -150,7 +146,6 @@ public class HashtagServiceImpl implements HashtagService {
 
         String normalized = normalize(tagName);
 
-        // ✅ 4번: 없으면 조용히 무시
         HashTag tag = hashTagRepository.findByName(normalized).orElse(null);
         if (tag == null) return;
 
@@ -159,12 +154,10 @@ public class HashtagServiceImpl implements HashtagService {
 
     @Override
     public List<HashTag> getTopTags(int limit) {
-        // ORDER BY COUNT(...) DESC 는 쿼리 안에 already 있으니까 정렬 안 줘도 되지만
-        // 혹시 모를 상황 대비해서 한 번 더 정렬 넣어도 됨.
         return hashTagRepository
                 .findTopUsedTags(PageRequest.of(0, limit))
                 .stream()
-                .limit(limit)   // 혹시 더 와도 자르기
+                .limit(limit)
                 .collect(Collectors.toList());
     }
 

@@ -19,6 +19,9 @@ public class BizCard {
 
     private String name;
 
+    @Column(name = "card_company_name")
+    private String cardCompanyName;
+
     @Column(name = "company_idx")
     private Long companyIdx;            // ← 회사가 없을 수 있으니까 Long 유지
 
@@ -58,5 +61,9 @@ public class BizCard {
 
     public void setIsDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public void setCardCompanyName(String cardCompanyName){
+        this.cardCompanyName = cardCompanyName;
     }
 }

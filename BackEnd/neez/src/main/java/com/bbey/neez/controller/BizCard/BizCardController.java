@@ -15,10 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/bizcards")
@@ -51,7 +48,7 @@ public class BizCardController {
             map.put("memo", data.getMemo());
 
             BizCardSaveResult result = bizCardService.saveManual(map, userIdx);
-            BizCardDto dto = toBizCardDto(result.getBizCard(), data.getCompany(), null);
+            BizCardDto dto = toBizCardDto(result.getBizCard(), null);
 
             return ResponseEntity.ok(
                     new ApiResponseDto<>(true, result.isExisting() ? "already exists" : "ok", dto)
@@ -68,12 +65,18 @@ public class BizCardController {
     public ResponseEntity<ApiResponseDto<BizCardDto>> getBizCard(@PathVariable Long idx) {
         try {
             Map<String, Object> card = bizCardService.getBizCardDetail(idx);
-            List<String> tags = (List<String>) (card.get("tags") != null ? card.get("tags") : new ArrayList<>());
+
+            @SuppressWarnings("unchecked")
+            List<String> tags = (List<String>) (card.get("hashtags") != null
+                    ? card.get("hashtags")
+                    : new ArrayList<>());
+
             BizCardDto dto = new BizCardDto(
                     (Long) card.get("idx"),
                     (Long) card.get("user_idx"),
                     (String) card.get("name"),
-                    (String) card.get("company_name"),
+                    (String) card.get("card_company_name"),  // 명함 원문 회사명
+                    (Long) card.get("company_idx"),          // 연결된 Company PK
                     (String) card.get("department"),
                     (String) card.get("position"),
                     (String) card.get("email"),
@@ -113,18 +116,19 @@ public class BizCardController {
     ) {
         try {
             Map<String, String> map = new HashMap<>();
-            if (body.getName() != null) map.put("name", body.getName());
+            if (body.getName() != null)        map.put("name", body.getName());
+            if (body.getCompany() != null)     map.put("card_company_name", body.getCompany()); // ✅ 명함 회사명
             if (body.getCompany_idx() != null) map.put("company_idx", body.getCompany_idx().toString());
-            if (body.getDepartment() != null) map.put("department", body.getDepartment());
-            if (body.getPosition() != null) map.put("position", body.getPosition());
-            if (body.getEmail() != null) map.put("email", body.getEmail());
-            if (body.getMobile() != null) map.put("mobile", body.getMobile());
-            if (body.getTel() != null) map.put("tel", body.getTel());
-            if (body.getFax() != null) map.put("fax", body.getFax());
-            if (body.getAddress() != null) map.put("address", body.getAddress());
+            if (body.getDepartment() != null)  map.put("department", body.getDepartment());
+            if (body.getPosition() != null)    map.put("position", body.getPosition());
+            if (body.getEmail() != null)       map.put("email", body.getEmail());
+            if (body.getMobile() != null)      map.put("mobile", body.getMobile());
+            if (body.getTel() != null)         map.put("tel", body.getTel());
+            if (body.getFax() != null)         map.put("fax", body.getFax());
+            if (body.getAddress() != null)     map.put("address", body.getAddress());
 
             BizCard updated = bizCardService.updateBizCard(idx, map);
-            BizCardDto dto = toBizCardDto(updated, null, null);
+            BizCardDto dto = toBizCardDto(updated, null);
             return ResponseEntity.ok(new ApiResponseDto<>(true, "updated", dto));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -205,13 +209,15 @@ public class BizCardController {
         return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", exists));
     }
 
-    private BizCardDto toBizCardDto(BizCard card, String companyName, String memoContent) {
+    private BizCardDto toBizCardDto(BizCard card, String memoContent) {
         if (card == null) return null;
+
         return new BizCardDto(
                 card.getIdx(),
                 card.getUserIdx(),
                 card.getName(),
-                companyName,
+                card.getCardCompanyName(),
+                card.getCompanyIdx(),
                 card.getDepartment(),
                 card.getPosition(),
                 card.getEmail(),
@@ -220,7 +226,7 @@ public class BizCardController {
                 card.getFaxNumber(),
                 card.getAddress(),
                 memoContent,
-                null    // 태그는 여기서 안 넣음
+                null   // 태그는 여기서 안 넣음
         );
     }
 }

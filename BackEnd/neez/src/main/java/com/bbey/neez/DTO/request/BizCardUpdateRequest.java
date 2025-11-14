@@ -5,11 +5,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter @Setter
+@Getter
+@Setter
 public class BizCardUpdateRequest {
 
     @Schema(description = "명함 소유자 변경 시", example = "1")
     private Long user_idx;
+
+    @Schema(description = "명함에 찍힌 회사명(원문) 수정", example = "카카오뱅크")
+    private String company;   // ✅ cardCompanyName 용
 
     @Schema(description = "회사 IDX 직접 지정 시", example = "10")
     private Long company_idx;

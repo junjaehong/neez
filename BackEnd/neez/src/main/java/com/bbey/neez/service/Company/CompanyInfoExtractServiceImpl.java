@@ -2,6 +2,7 @@ package com.bbey.neez.service.Company;
 
 import com.bbey.neez.entity.Company;
 import com.bbey.neez.repository.CompanyRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.*;
@@ -31,55 +32,72 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
     private String fssServiceKey;
 
     private final CompanyRepository companyRepository;
+    private final ObjectMapper objectMapper; // 지금은 안 쓰지만, 나중에 detail JSON 넣을 때 사용 가능
 
-    public CompanyInfoExtractServiceImpl(CompanyRepository companyRepository) {
+    public CompanyInfoExtractServiceImpl(CompanyRepository companyRepository,
+                                            ObjectMapper objectMapper) {
         this.companyRepository = companyRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Override
     public Optional<Company> extractAndSave(String companyName, String address) {
-        if (isEmpty(companyName)) return Optional.empty();
+        if (isEmpty(companyName)) {
+            return Optional.empty();
+        }
 
         // 1) BizNo 후보
         List<BizNoCandidate> candidates = callBizNoAndParse(companyName);
-        if (candidates.isEmpty()) return Optional.empty();
+        if (candidates.isEmpty()) {
+            return Optional.empty();
+        }
 
         // 2) FSS 정보 채우기
         for (BizNoCandidate c : candidates) {
             if (isEmpty(c.cno)) continue;
+
             String crnoDigits = normalizeNumber(c.cno);
             String fssXml = callFssByCrno(crnoDigits);
             FssCorpInfo info = parseFssInfo(fssXml);
             if (info != null) {
-                c.fssCorpName  = nvl(info.corpNm);
-                c.fssRepName   = nvl(info.enpRprFnm);
-                c.fssBizNo     = normalizeNumber(info.bzno);
-                c.fssAddress   = nvl(info.enpBsadr);
-                c.fssHomepage  = nvl(info.enpHmpgUrl);
+                c.fssCorpName = nvl(info.corpNm);
+                c.fssRepName = nvl(info.enpRprFnm);
+                c.fssBizNo = normalizeNumber(info.bzno);
+                c.fssAddress = nvl(info.enpBsadr);
+                c.fssHomepage = nvl(info.enpHmpgUrl);
             }
         }
 
-        // 2-1) 법인등록번호 + 주소 있는 애들만
+        // 2-1) 법인등록번호 + 주소 있는 애들만 필터
         List<BizNoCandidate> filtered = new ArrayList<>();
         for (BizNoCandidate c : candidates) {
             if (isEmpty(c.cno)) continue;
             if (isEmpty(c.fssAddress)) continue;
             filtered.add(c);
         }
-        if (filtered.isEmpty()) return Optional.empty();
+        if (filtered.isEmpty()) {
+            return Optional.empty();
+        }
 
         // 3) 매칭
         Optional<MatchedCompany> matchedOpt = matchCompany(companyName, address, filtered);
-        if (!matchedOpt.isPresent()) return Optional.empty();
+        if (!matchedOpt.isPresent()) {
+            return Optional.empty();
+        }
 
         MatchedCompany matched = matchedOpt.get();
 
         // 4) biz_no / corp_no로 기존 회사 찾기
-        String bizNoDigits  = normalizeNumber(coalesce(matched.candidate.fssBizNo, matched.candidate.bno));
+        String bizNoDigits = normalizeNumber(coalesce(matched.candidate.fssBizNo, matched.candidate.bno));
         String corpNoDigits = normalizeNumber(matched.candidate.cno);
 
-        Optional<Company> byBizNo  = isEmpty(bizNoDigits)  ? Optional.empty() : companyRepository.findByBizNo(bizNoDigits);
-        Optional<Company> byCorpNo = isEmpty(corpNoDigits) ? Optional.empty() : companyRepository.findByCorpNo(corpNoDigits);
+        Optional<Company> byBizNo = isEmpty(bizNoDigits)
+                ? Optional.empty()
+                : companyRepository.findByBizNo(bizNoDigits);
+
+        Optional<Company> byCorpNo = isEmpty(corpNoDigits)
+                ? Optional.empty()
+                : companyRepository.findByCorpNo(corpNoDigits);
 
         Company company = byBizNo.orElseGet(() -> byCorpNo.orElseGet(Company::new));
 
@@ -128,7 +146,9 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            try { if (rd != null) rd.close(); } catch (IOException ignore) {}
+            try {
+                if (rd != null) rd.close();
+            } catch (IOException ignore) {}
             if (conn != null) conn.disconnect();
         }
         return result;
@@ -136,7 +156,9 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
 
     private List<BizNoCandidate> parseBizNoXml(String xml) throws Exception {
         List<BizNoCandidate> list = new ArrayList<>();
-        if (xml == null || xml.trim().isEmpty()) return list;
+        if (xml == null || xml.trim().isEmpty()) {
+            return list;
+        }
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(false);
@@ -196,13 +218,17 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
             e.printStackTrace();
             return "";
         } finally {
-            try { if (rd != null) rd.close(); } catch (IOException ignore) {}
+            try {
+                if (rd != null) rd.close();
+            } catch (IOException ignore) {}
             if (conn != null) conn.disconnect();
         }
     }
 
     private FssCorpInfo parseFssInfo(String xml) {
-        if (xml == null || xml.trim().isEmpty()) return null;
+        if (xml == null || xml.trim().isEmpty()) {
+            return null;
+        }
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(false);
@@ -210,15 +236,17 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
             Document doc = builder.parse(new InputSource(new StringReader(xml)));
 
             NodeList itemNodes = doc.getElementsByTagName("item");
-            if (itemNodes.getLength() == 0) return null;
+            if (itemNodes.getLength() == 0) {
+                return null;
+            }
 
             Element e = (Element) itemNodes.item(0);
 
             FssCorpInfo info = new FssCorpInfo();
-            info.corpNm     = getTagText(e, "corpNm");
-            info.enpRprFnm  = getTagText(e, "enpRprFnm");
-            info.bzno       = getTagText(e, "bzno");
-            info.enpBsadr   = getTagText(e, "enpBsadr");
+            info.corpNm = getTagText(e, "corpNm");
+            info.enpRprFnm = getTagText(e, "enpRprFnm");
+            info.bzno = getTagText(e, "bzno");
+            info.enpBsadr = getTagText(e, "enpBsadr");
             info.enpHmpgUrl = getTagText(e, "enpHmpgUrl");
             return info;
         } catch (Exception e) {
@@ -234,62 +262,89 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
             String cardAddress,
             List<BizNoCandidate> candidates) {
 
-        if (isEmpty(cardAddress)) return Optional.empty();
+        if (isEmpty(cardCompanyName)) {
+            System.out.println("[matchCompany] 회사명이 없어 매칭 불가");
+            return Optional.empty();
+        }
+
+        if (isEmpty(cardAddress)) {
+            System.out.println("[matchCompany] 명함 주소가 없어 매칭 불가");
+            return Optional.empty();
+        }
 
         String normCardName = normalizeCompanyName(cardCompanyName);
         String normCardAddr = normalizeAddress(cardAddress);
-        String cardRegionKey = extractRegionKey(normCardAddr);
 
-        List<MatchedCompany> matchedList = new ArrayList<>();
-
+        // 1) 회사명 + 주소 완전 동일 후보 (1순위 확정)
+        List<BizNoCandidate> exactMatches = new ArrayList<>();
         for (BizNoCandidate c : candidates) {
-            if (isEmpty(c.cno)) continue;
             if (isEmpty(c.fssAddress)) continue;
 
             String normCandName = normalizeCompanyName(
                     isEmpty(c.fssCorpName) ? c.company : c.fssCorpName
             );
             String normCandAddr = normalizeAddress(c.fssAddress);
-            String candRegionKey = extractRegionKey(normCandAddr);
 
-            int score = 0;
-
-            if (normCardName.equals(normCandName)) {
-                score += 50;
-            } else if (normCandName.contains(normCardName) || normCardName.contains(normCandName)) {
-                score += 20;
-            }
-
-            if (!cardRegionKey.isEmpty() && cardRegionKey.equals(candRegionKey)) {
-                score += 40;
-            }
-
-            if (!normCardAddr.isEmpty()) {
-                if (normCardAddr.equals(normCandAddr)) {
-                    score += 60;
-                } else if (normCandAddr.contains(normCardAddr)) {
-                    score += 20;
-                }
-            }
-
-            if (score >= 60) {
-                matchedList.add(new MatchedCompany(c, score));
+            if (normCardName.equals(normCandName) &&
+                    normCardAddr.equals(normCandAddr)) {
+                exactMatches.add(c);
             }
         }
 
-        if (matchedList.isEmpty()) return Optional.empty();
+        if (!exactMatches.isEmpty()) {
+            BizNoCandidate best = exactMatches.get(0);
+            System.out.println("[매칭 성공] 회사명 + 주소 완전 동일 후보 발견 (1순위 확정)");
+            MatchedCompany mc = new MatchedCompany(best, 100);
+            printCandidateDetail(mc);
+            return Optional.of(mc);
+        }
 
-        matchedList.sort((o1, o2) -> Integer.compare(o2.score, o1.score));
+        // 2) 이름 유사도 + 주소 가산점 점수 계산
+        List<MatchedCompany> scoredList = new ArrayList<>();
 
-        MatchedCompany first = matchedList.get(0);
-        if (matchedList.size() == 1) return Optional.of(first);
+        for (BizNoCandidate c : candidates) {
+            if (isEmpty(c.fssCorpName) && isEmpty(c.company)) continue;
 
-        MatchedCompany second = matchedList.get(1);
-        if (first.score - second.score >= 20) {
-            return Optional.of(first);
-        } else {
+            String normCandName = normalizeCompanyName(
+                    isEmpty(c.fssCorpName) ? c.company : c.fssCorpName
+            );
+
+            int score = calcNameSimilarityScore(normCardName, normCandName);
+
+            // 주소 가산점
+            if (!isEmpty(cardAddress) && !isEmpty(c.fssAddress)) {
+                score += calcAddressSimilarityScore(cardAddress, c.fssAddress);
+            }
+
+            if (score > 0) {
+                scoredList.add(new MatchedCompany(c, score));
+            }
+        }
+
+        if (scoredList.isEmpty()) {
+            System.out.println("[matchCompany] 이름+주소 기준으로 점수 매긴 후보가 없음 → 매칭 불가");
             return Optional.empty();
         }
+
+        // 3) 점수 내림차순 + 동점이면 tie-breaker
+        scoredList.sort((a, b) -> {
+            int cmp = Integer.compare(b.score, a.score);
+            if (cmp != 0) return cmp;
+            MatchedCompany chosen = breakTie(a, b);
+            return (chosen == a) ? -1 : 1;
+        });
+
+        MatchedCompany first = scoredList.get(0);
+
+        System.out.println("[매칭 성공] 이름+주소 점수 기반 최상위 후보 선택]");
+        if (scoredList.size() > 1) {
+            MatchedCompany second = scoredList.get(1);
+            System.out.println(" 1위 score=" + first.score +
+                    " / 2위 score=" + second.score);
+        }
+        printCandidateDetail(first);
+
+        return Optional.of(first);
     }
 
     private void fillCompanyFromMatched(Company company,
@@ -395,5 +450,122 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
     private static String coalesce(String a, String b) {
         if (!isEmpty(a)) return a;
         return b;
+    }
+
+    // 이름 유사도 점수 (0~100)
+    private int calcNameSimilarityScore(String a, String b) {
+        if (isEmpty(a) || isEmpty(b)) return 0;
+        if (a.equals(b)) return 100; // 완전 일치
+
+        String[] at = a.split(" ");
+        String[] bt = b.split(" ");
+
+        Set<String> setA = new HashSet<>();
+        for (String x : at) {
+            x = x.trim();
+            if (!x.isEmpty()) setA.add(x);
+        }
+        Set<String> setB = new HashSet<>();
+        for (String y : bt) {
+            y = y.trim();
+            if (!y.isEmpty()) setB.add(y);
+        }
+
+        int common = 0;
+        for (String x : setA) {
+            if (setB.contains(x)) common++;
+        }
+
+        int score;
+
+        if (common > 0) {
+            double ratio = (double) common / Math.max(setA.size(), setB.size());
+            score = 50 + (int) Math.round(ratio * 30); // 50~80
+
+            String firstA = at.length > 0 ? at[0].trim() : "";
+            String firstB = bt.length > 0 ? bt[0].trim() : "";
+            if (!firstA.isEmpty() && firstA.equals(firstB)) {
+                score += 10; // 첫 단어 같으면 보너스
+            }
+        } else {
+            if (a.contains(b) || b.contains(a)) {
+                score = 60; // 포함관계면 중간 점수
+            } else {
+                score = 0;
+            }
+        }
+
+        int lenA = a.length();
+        int lenB = b.length();
+        double lenRatio = (double) Math.min(lenA, lenB) / Math.max(lenA, lenB);
+        if (lenRatio < 0.5) {
+            score -= 10; // 길이 차 심하면 감점
+        }
+
+        if (score < 0) score = 0;
+        if (score > 95) score = 95; // 완전일치(100)와 구분
+        return score;
+    }
+
+    // 주소 유사도 가산점
+    private int calcAddressSimilarityScore(String cardAddr, String candAddr) {
+        if (isEmpty(cardAddr) || isEmpty(candAddr)) return 0;
+
+        String cardRegion = extractRegionKey(cardAddr); // 예: "서울특별시 중구"
+        String candRegion = extractRegionKey(candAddr);
+
+        if (!isEmpty(cardRegion) && cardRegion.equals(candRegion)) {
+            return 20;
+        }
+
+        String normCard = normalizeAddress(cardAddr);
+        String normCand = normalizeAddress(candAddr);
+
+        if (normCard.contains(candAddr) || normCand.contains(cardAddr)) {
+            return 10;
+        }
+        return 0;
+    }
+
+    // 동점일 때 tie-breaker
+    private MatchedCompany breakTie(MatchedCompany a, MatchedCompany b) {
+        BizNoCandidate ca = a.candidate;
+        BizNoCandidate cb = b.candidate;
+
+        // 1) 법인번호(cno) 길이 13인 쪽 우선
+        String caCno = normalizeNumber(ca.cno);
+        String cbCno = normalizeNumber(cb.cno);
+        int lenCna = caCno == null ? 0 : caCno.length();
+        int lenCnb = cbCno == null ? 0 : cbCno.length();
+        if (lenCna == 13 && lenCnb != 13) return a;
+        if (lenCnb == 13 && lenCna != 13) return b;
+
+        // 2) 사업자번호(bno) 길이 10인 쪽 우선
+        String caBno = normalizeNumber(ca.bno);
+        String cbBno = normalizeNumber(cb.bno);
+        int lenBna = caBno == null ? 0 : caBno.length();
+        int lenBnb = cbBno == null ? 0 : cbBno.length();
+        if (lenBna == 10 && lenBnb != 10) return a;
+        if (lenBnb == 10 && lenBna != 10) return b;
+
+        // 3) FSS 주소 있는 쪽 우선
+        if (!isEmpty(ca.fssAddress) && isEmpty(cb.fssAddress)) return a;
+        if (!isEmpty(cb.fssAddress) && isEmpty(ca.fssAddress)) return b;
+
+        // 4) 그래도 같으면 a
+        return a;
+    }
+
+    private void printCandidateDetail(MatchedCompany mc) {
+        BizNoCandidate c = mc.candidate;
+        System.out.println("score        : " + mc.score);
+        System.out.println("company(Biz) : " + c.company);
+        System.out.println("corpName(FSS): " + c.fssCorpName);
+        System.out.println("repName(FSS) : " + c.fssRepName);
+        System.out.println("bizNo        : " + coalesce(c.fssBizNo, normalizeNumber(c.bno)));
+        System.out.println("corpNo(cno)  : " + normalizeNumber(c.cno));
+        System.out.println("address      : " + c.fssAddress);
+        System.out.println("homepage     : " + c.fssHomepage);
+        System.out.println("---------------------------------------------");
     }
 }

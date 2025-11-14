@@ -21,8 +21,11 @@ public class BizCardDto {
     @Schema(description = "이름", example = "홍길동")
     private String name;
 
-    @Schema(description = "회사 이름", example = "네이버")
-    private String companyName;
+    @Schema(description = "명함에 적힌 회사명(원문)", example = "네이버파이낸셜")
+    private String cardCompanyName;
+
+    @Schema(description = "companies 테이블 FK", example = "3")
+    private Long companyIdx;
 
     @Schema(description = "부서명", example = "개발1팀")
     private String department;

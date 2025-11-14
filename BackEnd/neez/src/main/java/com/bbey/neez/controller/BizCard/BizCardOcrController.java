@@ -43,8 +43,7 @@ public class BizCardOcrController {
             Map<String, String> ocrData = bizCardOcrService.readBizCard(fileName);
             BizCardSaveResult result = bizCardService.saveFromOcrData(ocrData, userIdx);
 
-            String companyName = ocrData.getOrDefault("company", null);
-            BizCardDto dto = toBizCardDto(result.getBizCard(), companyName, null);
+            BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
 
             return ResponseEntity.ok(
                     new ApiResponseDto<>(true, result.isExisting() ? "already exists" : "ok", dto)
@@ -67,8 +66,7 @@ public class BizCardOcrController {
             Map<String, String> ocrData = bizCardOcrService.readBizCard(storedFileName);
             BizCardSaveResult result = bizCardService.saveFromOcrData(ocrData, userIdx);
 
-            String companyName = ocrData.getOrDefault("company", null);
-            BizCardDto dto = toBizCardDto(result.getBizCard(), companyName, null);
+            BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
 
             return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", dto));
         } catch (Exception e) {
@@ -89,8 +87,7 @@ public class BizCardOcrController {
             Map<String, String> ocrData = bizCardOcrService.readBizCard(storedFileName);
             BizCardSaveResult result = bizCardService.saveFromOcrData(ocrData, userIdx);
 
-            String companyName = ocrData.getOrDefault("company", null);
-            BizCardDto dto = toBizCardDto(result.getBizCard(), companyName, null);
+            BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
 
             return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", dto));
         } catch (Exception e) {
@@ -99,13 +96,15 @@ public class BizCardOcrController {
         }
     }
 
-    private BizCardDto toBizCardDto(BizCard card, String companyName, String memoContent) {
+    private BizCardDto toBizCardDto(BizCard card, String ignoredCompanyName, String memoContent) {
         if (card == null) return null;
+
         return new BizCardDto(
                 card.getIdx(),
                 card.getUserIdx(),
                 card.getName(),
-                companyName,
+                card.getCardCompanyName(), // ✅ 명함에서 읽은 회사명
+                card.getCompanyIdx(),      // ✅ 연결된 회사 ID
                 card.getDepartment(),
                 card.getPosition(),
                 card.getEmail(),
@@ -114,7 +113,7 @@ public class BizCardOcrController {
                 card.getFaxNumber(),
                 card.getAddress(),
                 memoContent,
-                null    // 태그는 여기서 안 넣음
+                null
         );
     }
 }
