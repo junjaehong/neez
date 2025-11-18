@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import FAB from '../components/FAB';
@@ -7,32 +7,79 @@ import './CardList.css';
 
 const CardList = () => {
   const navigate = useNavigate();
-  const { cardList, deleteCard } = useApp();
-  const [filteredCards, setFilteredCards] = useState(cardList);
-  const [selectedCard, setSelectedCard] = useState(null);
+  const [cards, setCards] = useState([]); // 전체 명함 목록
+  const [filteredCards, setFilteredCards] = useState([]); // 검색용
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const userIdx = 1; // ✅ 로그인된 사용자 ID (임시)
+  const page = 0;
+  const size = 10;
+  
+  // 명함 목록 API 호출
+  useEffect(() => {
+    const fetchCards = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`http://192.168.70.114:8083/api/bizcards/user/${userIdx}/page?page=${page}&size=${size}`);
+        if (!response.ok) {
+          throw new Error('명함 목록 불러오기 실패');
+        }
+        const result = await response.json();
+        console.log('API 응답:', result);
+
+        if (result.success && result.data && result.data.content) {
+          setCards(result.data.content);
+          setFilteredCards(result.data.content);
+      } else {
+        console.error("API 구조가 예상과 다릅니다:", result);
+        setError("데이터 형식이 올바르지 않습니다.");
+      }
+      
+    } catch (error) {
+      console.error("명함 목록 불러오기 실패:", error);
+      setError("명함 데이터를 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      // ✅ 무조건 실행 — 로딩 종료
+      setLoading(false);
+    }
+  };
+
+    //     setCards(list);
+    //     setFilteredCards(list);
+    //   } catch (err) {
+    //     console.error(err);
+    //     setError('명함 데이터를 불러오는 중 오류가 발생했습니다.');
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // };
+
+    fetchCards();
+  }, []);
 
   const handleBack = () => {
     navigate('/main');
   };
 
-  const handleHashtagList = () => {
-    navigate('/hashtaglist');
-  };
+  // const handleHashtagList = () => {
+  //   navigate('/hashtaglist');
+  // };
 
-  const handleCardDetail = () => {
-    navigate('/carddetail');
+  const handleCardDetail = (cardId) => {
+  navigate(`/carddetail/${cardId}`);
   };
 
   const handleSearch = (keyword) => {
     if (!keyword.trim()) {
-      setFilteredCards(cardList);
+      setFilteredCards(cards);
       return;
     }
     
-    const filtered = cardList.filter(card => 
-      card.name.toLowerCase().includes(keyword.toLowerCase()) ||
-      card.company.toLowerCase().includes(keyword.toLowerCase()) ||
-      (card.department && card.department.toLowerCase().includes(keyword.toLowerCase()))
+    const filtered = cards.filter(card =>
+      card.name?.toLowerCase().includes(keyword.toLowerCase()) ||
+      card.companyName?.toLowerCase().includes(keyword.toLowerCase()) ||
+      card.department?.toLowerCase().includes(keyword.toLowerCase())
     );
     setFilteredCards(filtered);
   };
@@ -45,17 +92,11 @@ const CardList = () => {
   //   setSelectedCard(null);
   // };
 
-  // const handleDeleteCard = (e, cardId) => {
-  //   e.stopPropagation();
-  //   if (window.confirm('정말로 이 명함을 삭제하시겠습니까?')) {
-  //     deleteCard(cardId);
-  //     setFilteredCards(prev => prev.filter(card => card.id !== cardId));
-  //   }
-  // };
+  
 
-  React.useEffect(() => {
-    setFilteredCards(cardList);
-  }, [cardList]);
+  if (loading) return <div className="cardlist-container">불러오는 중...</div>;
+  if (error) return <div className="cardlist-container">{error}</div>;
+
 
   return (
     <div className="cardlist-container">
@@ -66,7 +107,7 @@ const CardList = () => {
           <button className="back-button" onClick={handleBack}>
             ←
           </button>
-          <div className="hashtag-icon" onClick={handleHashtagList}>#</div>
+          {/* <div className="hashtag-icon" onClick={handleHashtagList}>#</div> */}
         </div>
 
         {/* 명함 검색 */}
@@ -76,7 +117,9 @@ const CardList = () => {
         <div className="cardlist">
           {filteredCards.length > 0 ? (
             filteredCards.map(card => (
-              <div key={card.id} className="card-item" onClick={handleCardDetail}>
+              <div key={card.idx}
+                   className="card-item"
+                   onClick={() => handleCardDetail(card.idx)}>
                 {/* <button 
                   className="delete-btn"
                   onClick={(e) => handleDeleteCard(e, card.id)}
@@ -89,21 +132,21 @@ const CardList = () => {
                   <div className="card-item-date">{card.createdAt}</div>
                 </div>
                 <div className="card-item-info">
-                  <div className="card-item-company">{card.company}</div>
+                  <div className="card-item-company">{card.companyName}</div>
                   <div className="card-item-position">
                     {card.position && `${card.position}`}
                     {card.position && card.department && ' | '}
                     {card.department && `${card.department}`}
                   </div>
                   <div className="card-item-contact">
-                    {card.phone && `📞 ${card.phone}`}
-                    {card.phone && card.email && ' | '}
+                    {card.phoneNumber && `📞 ${card.phoneNumber}`}
+                    {card.phoneNumber && card.email && ' | '}
                     {card.email && `✉️ ${card.email}`}
                   </div>
                 </div>
-                {card.tags && card.tags.length > 0 && (
+                {card.hashTags && card.hashTags.length > 0 && (
                   <div className="card-tags">
-                    {card.tags.map((tag, index) => (
+                    {card.hashTags.map((tag, index) => (
                       <span key={index} className="card-tag">#{tag}</span>
                     ))}
                   </div>
@@ -122,73 +165,6 @@ const CardList = () => {
         <FAB />
         
       </div>
-
-      {/* 명함 상세 팝업
-      {selectedCard && (
-        <div className="popup-content">
-          <button className="popup-close" onClick={handleClosePopup}>
-            ×
-          </button>
-          <table>
-            <tbody>
-              <tr>
-                <td>이름</td>
-                <td>{selectedCard.name}</td>
-              </tr>
-              {selectedCard.position && (
-                <tr>
-                  <td>직급</td>
-                  <td>{selectedCard.position}</td>
-                </tr>
-              )}
-              {selectedCard.department && (
-                <tr>
-                  <td>부서</td>
-                  <td>{selectedCard.department}</td>
-                </tr>
-              )}
-              <tr>
-                <td>회사</td>
-                <td>{selectedCard.company}</td>
-              </tr>
-              {selectedCard.phone && (
-                <tr>
-                  <td>전화번호</td>
-                  <td>{selectedCard.phone}</td>
-                </tr>
-              )}
-              {selectedCard.email && (
-                <tr>
-                  <td>이메일</td>
-                  <td>{selectedCard.email}</td>
-                </tr>
-              )}
-              {selectedCard.address && (
-                <tr>
-                  <td>주소</td>
-                  <td>{selectedCard.address}</td>
-                </tr>
-              )}
-              {selectedCard.website && (
-                <tr>
-                  <td>웹사이트</td>
-                  <td>{selectedCard.website}</td>
-                </tr>
-              )}
-              {selectedCard.memo && (
-                <tr>
-                  <td>메모</td>
-                  <td>{selectedCard.memo}</td>
-                </tr>
-              )}
-              <tr>
-                <td>등록일</td>
-                <td>{selectedCard.createdAt}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )} */}
     </div>
   );
 };

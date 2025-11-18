@@ -25,6 +25,10 @@ const Main = () => {
     navigate('/cardlist');
   };
 
+  const handleMic = () => {
+    navigate('/SttCardSelect');
+  };
+
   const handleCardClick = () => setIsPopupOpen(true);
   const handleClosePopup = () => setIsPopupOpen(false);
 
@@ -36,7 +40,7 @@ const Main = () => {
         <div className="main-header">
           <Logo size="medium_left" />
           <div className="header-right">
-            <div className="icon" title="녹음">Mic</div>
+            <div className="icon" onClick={handleMic} title="녹음">Mic</div>
             <div className="icon" onClick={handleCardlist} title="명함 목록">List</div>
             <div className="icon" onClick={handleMypage} title="마이페이지">My</div>
           </div>
@@ -60,7 +64,6 @@ const Main = () => {
         <FAB />
         
       </div>
-
       {/* 팝업창 - Context 데이터 사용 */}
       {isPopupOpen && (
         <div className="popup-content">
@@ -109,6 +112,7 @@ const Main = () => {
           </table>
         </div>
       )}
+
     </div>
   );
 };

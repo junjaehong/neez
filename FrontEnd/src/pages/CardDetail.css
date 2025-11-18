@@ -34,10 +34,17 @@
   color: var(--dark-text-primary);
 }
 
-.edit-button {
+.bottom-btn-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.edit-btn {
   padding: 8px 16px;
-  background: var(--primary-color);
-  color: white;
+  /* background: var(--primary-color); */
+  color: #111;
   border: none;
   border-radius: 20px;
   font-size: 14px;
@@ -45,8 +52,22 @@
   transition: all 0.3s ease;
 }
 
-.edit-button:hover {
+.edit-btn:hover {
   background: var(--primary-dark);
+}
+
+.delete-btn {
+  padding: 8px 16px;
+  color: #111;
+  background-color: #ff3b30;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background: #d62822;
 }
 
 .card-info-table {
@@ -101,7 +122,7 @@
   width: 100%;
   padding: 12px;
   background: var(--primary-color);
-  color: white;
+  color: #111;
   border: none;
   border-radius: 10px;
   font-size: 16px;
@@ -122,9 +143,10 @@
 
 .section-header {
   display: flex;
+  width: 100%;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  /* margin-bottom: 15px; */
 }
 
 .section-header h3 {
@@ -141,7 +163,7 @@
   height: 30px;
   border-radius: 50%;
   background: var(--primary-color);
-  color: white;
+  color: #222;
   border: none;
   font-size: 20px;
   cursor: pointer;
@@ -165,7 +187,7 @@
   display: inline-block;
   padding: 6px 14px;
   background: var(--primary-color);
-  color: white;
+  color: #222;
   border-radius: 15px;
   font-size: 13px;
   cursor: pointer;
@@ -200,7 +222,7 @@
 .hashtag-input button {
   padding: 8px 20px;
   background: var(--primary-color);
-  color: white;
+  color: #222;
   border: none;
   border-radius: 20px;
   font-size: 14px;
@@ -246,7 +268,7 @@
 .memo-section button {
   padding: 8px 20px;
   background: var(--primary-color);
-  color: white;
+  color: #222;
   border: none;
   border-radius: 20px;
   font-size: 14px;
@@ -258,6 +280,10 @@
 }
 
 /* 회의록 섹션 */
+.meeting-notes-section {
+  margin-bottom: 20px;
+}
+
 .meeting-notes-section {
   margin-bottom: 20px;
 }
@@ -287,7 +313,7 @@
 }
 
 /* 팝업 스타일 */
-.popup-overlay {
+/* .popup-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -331,6 +357,11 @@
 
 .popup-close:hover {
   color: var(--text-primary);
+} */
+
+.company-group {
+  display: flex;
+  justify-content: space-between
 }
 
 .company-info p {

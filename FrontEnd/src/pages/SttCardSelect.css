@@ -1,0 +1,234 @@
+.stt-select-container {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.stt-select-box {
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  min-height: 600px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.dark-mode .stt-select-box {
+  background: var(--dark-surface);
+}
+
+.stt-select-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.stt-select-header h2 {
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.dark-mode .stt-select-header h2 {
+  color: var(--dark-text-primary);
+}
+
+.search-container {
+  margin-bottom: 20px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 20px;
+  border: 1px solid var(--border);
+  border-radius: 25px;
+  font-size: 14px;
+  background: var(--background);
+  transition: all 0.3s ease;
+}
+
+.dark-mode .search-input {
+  background: var(--dark-background);
+  color: var(--dark-text-primary);
+  border: 1px solid var(--dark-border);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(115, 113, 100, 0.1);
+}
+
+.card-select-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.card-select-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 10px;
+  background: var(--background);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dark-mode .card-select-item {
+  background: var(--dark-background);
+}
+
+.card-select-item:hover {
+  background: rgba(115, 113, 100, 0.1);
+}
+
+.card-select-item.selected {
+  background: rgba(115, 113, 100, 0.2);
+  border: 2px solid var(--primary-color);
+}
+
+.card-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--primary-color);
+  border-radius: 50%;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.card-select-item.selected .card-checkbox {
+  background: var(--primary-color);
+  color: white;
+}
+
+.card-info {
+  flex: 1;
+}
+
+.card-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.dark-mode .card-name {
+  color: var(--dark-text-primary);
+}
+
+.card-company {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.dark-mode .card-company {
+  color: var(--dark-text-secondary);
+}
+
+.confirm-button {
+  width: 100%;
+  padding: 15px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.confirm-button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(115, 113, 100, 0.4);
+}
+
+/* 참석자 확인 팝업 */
+.participant-list {
+  margin: 20px 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.participant-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: var(--background);
+  border-radius: 8px;
+}
+
+.dark-mode .participant-item {
+  background: var(--dark-background);
+}
+
+.participant-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dark-mode .participant-name {
+  color: var(--dark-text-primary);
+}
+
+.participant-company {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.dark-mode .participant-company {
+  color: var(--dark-text-secondary);
+}
+
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cancel-button,
+.start-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-button {
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+.dark-mode .cancel-button {
+  background: var(--dark-background);
+  color: var(--dark-text-primary);
+}
+
+.start-button {
+  background: var(--primary-color);
+  color: white;
+}
+
+.cancel-button:hover {
+  background: var(--border);
+}
+
+.start-button:hover {
+  background: var(--primary-dark);
+}

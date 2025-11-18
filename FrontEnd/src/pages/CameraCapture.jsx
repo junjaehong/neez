@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import axios from 'axios';
 import './CameraCapture.css';
 
 const CameraCapture = () => {
@@ -18,6 +19,51 @@ const CameraCapture = () => {
     phone: '',
     email: ''
   });
+
+
+  const handleOCR = async (base64Image) => {
+    try {
+      // Base64 → Blob 변환
+      const blob = await (await fetch(base64Image)).blob();
+
+      // FormData에 담기
+      const formData = new FormData();
+      formData.append('file', blob, 'capture.png');
+
+      // OCR API 호출
+      const res = await axios.post(
+        'http://192.168.70.114:8083/api/bizcards/read/upload?user_idx=1',
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        }
+      );
+
+      console.log('✅ OCR 응답 데이터:', res.data);
+
+      // API 결과 구조에 맞게 매핑
+      // (예: res.data.result.name, res.data.result.phone 등)
+      setExtractedData({
+        idx: res.data.data.idx || '',
+        userIdx: res.data.data.userIdx || '',
+        name: res.data.data.name || '',
+        companyName: res.data.data.companyName || '',
+        department: res.data.data.department || '',
+        position: res.data.data.position || '',
+        email: res.data.data.email || '',
+        phoneNumber: res.data.data.phoneNumber || '',
+        lineNumber: res.data.data.lineNumber || '',
+        faxNumber: res.data.data.faxNumber || '',
+        address: res.data.data.address || '',
+        memoContent: res.data.data.memoContent || '',
+        hashTags: res.data.data.hashTags || ''
+
+      });
+    } catch (err) {
+      console.error('❌ OCR 요청 실패:', err);
+      alert('OCR 분석 중 오류가 발생했습니다.');
+    }
+  };
 
   useEffect(() => {
     // 카메라 권한 요청 및 스트림 시작
@@ -60,7 +106,7 @@ const CameraCapture = () => {
       setCapturedImage(imageData);
       
       // OCR 시뮬레이션 (실제로는 API 호출)
-      simulateOCR();
+      handleOCR(imageData);
       
       // 카메라 스트림 정지
       if (stream) {
@@ -69,20 +115,20 @@ const CameraCapture = () => {
     }
   };
 
-  const simulateOCR = () => {
-    // 실제로는 OCR API를 호출하여 명함 정보를 추출
-    // 여기서는 시뮬레이션으로 임시 데이터 생성
-    setTimeout(() => {
-      setExtractedData({
-        name: '김영희',
-        position: '대리',
-        department: '기획팀',
-        company: 'TechCorp',
-        phone: '010-9876-5432',
-        email: 'kim@techcorp.com'
-      });
-    }, 1000);
-  };
+  // const simulateOCR = () => {
+  //   // 실제로는 OCR API를 호출하여 명함 정보를 추출
+  //   // 여기서는 시뮬레이션으로 임시 데이터 생성
+  //   setTimeout(() => {
+  //     setExtractedData({
+  //       name: '김영희',
+  //       position: '대리',
+  //       department: '기획팀',
+  //       company: 'TechCorp',
+  //       phone: '010-9876-5432',
+  //       email: 'kim@techcorp.com'
+  //     });
+  //   }, 1000);
+  // };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

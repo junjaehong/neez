@@ -26,7 +26,7 @@ export const AppProvider = ({ children }) => {
     address: '서울시 강남구',
     fax: '02-123-4567',
     website: 'www.navercloud.com',
-    customFields: [] // 추가 필드
+    // customFields: [] // 추가 필드
   });
   
   // 수집한 명함 목록
@@ -41,6 +41,20 @@ export const AppProvider = ({ children }) => {
       email: 'ceo@navercloud.com',
       createdAt: '2025.10.24',
       hashtags: ['#중요', '#거래처'],
+      memo: '',
+      companyInfo: '',
+      meetingNotes: []
+    },
+    {
+      id: 2,
+      name: '김길태',
+      position: '팀장',
+      department: '인사과',
+      company: 'Coupang',
+      phone: '010-8765-4321',
+      email: 'tae@coupang.com',
+      createdAt: '2025.10.29',
+      hashtags: ['#마케팅', '#영업'],
       memo: '',
       companyInfo: '',
       meetingNotes: []
@@ -60,6 +74,17 @@ export const AppProvider = ({ children }) => {
   // STT 관련
   const [meetingParticipants, setMeetingParticipants] = useState([]);
   const [currentMeeting, setCurrentMeeting] = useState(null);
+
+  // 회의록 리스트
+  const [meetingNotes, setMeetingNotes] = useState([
+    {
+    date: "25.10.24",
+    company: "NaverCloud",
+    content: "신규 프로젝트 일정 조율 및 역할 분담 논의...",
+  }
+  ]);
+  // 팝업용
+  const [selectedNote, setSelectedNote] = useState(null); 
 
   // localStorage에 데이터 저장
   useEffect(() => {

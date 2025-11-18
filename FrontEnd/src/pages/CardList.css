@@ -131,26 +131,6 @@
   opacity: 0.3;
 }
 
-.delete-btn {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: #ff4444;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 25px;
-  height: 25px;
-  font-size: 16px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
 .card-item:hover .delete-btn {
   opacity: 1;
-}
-
-.delete-btn:hover {
-  background: #cc0000;
 }
