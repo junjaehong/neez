@@ -25,7 +25,7 @@ function App() {
           <Route path="/mycard" element={<MyCard />} />
           <Route path="/cardlist" element={<CardList />} />
           <Route path="/hashtaglist" element={<HashtagList />} />
-          <Route path="/carddetail" element={<CardDetail />} />
+          <Route path="/carddetail/:id" element={<CardDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
