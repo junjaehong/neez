@@ -38,6 +38,7 @@ public class BizCardReaderController {
             resp.put("card", saved);
             return ResponseEntity.status(HttpStatus.OK).body(resp);
         } catch (Exception e) {
+            // 오류 처리 ----
             resp.put("success", false);
             resp.put("error", e.getClass().getSimpleName());
             resp.put("message", e.getMessage());

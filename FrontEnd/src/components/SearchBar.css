@@ -1,0 +1,29 @@
+/* SearchBar 스타일 */
+.search-container {
+  margin-bottom: 30px;
+}
+
+.search-content {
+  display: flex;
+  position: relative;
+  background-color: #e7e7e3;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.search-input {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  outline: none;
+}
+
+.search-button {
+  background-color: #e7e7e3;
+  border: none;
+  padding: 15px 25px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
