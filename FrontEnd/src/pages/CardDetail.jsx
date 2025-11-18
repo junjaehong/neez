@@ -7,7 +7,7 @@ import './CardDetail.css';
 const CardDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const baseURL = 'http://192.168.70.114:8083/api/bizcards'; // 공통 prefix
+  const baseURL = 'http://192.168.70.114:8083/api'; // 공통 prefix
   // const { cardList, updateCard, addHashtagToCard, hashtags, settings, addMeetingNote } = useApp();
   
   const [card, setCard] = useState(null);
@@ -21,19 +21,10 @@ const CardDetail = () => {
   const [showHashtagInput, setShowHashtagInput] = useState(false);
   const [newHashtag, setNewHashtag] = useState('');
   const [hashtags, setHashtags] = useState([]);
-  
-  // // 추가 대기 목록
-  // const [addTagList, setAddTagList] = useState([]);
-
-  // // 삭제 대기 목록
-  // const [deleteTagList, setDeleteTagList] = useState([]);
 
   // 기업 정보 관련
   const [showCompanyInfo, setShowCompanyInfo] = useState(false);
   const [companyInfo, setCompanyInfo] = useState(null);
-  
-  // 커스텀 필드 관련
-  // const [customFields, setCustomFields] = useState([]);
 
   // 회의록 관련
   const [showMeetingList, setShowMeetingList] = useState(false);
@@ -50,23 +41,27 @@ const CardDetail = () => {
   // 카드 데이터 로드
 const reloadData = async () => {
   try {
-    const cardRes = await axios.get(`${baseURL}/${id}`);
+    const cardRes = await axios.get(`${baseURL}/bizcards/${id}`);
     console.log("명함 상세 데이터:", cardRes.data.data);
     setCard(cardRes.data.data);
     setFormData(cardRes.data.data);
 
     // 메모
-    const memoRes = await axios.get(`${baseURL}/${id}/memo`);
+    const memoRes = await axios.get(`${baseURL}/bizcards/${id}/memo`);
     console.log('memo API response:', memoRes.data.data.memoContent);
     setMemo(memoRes.data.data.memoContent || '');
 
     // 해시태그
-    const tagRes = await axios.get(`${baseURL}/${id}/hashtags`);
+    const tagRes = await axios.get(`${baseURL}/bizcards/${id}/hashtags`);
     // console.log(id);
     console.log('Tag API response:', tagRes.data);
-
+    
     const tagData = tagRes.data;
     setHashtags(Array.isArray(tagData) ? tagData : (tagData.hashTags || []));
+    
+    // 기업 정보
+    const companyInfo = await axios.get(`${baseURL}/companies/${cardRes.data.data.companyIdx}`);
+    console.log('companyInfo API response:', companyInfo.data);
 
   } catch (err) {
     console.error("데이터 불러오기 실패:", err);
@@ -108,7 +103,7 @@ useEffect(() => {
   const handleSaveMemo = async () => {
     try {
       await axios.patch(`${baseURL}/${id}/memo`,
-        { memoContent: memo },
+        { memo: memo },
         { headers: { 'Content-Type': 'application/json' }
       });
       console.log("메모 저장 성공");
@@ -214,35 +209,6 @@ useEffect(() => {
     setCompanyInfo(mockCompanyInfo);
     setShowCompanyInfo(true);
   };
-
-  // // 추가 필드 추가
-  // const handleAddCustomField = () => {
-  //   setCustomFields(prev => [...prev, { key: "", value: "" }]);
-  //   // if (newFieldName.trim() && newFieldValue.trim()) {
-  //   //   const newField = {
-  //   //     name: newFieldName,
-  //   //     value: newFieldValue
-  //   //   };
-  //   //   setCustomFields([...customFields, newField]);
-  //   //   setNewFieldName('');
-  //   //   setNewFieldValue('');
-  //   //   setShowAddField(false);
-  //   // }
-  // };
-  
-  // // 추가 필드 수정
-  // const handleCustomFieldChange = (index, value) => {
-  //   const updatedFields = [...customFields];
-  //   updatedFields[index].value = value;
-  //   setCustomFields(updatedFields);
-  // };
-
-  // // 추가 필드 삭제
-  // const handleDeleteCustomField = (index) => {
-  //   const updatedFields = customFields.filter((_, i) => i !== index);
-  //   setCustomFields(updatedFields);
-  // };
-
 
 
   // 회의록 삭제
@@ -427,28 +393,6 @@ useEffect(() => {
               </tr>
             </tbody>
           </table>
-              
-              {/* 추가 필드들 */}
-              {/* {editMode ? (
-                <>
-                <div key={index}>
-                  <input 
-                  value={item.key}
-                  onChange={(e) => updateCustomField(idx, "key", e.target.value)}
-                  placeholder="항목명"
-                  />
-                  <input 
-                    value={item.value}
-                    onChange={(e) => updateCustomField(idx, "value", e.target.value)}
-                    placeholder="값"
-                  />
-                  <button onClick={() => handleDeleteCustomField(idx)}>삭제</button>
-                </div>
-                </>
-               ) : (
-              <p>{item.key}: {item.value}</p>
-            )}
-            <button onClick={handleAddCustomField}>+</button> */}
 
           {/* 해시태그 섹션 */}
           <div className="hashtag-section">
@@ -599,12 +543,12 @@ useEffect(() => {
             <button className="popup-close" onClick={() => setShowCompanyInfo(false)}>×</button>
             <h3>{companyInfo.name}</h3>
             <div className="company-info">
-              <p><strong>업종:</strong> {companyInfo.industry}</p>
-              <p><strong>직원수:</strong> {companyInfo.employees}</p>
-              <p><strong>설립:</strong> {companyInfo.founded}</p>
-              <p><strong>본사:</strong> {companyInfo.headquarters}</p>
-              <p><strong>매출:</strong> {companyInfo.revenue}</p>
-              <p><strong>소개:</strong> {companyInfo.description}</p>
+              <p><strong>회사이름:</strong> {companyInfo.industry}</p>
+              <p><strong>대표이사:</strong> {companyInfo.employees}</p>
+              <p><strong>주소:</strong> {companyInfo.revenue}</p>
+              <p><strong>사이트:</strong> {companyInfo.description}</p>
+              <p><strong>사업자번호:</strong> {companyInfo.founded}</p>
+              <p><strong>법인번호:</strong> {companyInfo.headquarters}</p>
               <div className="services">
                 <strong>주요 서비스:</strong>
                 <ul>
