@@ -8,7 +8,7 @@ const CardDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const baseURL = 'http://192.168.70.114:8083/api'; // 공통 prefix
-  // const { cardList, updateCard, addHashtagToCard, hashtags, settings, addMeetingNote } = useApp();
+  // const { addMeetingNote } = useApp();
   
   const [card, setCard] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -32,61 +32,71 @@ const CardDetail = () => {
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [currentMeetingIndex, setCurrentMeetingIndex] = useState(0);
 
-  // const [showAddField, setShowAddField] = useState(false);
-  // const [newFieldName, setNewFieldName] = useState('');
-  // const [newFieldValue, setNewFieldValue] = useState('');
-  // const [translatedContent, setTranslatedContent] = useState(null);
-  // const [selectedLanguage, setSelectedLanguage] = useState(settings.language || 'ko');
+  // 뒤로가기
+  const handleBack = () => {
+    navigate('/cardlist');
+  };
 
   // 카드 데이터 로드
-const reloadData = async () => {
-  try {
-    const cardRes = await axios.get(`${baseURL}/bizcards/${id}`);
-    console.log("명함 상세 데이터:", cardRes.data.data);
-    setCard(cardRes.data.data);
-    setFormData(cardRes.data.data);
+  const reloadData = async () => {
+    try {
+      const cardRes = await axios.get(`${baseURL}/bizcards/${id}`);
+      console.log("명함 상세 데이터:", cardRes.data.data);
+      setCard(cardRes.data.data);
+      setFormData(cardRes.data.data);
 
-    // 메모
-    const memoRes = await axios.get(`${baseURL}/bizcards/${id}/memo`);
-    console.log('memo API response:', memoRes.data.data.memoContent);
-    setMemo(memoRes.data.data.memoContent || '');
+      // 메모
+      const memoRes = await axios.get(`${baseURL}/bizcards/${id}/memo`);
+      console.log('memo API response:', memoRes.data.data.memoContent);
+      setMemo(memoRes.data.data.memoContent || '');
 
-    // 해시태그
-    const tagRes = await axios.get(`${baseURL}/bizcards/${id}/hashtags`);
-    // console.log(id);
-    console.log('Tag API response:', tagRes.data);
-    
-    const tagData = tagRes.data;
-    setHashtags(Array.isArray(tagData) ? tagData : (tagData.hashTags || []));
-    
-    // 기업 정보
-    const companyInfo = await axios.get(`${baseURL}/companies/${cardRes.data.data.companyIdx}`);
-    console.log('companyInfo API response:', companyInfo.data);
+      // 해시태그
+      const tagRes = await axios.get(`${baseURL}/bizcards/${id}/hashtags`);
+      // console.log(id);
+      console.log('Tag API response:', tagRes.data);
+      
+      const tagData = tagRes.data;
+      setHashtags(Array.isArray(tagData) ? tagData : (tagData.hashTags || []));
+      
+      // 기업 정보
+      // const companyInfo = await axios.get(`${baseURL}/companies/${cardRes.data.data.companyIdx}`);
+      // console.log('companyInfo API response:', companyInfo.data);
 
-  } catch (err) {
-    console.error("데이터 불러오기 실패:", err);
-  }
-};
+      // 회의록 리스트 API 입력 후 삭제 ▼
+        const defaultMeetings = [
+          {
+            date: "2025-11-04",
+            company: "NaverCloud",
+            content: "신규 프로젝트 일정 조율 및 역할 분담 논의...",
+          },
+          {
+            date: "2025-10-25",
+            company: "Naver",
+            content: "구 프로젝트 일정 조율 및 역할 분담 논의...",
+          }
+        ];
+
+        setCard({
+          ...cardRes.data.data,            // API에서 받은 카드 데이터
+          meetingNotes: defaultMeetings   // 기존 회의록 유지
+        });
+        // 회의록 리스트 API 입력 후 삭제 ▲
+
+    } catch (err) {
+      console.error("데이터 불러오기 실패:", err);
+    }
+  };
 
 //   fetchData();
 // }, [id]);
 
 
-useEffect(() => {
-  reloadData();
-}, [id]);
+  useEffect(() => {
+    reloadData();
+  }, [id]);
 
 
-  const handleBack = () => {
-    navigate('/cardlist');
-  };
 
-  // const handleEdit = () => {
-  //   if (editMode) {
-  //     handleSave();
-  //   }
-  //   setEditMode(!editMode);
-  // };
 
   // 입력 변경
   const handleInputChange = (e) => {
@@ -96,13 +106,19 @@ useEffect(() => {
       [name]: value
     }));
   };
-
+  
+  // const handleEdit = () => {
+  //   if (editMode) {
+  //     handleSave();
+  //   }
+  //   setEditMode(!editMode);
+  // };
   // const reloadData = () => fetchData();
   
   // 메모 저장
   const handleSaveMemo = async () => {
     try {
-      await axios.patch(`${baseURL}/${id}/memo`,
+      await axios.patch(`${baseURL}/bizcards/${id}/memo`,
         { memo: memo },
         { headers: { 'Content-Type': 'application/json' }
       });
@@ -117,7 +133,7 @@ useEffect(() => {
   const handleSave = async () => {
     try {
       // 명함 정보 저장
-      await axios.put(`${baseURL}/${id}`, {
+      await axios.put(`${baseURL}/bizcards/${id}`, {
         ...formData,
         // memo: memo   // 메모 함께 전송
       });
@@ -133,28 +149,26 @@ useEffect(() => {
       alert("저장 중 오류 발생");
     }
   };
-
   
   // 명함 삭제
   const handleDelete = async () => {
     if (window.confirm('정말 이 명함을 삭제하시겠습니까?')) {
       try {
-        await axios.delete(`${baseURL}/${id}`);
+        await axios.delete(`${baseURL}/bizcards/${id}`);
         alert('명함이 삭제되었습니다.');
         navigate('/cardlist');
       } catch (err) {
         console.error('명함 삭제 실패:', err);
         alert('삭제 중 오류 발생');
       }
-      
     }
   };
   
   // 해시태그 삭제
   const handleDeleteHashtag = async (tag) => {
     try {
-      await axios.delete(`${baseURL}/${id}/hashtags/${encodeURIComponent(tag)}`);
-
+      await axios.delete(`${baseURL}/bizcards/${id}/hashtags/${encodeURIComponent(tag)}`);
+      
       // 화면에서도 즉시 삭제
       setHashtags(prev => prev.filter(t => t !== tag));
       setCard(prevCard => ({
@@ -168,15 +182,12 @@ useEffect(() => {
     }
   };
 
-  
   // 해시태그 추가
   const handleAddHashtag = async () => {
     if (!newHashtag.trim()) return;
-    // const tagRes = await axios.get(`${baseURL}/${id}/hashtags`);
-    //   console.log("해시태그 조회:", tagRes.data);
     
     try {
-      const res = await axios.post(`${baseURL}/${id}/hashtags`,
+      const res = await axios.post(`${baseURL}/bizcards/${id}/hashtags`,
         JSON.stringify([newHashtag]),
        { headers: { "Content-Type": "application/json" } }
     );
@@ -191,25 +202,18 @@ useEffect(() => {
     }
   };
 
-  
-  // 기업 정보 조회 (OpenAI 시뮬레이션)
+  // 기업 정보 조회
   const handleCompanyInfoClick = async () => {
-    // 실제로는 OpenAI API 호출
-    const mockCompanyInfo = {
-      name: formData.company || card.company,
-      industry: 'Cloud Computing',
-      employees: '5000+',
-      founded: '2010',
-      headquarters: '서울특별시 강남구',
-      revenue: '연매출 1조원',
-      description: `${formData.company || card.company}는 클라우드 컴퓨팅 서비스를 제공하는 선도적인 기업입니다. 
-      AI, 빅데이터, IoT 등 다양한 분야에서 혁신적인 솔루션을 제공하고 있습니다.`,
-      services: ['Cloud Infrastructure', 'AI Platform', 'Data Analytics', 'Security Solutions']
-    };
-    setCompanyInfo(mockCompanyInfo);
-    setShowCompanyInfo(true);
+    try {
+      const companyInfo = await axios.get(`${baseURL}/companies/${card.companyIdx}`);
+      setCompanyInfo(companyInfo.data);
+      setShowCompanyInfo(true);
+      console.log('companyInfo API response:', companyInfo.data);
+    } catch (err) {
+      console.error("기업 정보 조회 실패:", err);
+      alert("기업 정보 조회 실패");
+    }
   };
-
 
   // 회의록 삭제
   const handleDeleteMeeting = (meetingId) => {
@@ -226,7 +230,7 @@ useEffect(() => {
     setSelectedMeeting(meeting);
     setCurrentMeetingIndex(index);
     setShowMeetingDetail(true);
-    setShowMeetingList(false);
+    // setShowMeetingList(false);
   };
 
   // 회의록 네비게이션
@@ -470,27 +474,30 @@ useEffect(() => {
           </div>
 
           {/* 회의록 섹션 */}
-          {card.meetingNotes && card.meetingNotes.length > 0 && (
+          {card.meetingNotes && (
           <div className="meeting-section">
             <div className="section-header">
               <h3>회의록</h3>
-              <button 
+              {/* <button 
                 className="view-button"
                 onClick={() => setShowMeetingList(!showMeetingList)}
               >
                 {showMeetingList ? '닫기' : '보기'}
-              </button>
+              </button> */}
             </div>
             
-            {showMeetingList && (
+            {/* {showMeetingList && ( */}
               <div className="meeting-list">
                 {card.meetingNotes.map((meeting, index) => (
                   <div key={meeting.id} className="meeting-item">
+                    <span className="meeting-date">
+                      {new Date(meeting.date).toLocaleDateString()}
+                    </span>
                     <span 
-                      className="meeting-date"
+                      className="meeting-title"
                       onClick={() => handleViewMeeting(meeting, index)}
                     >
-                      {new Date(meeting.date).toLocaleDateString()}
+                      {meeting.company}
                     </span>
                     <button 
                       className="delete-meeting-btn"
@@ -501,27 +508,9 @@ useEffect(() => {
                   </div>
                 ))}
               </div>
-            )}
+            {/* }) */}
           </div>
           )}
-            {/* <div className="meeting-section">
-              <div className="section-header">
-                <h3>회의록</h3>
-                <button 
-                  className="view-button"
-                 >
-                </button>
-              </div>
-              
-                <div className="meeting-list">
-                    <div  className="meeting-item">
-                      <span className="meeting-date"></span>
-                      <button className="delete-meeting-btn" >
-                        ×
-                      </button>
-                    </div>
-                </div>
-            </div> */}
         </div>
 
         {/* 수정, 저장, 삭제 btn */}
@@ -541,22 +530,14 @@ useEffect(() => {
         <div className="popup-overlay" onClick={() => setShowCompanyInfo(false)}>
           <div className="popup-content" onClick={e => e.stopPropagation()}>
             <button className="popup-close" onClick={() => setShowCompanyInfo(false)}>×</button>
-            <h3>{companyInfo.name}</h3>
+            <h3>기업정보</h3>
             <div className="company-info">
-              <p><strong>회사이름:</strong> {companyInfo.industry}</p>
-              <p><strong>대표이사:</strong> {companyInfo.employees}</p>
-              <p><strong>주소:</strong> {companyInfo.revenue}</p>
-              <p><strong>사이트:</strong> {companyInfo.description}</p>
-              <p><strong>사업자번호:</strong> {companyInfo.founded}</p>
-              <p><strong>법인번호:</strong> {companyInfo.headquarters}</p>
-              <div className="services">
-                <strong>주요 서비스:</strong>
-                <ul>
-                  {companyInfo.services.map((service, index) => (
-                    <li key={index}>{service}</li>
-                  ))}
-                </ul>
-              </div>
+              <p><strong>회사이름:</strong> {companyInfo.name}</p>
+              <p><strong>대표이사:</strong> {companyInfo.repName}</p>
+              <p><strong>주소:</strong> {companyInfo.address}</p>
+              <p><strong>사이트:</strong> {companyInfo.homepage}</p>
+              <p><strong>사업자번호:</strong> {companyInfo.bizNo}</p>
+              <p><strong>법인번호:</strong> {companyInfo.corpNo}</p>
             </div>
           </div>
         </div>
@@ -587,7 +568,8 @@ useEffect(() => {
             </div>
             
             <div className="meeting-content">
-              <h3>{card.company}</h3>
+              {/* 클릭한 회의록 회사명 출력 */}
+              <h3>{selectedMeeting.company}</h3>
               <p className="meeting-text">{selectedMeeting.content}</p>
             </div>
           </div>
