@@ -1,41 +1,45 @@
 package com.bbey.neez.entity;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
-@Data
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
 public class Users {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idx;
+    private Long id;            // PK (자동 증가)
 
-    @Column(name = "user_id", nullable = false, unique = true)
-    private String userId;
-
-    @Column(nullable = false)
-    private String password;
+    @Column(nullable = false, unique = true)
+    private String userId;      // 로그인 ID
 
     @Column(nullable = false)
-    private String name;
+    private String password;    // 암호화된 비밀번호
 
     @Column(nullable = false)
-    private String email;
+    private String name;        // 이름
 
-    @Column(nullable = true)
-    private String phone;
+    @Column(nullable = false, unique = true)
+    private String email;       // 이메일
 
-    // ⭐ 이메일 인증 여부
-    @Column(nullable = false)
-    private boolean verified = false;
+    private String phone;       // 전화번호
 
-    @Column(nullable = false)
-    private LocalDateTime created_at = LocalDateTime.now();
+    private boolean verified;   // 이메일 인증 여부
 
-    @Column(nullable = false)
-    private LocalDateTime updated_at = LocalDateTime.now();
+    private LocalDateTime created_at;
+    private LocalDateTime updated_at;
+
+    @Column(length = 500)
+    private String refreshToken;  // Refresh Token 저장
+
+    // BizCardReaderServiceImpl 에서 필요함
+    public Long getIdx() {
+        return this.id;  // id를 idx처럼 반환
+    }
 }

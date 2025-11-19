@@ -1,4 +1,4 @@
-package com.bbey.neez.DTO.auth;
+package com.bbey.neez.dto.auth;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -19,4 +19,3 @@ public class UpdateRequest {
     @Schema(description = "변경할 이메일", example = "user@example.com")
     private String email;
 }
-

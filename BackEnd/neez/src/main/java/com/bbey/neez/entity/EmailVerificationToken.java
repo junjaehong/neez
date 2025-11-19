@@ -1,13 +1,14 @@
 package com.bbey.neez.entity;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
-@Data
 @Entity
-@Table(name = "email_verification_token")
+@Getter
+@Setter
 public class EmailVerificationToken {
 
     @Id
@@ -17,8 +18,8 @@ public class EmailVerificationToken {
     @Column(nullable = false, unique = true)
     private String token;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "idx")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private Users user;
 
     @Column(nullable = false)

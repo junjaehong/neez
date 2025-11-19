@@ -1,4 +1,4 @@
-package com.bbey.neez.DTO.auth;
+package com.bbey.neez.dto.auth;
 
 import lombok.Data;
 
