@@ -1,0 +1,13 @@
+{
+    "user_idx": 1,
+    "name": "김현대",
+    "company": "비비와이",
+    "department": "AI서비스개발팀",
+    "position": "주니어 백엔드",
+    "email": "hyundai.kim@example.com",
+    "mobile": "010-1234-5678",
+    "tel": "02-123-4567",
+    "fax": "02-123-4568",
+    "address": "광주광역시 북구 첨단과기로",
+    "memo": "인공지능사관학교 동기"
+}

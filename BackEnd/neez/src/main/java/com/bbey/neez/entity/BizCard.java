@@ -1,46 +1,69 @@
 package com.bbey.neez.entity;
 
 import lombok.Data;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+
+import javax.persistence.*;
 import java.time.LocalDateTime;
-import javax.persistence.Table;
 
 @Data
 @Entity
 @Table(name = "bizCards")
 public class BizCard {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idx;
-    private Long user_idx;
+    private Long idx;                   // ← PK는 Long 유지 (persist 전엔 null)
+
+    @Column(name = "user_idx", nullable = false)
+    private long userIdx;               // ← 항상 채워지니까 long
+
     private String name;
-    private Long company_idx;
+
+    @Column(name = "card_company_name")
+    private String cardCompanyName;
+
+    @Column(name = "company_idx")
+    private Long companyIdx;            // ← 회사가 없을 수 있으니까 Long 유지
+
     private String department;
     private String position;
     private String email;
-    private String phone_number;
-    private String line_number;
-    private String fax_number;
+
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    @Column(name = "line_number")
+    private String lineNumber;
+
+    @Column(name = "fax_number")
+    private String faxNumber;
+
     private String address;
     private String memo;
-    private LocalDateTime created_at;
-    private LocalDateTime updated_at;
 
-    // 방어적 setter들 (Lombok 미적용 환경 대비)
-    public void setUser_idx(Long user_idx) { this.user_idx = user_idx; }
-    public void setName(String name) { this.name = name; }
-    public void setCompany_idx(long company_idx) { this.company_idx = company_idx; }
-    public void setDepartment(String department) { this.department = department; }
-    public void setPosition(String position) { this.position = position; }
-    public void setEmail(String email) { this.email = email; }
-    public void setPhone_number(String phone_number) { this.phone_number = phone_number; }
-    public void setLine_number(String line_number) { this.line_number = line_number; }
-    public void setFax_number(String fax_number) { this.fax_number = fax_number; }
-    public void setAddress(String address) { this.address = address; }
-    public void setMemo(String memo) { this.memo = memo; }
-    public void setCreated_at(LocalDateTime created_at) { this.created_at = created_at; }
-    public void setUpdated_at(LocalDateTime updated_at) { this.updated_at = updated_at; }
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;  // ← Boolean → boolean 으로
+
+    // 필요하면 커스텀 setter 남겨도 됨
+    public void setUserIdx(long userIdx) {
+        this.userIdx = userIdx;
+    }
+
+    public void setCompanyIdx(Long companyIdx) {
+        this.companyIdx = companyIdx;
+    }
+
+    public void setIsDeleted(boolean deleted) {
+        isDeleted = deleted;
+    }
+
+    public void setCardCompanyName(String cardCompanyName){
+        this.cardCompanyName = cardCompanyName;
+    }
 }

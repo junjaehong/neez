@@ -1,25 +1,35 @@
 package com.bbey.neez.entity;
 
 import lombok.Data;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+
+import javax.persistence.*;
 import java.time.LocalDateTime;
-import javax.persistence.Table;
 
 @Data
 @Entity
 @Table(name = "users")
 public class Users {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long idx;
-    private String id;
+    private Long idx;
+
+    // ★ 여기만 바꿈
+    @Column(name = "user_id", nullable = false, unique = true)
+    private String userId;
+
+    @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
     private String email;
-    private String phone_number;
-    private LocalDateTime created_at;
-    private LocalDateTime updated_at;
+
+    @Column(nullable = false)
+    private LocalDateTime created_at = LocalDateTime.now();
+
+    @Column(nullable = false)
+    private LocalDateTime updated_at = LocalDateTime.now();
 }

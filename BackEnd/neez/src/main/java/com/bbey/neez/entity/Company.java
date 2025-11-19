@@ -1,36 +1,53 @@
 package com.bbey.neez.entity;
 
-import lombok.Data;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import java.time.LocalDateTime;
-import java.math.BigDecimal;
-import javax.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "companies")
+@Getter
+@Setter
 public class Company {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long idx;
-    private String name;
-    private String domain;
-    private String industry;
-    private String source;
-    private BigDecimal confidence;
-    private LocalDateTime last_refreshed_at;
-    private LocalDateTime created_at;
-    private LocalDateTime updated_at;
+    private Long idx;          // PK
 
-    // 명시적 getter/setter 추가: Lombok이 동작하지 않는 환경에서도 컴파일이 되도록 방어적으로 구현
-    public long getIdx() { return this.idx; }
+    @Column(name = "name", nullable = false)
+    private String name;       // 회사명
 
-    public void setName(String name) { this.name = name; }
+    @Column(name = "rep_name")
+    private String repName;    // 대표이름
 
-    public void setCreated_at(LocalDateTime created_at) { this.created_at = created_at; }
+    @Column(name = "biz_no", unique = true)
+    private String bizNo;      // 사업자등록번호
 
-    public void setUpdated_at(LocalDateTime updated_at) { this.updated_at = updated_at; }
+    @Column(name = "corp_no", unique = true)
+    private String corpNo;     // 법인등록번호
+
+    @Column(name = "address")
+    private String address;    // 주소
+
+    @Column(name = "homepage")
+    private String homepage;   // 홈페이지
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = this.createdAt;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
