@@ -18,8 +18,12 @@ public interface BizCardRepository extends JpaRepository<BizCard, Long> {
     // 추가: 사용자까지 포함해서 찾기
     Optional<BizCard> findByUserIdxAndNameAndEmail(Long userIdx, String name, String email);
 
-    // 페이징 + 소프트 삭제 제외
+    // 사용자 소유 명함 리스트 호출 + 페이징 + 소프트 삭제 제외
     Page<BizCard> findByUserIdxAndIsDeletedFalse(Long userIdx, Pageable pageable);
+
+    // 사용자 소유 명함 리스트 호출 + 페이징 + 소프트 삭제 제외 + 최신 등록순    
+    Page<BizCard> findByUserIdxAndIsDeletedFalseOrderByCreatedAtDesc(Long userIdx, Pageable pageable);
+
 
     // 검색 (이름/이메일/부서) + 소프트 삭제 제외
     @Query("select b from BizCard b " +

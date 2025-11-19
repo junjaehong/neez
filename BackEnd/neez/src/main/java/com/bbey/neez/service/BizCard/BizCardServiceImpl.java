@@ -304,7 +304,7 @@ public class BizCardServiceImpl implements BizCardService {
 
     @Override
     public Page<BizCardDto> getBizCardsByUserIdx(Long userIdx, Pageable pageable) {
-        Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedFalse(userIdx, pageable);
+        Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedFalseOrderByCreatedAtDesc(userIdx, pageable);
         return page.map(this::toDto);
     }
 
