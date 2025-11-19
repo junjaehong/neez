@@ -15,7 +15,7 @@ public class Users {
     private Long idx;
 
     // ★ 여기만 바꿈
-    @Column(name = "user_id", nullable = false, unique = true)
+    @Column(name = "userId", nullable = false, unique = true)
     private String userId;
 
     @Column(nullable = false)
