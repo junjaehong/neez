@@ -9,16 +9,14 @@ public interface AuthService {
     AuthResponse logout(LogoutRequest req);
     AuthResponse delete(DeleteRequest req);
     AuthResponse findUserId(FindIdRequest req);
-    AuthResponse resetPassword(ResetPasswordRequest req);
+
+    // 수정됨 (resetPassword → forgotPassword + resetPassword)
+    AuthResponse forgotPassword(ForgotPasswordRequest req);
+    AuthResponse resetPassword(PasswordResetConfirmRequest req);
 
     AuthResponse verifyEmail(String token);
-
     AuthResponse getProfile(String userId);
     AuthResponse update(UpdateRequest req);
-
     AuthResponse changePassword(ChangePasswordRequest req);
-
-
-    // ⭐ Refresh Token으로 새 토큰 발급
     AuthResponse refresh(RefreshRequest req);
 }

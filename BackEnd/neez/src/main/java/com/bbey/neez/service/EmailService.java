@@ -12,6 +12,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    // ✔ 이메일 인증(회원가입용)
     public void sendVerificationEmail(Users user, String token) {
         String link = "http://localhost:8083/api/auth/verify?token=" + token;
 
@@ -23,11 +24,27 @@ public class EmailService {
         mailSender.send(msg);
     }
 
+    // ✔ 임시 비밀번호 발송 (지금 프로젝트에 이미 존재)
     public void sendTemporaryPassword(String email, String tempPassword) {
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(email);
         msg.setSubject("Neez 임시 비밀번호 안내");
         msg.setText("임시 비밀번호: " + tempPassword + "\n로그인 후 반드시 비밀번호를 변경해주세요.");
+
+        mailSender.send(msg);
+    }
+
+    // ⭐ 추가: 비밀번호 재설정 "인증코드" 발송용 (비밀번호 찾기 기능)
+    public void sendResetCodeEmail(String email, String code) {
+
+        SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setTo(email);
+        msg.setSubject("Neez 비밀번호 재설정 인증코드");
+        msg.setText(
+                "비밀번호 재설정을 위한 인증코드는 다음과 같습니다.\n\n" +
+                "인증코드: " + code + "\n\n" +
+                "⚠ 10분 이내에 입력해주세요."
+        );
 
         mailSender.send(msg);
     }

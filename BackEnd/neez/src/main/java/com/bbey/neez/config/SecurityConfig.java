@@ -11,65 +11,76 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final UserDetailsService userDetailsService;
 
-    // 비밀번호 암호화 Bean
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // AuthenticationManager Bean 설정
-    @Override
+    /**
+     * AuthenticationManager 최신 방식 등록
+     */
     @Bean
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        return http.getSharedObject(AuthenticationManagerBuilder.class)
+                .userDetailsService(userDetailsService)
+                .passwordEncoder(passwordEncoder())
+                .and()
+                .build();
     }
 
-    // Security 설정 핵심
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    /**
+     * SecurityFilterChain 최신 방식 적용
+     */
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors().and()
                 .csrf().disable()
+                .cors().disable()
 
-                // ⭐ 인증 실패(401), 권한 실패(403)
                 .exceptionHandling()
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 .accessDeniedHandler(jwtAccessDeniedHandler)
                 .and()
 
-                // URL 접근 제어 설정
                 .authorizeRequests()
                 .antMatchers(
                         "/api/auth/login",
                         "/api/auth/register",
                         "/api/auth/verify",
-                        "/api/auth/refresh"
+                        "/api/auth/refresh",
+
+                        /* ⭐ 비밀번호 찾기 기능 추가 */
+                        "/api/auth/forgot-password",
+                        "/api/auth/reset-password"
                 ).permitAll()
                 .antMatchers(HttpMethod.GET, "/public/**").permitAll()
+
                 .anyRequest().authenticated()
                 .and()
 
-                // 불필요한 폼 로그인 비활성화
                 .formLogin().disable()
                 .logout().disable();
 
-        // ⭐ JWT 필터 추가
+        // JWT 필터 등록
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-    }
 
+        return http.build();
+    }
 }

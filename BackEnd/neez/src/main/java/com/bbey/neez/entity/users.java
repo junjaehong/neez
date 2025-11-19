@@ -14,13 +14,13 @@ public class Users {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;            // PK (자동 증가)
+    private Long id;            // PK
 
     @Column(nullable = false, unique = true)
-    private String userId;      // 로그인 ID
+    private String userId;      // 로그인용 ID
 
     @Column(nullable = false)
-    private String password;    // 암호화된 비밀번호
+    private String password;    // 비밀번호(암호화 저장)
 
     @Column(nullable = false)
     private String name;        // 이름
@@ -36,10 +36,5 @@ public class Users {
     private LocalDateTime updated_at;
 
     @Column(length = 500)
-    private String refreshToken;  // Refresh Token 저장
-
-    // BizCardReaderServiceImpl 에서 필요함
-    public Long getIdx() {
-        return this.id;  // id를 idx처럼 반환
-    }
+    private String refreshToken; // Refresh Token 저장
 }
