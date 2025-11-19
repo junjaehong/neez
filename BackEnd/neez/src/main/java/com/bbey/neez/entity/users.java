@@ -14,7 +14,7 @@ public class Users {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;            // PK
+    private Long idx;            // PK
 
     @Column(nullable = false, unique = true)
     private String userId;      // 로그인용 ID

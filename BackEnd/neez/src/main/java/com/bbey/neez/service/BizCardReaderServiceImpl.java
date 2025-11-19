@@ -154,7 +154,7 @@ public class BizCardReaderServiceImpl implements BizCardReaderService {
             u.setUpdated_at(LocalDateTime.now());
 
             Users savedUser = userRepository.save(u);
-            finalUserId = savedUser.getId();
+            finalUserId = savedUser.getIdx();
 
             System.out.println("✨ Placeholder user 생성됨 → user.id = " + finalUserId);
         }
