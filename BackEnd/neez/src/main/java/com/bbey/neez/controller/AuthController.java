@@ -9,7 +9,10 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin(
+    origins = "http://192.168.70.60:5173",
+    allowCredentials = "true"
+)
 @Tag(name = "Auth API", description = "회원 인증 관련 API")
 public class AuthController {
 
