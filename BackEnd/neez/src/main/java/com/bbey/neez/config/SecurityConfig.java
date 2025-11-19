@@ -3,6 +3,8 @@ package com.bbey.neez.config;
 import com.bbey.neez.jwt.JwtAccessDeniedHandler;
 import com.bbey.neez.jwt.JwtAuthenticationEntryPoint;
 import com.bbey.neez.jwt.JwtAuthenticationFilter;
+import com.bbey.neez.repository.UserRepository;
+import com.bbey.neez.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +14,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -25,7 +28,17 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
-    private final UserDetailsService userDetailsService;
+
+    /**
+     * UserDetailsService 빈 등록 (A안)
+     */
+    @Bean
+    public UserDetailsService userDetailsService(UserRepository userRepository) {
+        return username -> userRepository.findByEmail(username)   // 이메일 로그인 기준
+                .map(UserPrincipal::new)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("User not found: " + username));
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -33,19 +46,22 @@ public class SecurityConfig {
     }
 
     /**
-     * AuthenticationManager 최신 방식 등록
+     * AuthenticationManager 등록
      */
     @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+    public AuthenticationManager authenticationManager(HttpSecurity http,
+                                                    UserDetailsService userDetailsService,
+                                                    PasswordEncoder passwordEncoder) throws Exception {
         return http.getSharedObject(AuthenticationManagerBuilder.class)
                 .userDetailsService(userDetailsService)
-                .passwordEncoder(passwordEncoder())
+                .passwordEncoder(passwordEncoder)
                 .and()
                 .build();
     }
 
+
     /**
-     * SecurityFilterChain 최신 방식 적용
+     * SecurityFilterChain (JWT 설정 포함)
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -65,13 +81,10 @@ public class SecurityConfig {
                         "/api/auth/register",
                         "/api/auth/verify",
                         "/api/auth/refresh",
-
-                        /* ⭐ 비밀번호 찾기 기능 추가 */
                         "/api/auth/forgot-password",
                         "/api/auth/reset-password"
                 ).permitAll()
                 .antMatchers(HttpMethod.GET, "/public/**").permitAll()
-
                 .anyRequest().authenticated()
                 .and()
 
