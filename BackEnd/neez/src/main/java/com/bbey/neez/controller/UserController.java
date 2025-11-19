@@ -1,8 +1,8 @@
 package com.bbey.neez.controller;
 
-import com.bbey.neez.dto.ApiResponseDto;
-import com.bbey.neez.dto.auth.AuthResponse;
-import com.bbey.neez.dto.auth.UpdateRequest;
+import com.bbey.neez.DTO.ApiResponseDto;
+import com.bbey.neez.DTO.auth.AuthResponse;
+import com.bbey.neez.DTO.auth.UpdateRequest;
 import com.bbey.neez.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

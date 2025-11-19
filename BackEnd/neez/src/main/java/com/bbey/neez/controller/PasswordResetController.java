@@ -1,7 +1,7 @@
 package com.bbey.neez.controller;
 
-import com.bbey.neez.dto.auth.ForgotPasswordRequest;
-import com.bbey.neez.dto.auth.PasswordResetConfirmRequest;
+import com.bbey.neez.DTO.auth.ForgotPasswordRequest;
+import com.bbey.neez.DTO.auth.PasswordResetConfirmRequest;
 import com.bbey.neez.service.PasswordResetService;
 
 import lombok.RequiredArgsConstructor;

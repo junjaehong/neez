@@ -1,6 +1,6 @@
 package com.bbey.neez.service;
 
-import com.bbey.neez.dto.auth.*;
+import com.bbey.neez.DTO.auth.*;
 import com.bbey.neez.entity.PasswordResetToken;
 import com.bbey.neez.entity.Users;
 import com.bbey.neez.repository.PasswordResetTokenRepository;

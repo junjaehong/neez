@@ -1,4 +1,4 @@
-package com.bbey.neez.dto.auth;
+package com.bbey.neez.DTO.auth;
 
 import lombok.Getter;
 import lombok.Setter;
