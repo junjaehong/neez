@@ -43,7 +43,7 @@ public class AuthController {
         return wrap(authService.login(req));
     }
 
-    // 회원가입 (A안: Users에 바로 INSERT 안 하고 토큰 테이블에만 저장)
+    // 회원가입
     @PostMapping("/register")
     public ApiResponseDto<Object> register(@RequestBody RegisterRequest req) {
         return wrap(authService.register(req));
@@ -57,14 +57,14 @@ public class AuthController {
 
     // ================= 로그아웃 / 탈퇴 =================
 
-    // 로그아웃: userId 안 받고, 현재 토큰의 idx 기준
+    // 로그아웃: 현재 토큰 기준
     @PostMapping("/logout")
     public ApiResponseDto<Object> logout() {
         Long idx = getCurrentUserIdx();
         return wrap(authService.logoutByIdx(idx));
     }
 
-    // 회원탈퇴: 현재 구조는 DeleteRequest(userId, password) 기준으로 유지
+    // 회원탈퇴
     @PostMapping("/delete")
     public ApiResponseDto<Object> delete(@RequestBody DeleteRequest req) {
         return wrap(authService.delete(req));
@@ -78,28 +78,28 @@ public class AuthController {
         return wrap(authService.findUserId(req));
     }
 
-    // 비밀번호 찾기 1단계: 인증코드 메일 전송
+    // 비밀번호 찾기 1단계: 인증코드 메일 전송 (비로그인)
     @PostMapping("/forgot-password")
     public ApiResponseDto<Object> forgotPassword(@RequestBody ForgotPasswordRequest req) {
         return wrap(authService.forgotPassword(req));
     }
 
-    // 비밀번호 재설정 2단계: 코드 검증 후 비번 변경
+    // 비밀번호 재설정 2단계: 코드 검증 후 비번 변경 (비로그인)
     @PostMapping("/reset-password")
     public ApiResponseDto<Object> resetPassword(@RequestBody PasswordResetConfirmRequest req) {
         return wrap(authService.resetPassword(req));
     }
 
-    // ================= 프로필 조회 / 수정 (현재 로그인 유저 기준) =================
+    // ================= 프로필 조회 / 수정 (로그인 상태) =================
 
-    // 내 프로필 조회 (URL에 userId / idx 노출 X)
+    // 내 프로필 조회
     @GetMapping("/profile")
     public ApiResponseDto<Object> getProfile() {
         Long idx = getCurrentUserIdx();
         return wrap(authService.getProfileByIdx(idx));
     }
 
-    // 내 프로필 수정 (idx는 토큰에서 가져옴, email 변경은 금지 정책)
+    // 내 프로필 수정
     @PostMapping("/update")
     public ApiResponseDto<Object> update(@RequestBody UpdateRequest req) {
         Long idx = getCurrentUserIdx();
