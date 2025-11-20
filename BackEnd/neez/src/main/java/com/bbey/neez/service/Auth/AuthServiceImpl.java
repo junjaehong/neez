@@ -1,4 +1,4 @@
-package com.bbey.neez.service;
+package com.bbey.neez.service.Auth;
 
 import com.bbey.neez.DTO.auth.*;
 import com.bbey.neez.entity.Users;

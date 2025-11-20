@@ -2,10 +2,10 @@ package com.bbey.neez.controller;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.auth.*;
-import com.bbey.neez.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
+import com.bbey.neez.service.Auth.*;
 
 @RestController
 @RequestMapping("/api/auth")
