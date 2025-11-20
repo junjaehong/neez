@@ -1,5 +1,5 @@
 // 메모만 수정 요청 DTO
-package com.bbey.neez.DTO.request;
+package com.bbey.neez.DTO.cardRequest;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
