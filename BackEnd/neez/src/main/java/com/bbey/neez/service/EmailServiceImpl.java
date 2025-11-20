@@ -1,7 +1,7 @@
 package com.bbey.neez.service;
 
-import com.bbey.neez.entity.Users;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -12,39 +12,63 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
+    // 로컬에서는 false, 운영에서는 true 로 설정
+    @Value("${app.mail.enabled:false}")
+    private boolean mailEnabled;
+
+    // 이메일 인증 링크 베이스 URL (프론트/백 URL로 맞추기)
+    @Value("${app.verification.base-url:http://localhost:8083}")
+    private String baseUrl;
+
+    // ==============================
+    // 1) 회원가입 이메일 인증
+    // ==============================
     @Override
-    public void sendVerificationEmail(Users user, String token) {
-        String link = "http://localhost:8083/api/auth/verify?token=" + token;
+    public void sendVerificationEmail(String to, String token) {
 
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setTo(user.getEmail());
-        msg.setSubject("Neez 이메일 인증");
-        msg.setText("아래 링크를 눌러 이메일 인증을 완료해주세요.\n\n" + link);
+        String link = baseUrl + "/api/auth/verify?token=" + token;
 
-        mailSender.send(msg);
-    }
+        if (!mailEnabled) {
+            System.out.println("[DEV] 이메일 전송 생략 (회원가입 인증)");
+            System.out.println("[DEV] to = " + to);
+            System.out.println("[DEV] verification link = " + link);
+            return;
+        }
 
-    @Override
-    public void sendTemporaryPassword(String email, String tempPassword) {
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setTo(email);
-        msg.setSubject("Neez 임시 비밀번호 안내");
-        msg.setText("임시 비밀번호: " + tempPassword + "\n로그인 후 반드시 비밀번호를 변경해주세요.");
-
-        mailSender.send(msg);
-    }
-
-    @Override
-    public void sendResetCodeEmail(String email, String code) {
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setTo(email);
-        msg.setSubject("Neez 비밀번호 재설정 인증코드");
-        msg.setText(
-                "비밀번호 재설정을 위한 인증코드는 다음과 같습니다.\n\n" +
-                "인증코드: " + code + "\n\n" +
-                "⚠ 10분 이내에 입력해주세요."
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Neez 회원가입 이메일 인증");
+        message.setText(
+                "네이즈(Neez) 회원가입을 위해 아래 링크를 클릭하세요.\n\n"
+                        + link + "\n\n"
+                        + "이 링크는 일정 시간 후 만료됩니다."
         );
 
-        mailSender.send(msg);
+        mailSender.send(message);
+    }
+
+    // ==============================
+    // 2) 비밀번호 재설정 인증 코드 메일
+    // ==============================
+    @Override
+    public void sendResetCodeEmail(String to, String code) {
+
+        if (!mailEnabled) {
+            System.out.println("[DEV] 이메일 전송 생략 (비밀번호 재설정)");
+            System.out.println("[DEV] to = " + to);
+            System.out.println("[DEV] reset code = " + code);
+            return;
+        }
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Neez 비밀번호 재설정 인증코드");
+        message.setText(
+                "다음 인증코드를 입력하여 비밀번호 재설정을 완료하세요.\n\n"
+                        + "인증코드: " + code + "\n\n"
+                        + "이 코드는 5분 동안만 유효합니다."
+        );
+
+        mailSender.send(message);
     }
 }

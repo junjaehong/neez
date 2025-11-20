@@ -6,6 +6,9 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<Users, Long> {
 
+    // 회원정보 수정/조회 시 사용
+    Optional<Users> findById(Long idx);
+
     // ✅ 로그인 시 사용
     Optional<Users> findByUserId(String userId);
 

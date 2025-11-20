@@ -2,6 +2,8 @@ package com.bbey.neez.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -14,33 +16,35 @@ public class Users {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idx;            // PK
+    private Long idx;
 
     @Column(nullable = false, unique = true)
-    private String userId;      // 로그인용 ID
+    private String userId;
 
     @Column(nullable = false)
-    private String password;    // 비밀번호(암호화 저장)
+    private String password;
 
-    @Column(nullable = false)
-    private String name;        // 이름
+    @Column(length = 100)
+    private String name;
 
     @Column(nullable = false, unique = true)
-    private String email;       // 이메일
+    private String email;
 
-    private String phone;       // 전화번호
+    private String phone;
 
-    private boolean verified;   // 이메일 인증 여부
+    @Column(nullable = false)
+    private boolean verified;   // A안에서는 항상 true로 저장해도 됨
 
-    @Column(length = 500)
-    private String refreshToken; // Refresh Token 저장
+    private String refreshToken;
 
     private String resetCode;
     private LocalDateTime resetCodeExpire;
-    
-    private LocalDateTime created_at;
-    private LocalDateTime updated_at;
 
-    
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 }

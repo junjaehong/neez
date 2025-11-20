@@ -1,12 +1,10 @@
 package com.bbey.neez.service;
 
-import com.bbey.neez.entity.Users;
-
 public interface EmailService {
 
-    void sendVerificationEmail(Users user, String token);
+    // 회원가입 이메일 인증
+    void sendVerificationEmail(String to, String token);
 
-    void sendTemporaryPassword(String email, String tempPassword);
-
-    void sendResetCodeEmail(String email, String code);
+    // 비밀번호 재설정용 인증코드 메일
+    void sendResetCodeEmail(String to, String code);
 }

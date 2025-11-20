@@ -24,7 +24,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                 .orElseThrow(() -> new IllegalArgumentException("아이디 또는 이메일이 잘못되었습니다."));
 
         // 6자리 랜덤 코드 생성
-        String code = String.valueOf((int)(Math.random() * 900000) + 100000);
+        String code = String.valueOf((int) (Math.random() * 900000) + 100000);
 
         // DB에 저장
         user.setResetCode(code);
@@ -49,7 +49,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         // 2) 만료 확인
         if (user.getResetCodeExpire() == null ||
-            user.getResetCodeExpire().isBefore(LocalDateTime.now())) {
+                user.getResetCodeExpire().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("인증코드가 만료되었습니다.");
         }
 

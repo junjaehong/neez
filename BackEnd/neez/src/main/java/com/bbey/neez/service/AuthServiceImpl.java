@@ -1,8 +1,10 @@
 package com.bbey.neez.service;
 
 import com.bbey.neez.DTO.auth.*;
+import com.bbey.neez.entity.EmailVerificationToken;
 import com.bbey.neez.entity.Users;
 import com.bbey.neez.jwt.JwtUtil;
+import com.bbey.neez.repository.EmailVerificationTokenRepository;
 import com.bbey.neez.repository.UserRepository;
 import com.bbey.neez.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -16,51 +18,65 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
     private final EmailService emailService;
+
+    // 기존 코드에서 빠져 있어서 추가
+    private final JwtUtil jwtUtil;
+    private final AuthenticationManager authenticationManager;
     private final PasswordResetService passwordResetService;
 
-    // ===============================
-    //  회원가입
-    // ===============================
+    // --------------------------------------------------------------------
+    // 1. 회원가입: Users에 바로 저장하지 않고, EmailVerificationToken에만 저장
+    // --------------------------------------------------------------------
     @Override
     public AuthResponse register(RegisterRequest req) {
 
+        // 1) 이미 가입된 유저인지 체크
         if (userRepository.findByUserId(req.getUserId()).isPresent()) {
-            return new AuthResponse(false, "이미 사용 중인 아이디입니다.");
+            return new AuthResponse(false, "이미 사용 중인 아이디입니다.", null);
         }
-
         if (userRepository.findByEmail(req.getEmail()).isPresent()) {
-            return new AuthResponse(false, "이미 사용 중인 이메일입니다.");
+            return new AuthResponse(false, "이미 사용 중인 이메일입니다.", null);
         }
 
-        Users user = new Users();
-        user.setUserId(req.getUserId());
-        user.setPassword(passwordEncoder.encode(req.getPassword()));
-        user.setEmail(req.getEmail());
-        user.setName(req.getName());
-        user.setPhone(req.getPhone());
-        user.setVerified(false);
-        user.setCreated_at(LocalDateTime.now());
+        // 2) 기존에 같은 이메일/아이디로 아직 인증 안된 토큰이 있으면 삭제 (정리용)
+        emailVerificationTokenRepository.findAll().stream()
+                .filter(t -> t.getEmail().equals(req.getEmail()) || t.getUserId().equals(req.getUserId()))
+                .forEach(t -> emailVerificationTokenRepository.deleteById(t.getId()));
 
-        userRepository.save(user);
+        // 3) 토큰 생성
+        String token = UUID.randomUUID().toString();
+        String encodedPassword = passwordEncoder.encode(req.getPassword());
 
-        emailService.sendVerificationEmail(user, user.getUserId());
+        EmailVerificationToken evt = new EmailVerificationToken();
+        evt.setToken(token);
+        evt.setUserId(req.getUserId());
+        evt.setPassword(encodedPassword);
+        evt.setName(req.getName());
+        evt.setEmail(req.getEmail());
+        evt.setPhone(req.getPhone());
+        evt.setExpiresAt(LocalDateTime.now().plusMinutes(30)); // 30분 유효
 
-        return new AuthResponse(true, "회원가입 성공! 이메일 인증을 완료해주세요.");
+        emailVerificationTokenRepository.save(evt);
+
+        // 4) 인증 메일 발송 (dev 환경에서는 콘솔에만 출력하게 구현해 둔 상태)
+        emailService.sendVerificationEmail(req.getEmail(), token);
+
+        // 5) 응답 (토큰/유저 정보는 주지 않고 안내 메시지만)
+        return new AuthResponse(true, "회원가입이 접수되었습니다. 이메일을 확인해 주세요.", null);
     }
 
-
     // ===============================
-    //  로그인 (정석 방식)
+    // 로그인
     // ===============================
     @Override
     public AuthResponse login(LoginRequest req) {
@@ -69,9 +85,7 @@ public class AuthServiceImpl implements AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         req.getUserId(),
-                        req.getPassword()
-                )
-        );
+                        req.getPassword()));
 
         // 인증 성공 → UserPrincipal 반환됨
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
@@ -95,15 +109,14 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(true, "로그인 성공", tokens);
     }
 
-
     // ===============================
-    //  로그아웃
+    // 로그아웃
     // ===============================
     @Override
     public AuthResponse logout(LogoutRequest req) {
 
         Optional<Users> userOpt = userRepository.findByUserId(req.getUserId());
-        if (!userOpt.isPresent()) {   // Java 8 호환
+        if (!userOpt.isPresent()) {
             return new AuthResponse(false, "존재하지 않는 유저입니다.");
         }
 
@@ -114,9 +127,8 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(true, "로그아웃 완료");
     }
 
-
     // ===============================
-    //  회원 탈퇴
+    // 회원 탈퇴
     // ===============================
     @Override
     public AuthResponse delete(DeleteRequest req) {
@@ -137,9 +149,8 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(true, "회원 탈퇴 완료");
     }
 
-
     // ===============================
-    //  아이디 찾기
+    // 아이디 찾기
     // ===============================
     @Override
     public AuthResponse findUserId(FindIdRequest req) {
@@ -152,9 +163,8 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(true, "아이디 찾기 성공", userOpt.get().getUserId());
     }
 
-
     // ===============================
-    //  비밀번호 재설정 (1단계)
+    // 비밀번호 재설정 (1단계)
     // ===============================
     @Override
     public AuthResponse forgotPassword(ForgotPasswordRequest req) {
@@ -163,9 +173,8 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(true, "인증코드를 이메일로 전송했습니다.");
     }
 
-
     // ===============================
-    //  비밀번호 재설정 (2단계)
+    // 비밀번호 재설정 (2단계)
     // ===============================
     @Override
     public AuthResponse resetPassword(PasswordResetConfirmRequest req) {
@@ -174,28 +183,54 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(true, "비밀번호가 변경되었습니다.");
     }
 
-
-    // ===============================
-    //  이메일 인증
-    // ===============================
+    // --------------------------------------------------------------------
+    // 2. 이메일 인증: 여기서 비로소 Users 테이블에 INSERT
+    // --------------------------------------------------------------------
     @Override
     public AuthResponse verifyEmail(String token) {
 
-        Optional<Users> userOpt = userRepository.findByUserId(token);
-        if (!userOpt.isPresent()) {
-            return new AuthResponse(false, "잘못된 인증 요청입니다.");
+        Optional<EmailVerificationToken> opt = emailVerificationTokenRepository.findByToken(token);
+        if (!opt.isPresent()) {
+            return new AuthResponse(false, "유효하지 않거나 만료된 인증 링크입니다.", null);
         }
 
-        Users user = userOpt.get();
-        user.setVerified(true);
+        EmailVerificationToken evt = opt.get();
+
+        // 만료 체크
+        if (evt.getExpiresAt().isBefore(LocalDateTime.now())) {
+            emailVerificationTokenRepository.deleteById(evt.getId());
+            return new AuthResponse(false, "인증 링크가 만료되었습니다. 다시 회원가입을 진행해 주세요.", null);
+        }
+
+        // 혹시 그 사이에 같은 아이디/이메일로 가입된 사람이 있으면 막기
+        if (userRepository.findByUserId(evt.getUserId()).isPresent()) {
+            emailVerificationTokenRepository.deleteById(evt.getId());
+            return new AuthResponse(false, "이미 가입된 아이디입니다.", null);
+        }
+        if (userRepository.findByEmail(evt.getEmail()).isPresent()) {
+            emailVerificationTokenRepository.deleteById(evt.getId());
+            return new AuthResponse(false, "이미 가입된 이메일입니다.", null);
+        }
+
+        // 실제 Users INSERT
+        Users user = new Users();
+        user.setUserId(evt.getUserId());
+        user.setPassword(evt.getPassword()); // 이미 인코딩된 상태
+        user.setName(evt.getName());
+        user.setEmail(evt.getEmail());
+        user.setPhone(evt.getPhone());
+        user.setVerified(true); // A안: 인증된 상태로만 Users에 들어옴
+
         userRepository.save(user);
 
-        return new AuthResponse(true, "이메일 인증 완료");
+        // 사용된 토큰 삭제
+        emailVerificationTokenRepository.deleteById(evt.getId());
+
+        return new AuthResponse(true, "이메일 인증이 완료되었습니다. 이제 로그인할 수 있습니다.", null);
     }
 
-
     // ===============================
-    //  프로필 조회
+    // 프로필 조회
     // ===============================
     @Override
     public AuthResponse getProfile(String userId) {
@@ -208,13 +243,50 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(true, "조회 성공", userOpt.get());
     }
 
-
     // ===============================
-    //  프로필 수정
+    // 프로필 수정
     // ===============================
     @Override
     public AuthResponse update(UpdateRequest req) {
 
+        if (req.getIdx() == null) {
+            return new AuthResponse(false, "회원 PK(idx)가 필요합니다.");
+        }
+
+        Optional<Users> userOpt = userRepository.findById(req.getIdx());
+        if (!userOpt.isPresent()) {
+            return new AuthResponse(false, "존재하지 않는 유저입니다.");
+        }
+
+        Users user = userOpt.get();
+
+        if (req.getName() != null) {
+            user.setName(req.getName());
+        }
+        if (req.getPhone() != null) {
+            user.setPhone(req.getPhone());
+        }
+
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        return new AuthResponse(true, "정보 수정 완료", user);
+    }
+
+    // ===============================
+    // 비밀번호 변경
+    // ===============================
+    @Override
+    public AuthResponse changePassword(ChangePasswordRequest req) {
+
+        // 1) 필수값 체크
+        if (req.getUserId() == null ||
+                req.getCurrentPassword() == null ||
+                req.getNewPassword() == null) {
+            return new AuthResponse(false, "userId, currentPassword, newPassword는 필수입니다.");
+        }
+
+        // 2) 유저 조회
         Optional<Users> userOpt = userRepository.findByUserId(req.getUserId());
         if (!userOpt.isPresent()) {
             return new AuthResponse(false, "존재하지 않는 유저입니다.");
@@ -222,43 +294,20 @@ public class AuthServiceImpl implements AuthService {
 
         Users user = userOpt.get();
 
-        user.setName(req.getName());
-        user.setEmail(req.getEmail());
-        user.setPhone(req.getPhone());
-        user.setUpdated_at(LocalDateTime.now());
-
-        userRepository.save(user);
-
-        return new AuthResponse(true, "정보 수정 완료", user);
-    }
-
-
-    // ===============================
-    //  비밀번호 변경
-    // ===============================
-    @Override
-    public AuthResponse changePassword(ChangePasswordRequest req) {
-
-        Optional<Users> userOpt = userRepository.findByUserId(req.getUserId());
-        if (!userOpt.isPresent()) {   // Java 8 호환
-            return new AuthResponse(false, "존재하지 않는 유저입니다.");
-        }
-
-        Users user = userOpt.get();
-
+        // 3) 현재 비밀번호 검증
         if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPassword())) {
             return new AuthResponse(false, "현재 비밀번호가 일치하지 않습니다.");
         }
 
+        // 4) 새 비밀번호 저장
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepository.save(user);
 
         return new AuthResponse(true, "비밀번호 변경 성공");
     }
 
-
     // ===============================
-    //  Refresh Token 재발급
+    // Refresh Token 재발급
     // ===============================
     @Override
     public AuthResponse refresh(RefreshRequest req) {
@@ -283,7 +332,7 @@ public class AuthServiceImpl implements AuthService {
         Users user = userOpt.get();
 
         if (user.getRefreshToken() == null ||
-            !user.getRefreshToken().equals(refreshToken)) {
+                !user.getRefreshToken().equals(refreshToken)) {
 
             return new AuthResponse(false, "Refresh Token이 서버 정보와 일치하지 않습니다.");
         }
