@@ -16,6 +16,23 @@ public class UserPrincipal implements UserDetails {
         this.user = user;
     }
 
+    // ✅ 편의 메서드들 추가
+    public Long getIdx() {
+        return user.getIdx();          // Users 엔티티에 idx 필드 있다고 가정
+    }
+
+    public String getUserId() {
+        return user.getUserId();
+    }
+
+    public String getEmail() {
+        return user.getEmail();
+    }
+
+    public Users getUser() {
+        return user;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
@@ -39,9 +56,5 @@ public class UserPrincipal implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
-    }
-
-    public Users getUser() {
-        return user;
     }
 }

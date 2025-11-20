@@ -2,17 +2,20 @@ package com.bbey.neez.controller;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.auth.*;
+import com.bbey.neez.security.UserPrincipal;
 import com.bbey.neez.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Auth API", description = "로그인 · 회원가입 · 이메일 인증 · 비밀번호 재설정 · 토큰 재발급")
+@Tag(name = "Auth API", description = "로그인 · 회원가입 · 이메일 인증 · 비밀번호 재설정 · 토큰 재발급 · 로그아웃 · 비밀번호 변경")
 public class AuthController {
 
     private final AuthService authService;
@@ -43,28 +46,45 @@ public class AuthController {
         return wrap(authService.verifyEmail(token));
     }
 
-    @Operation(summary = "비밀번호 재설정 메일 요청", description = "등록된 이메일 주소로 비밀번호 재설정 코드(인증코드)를 전송합니다.")
+    @Operation(summary = "비밀번호 재설정 메일 요청 ( 비밀번호 잊음 )", description = "등록된 이메일 주소로 비밀번호 재설정 코드(인증코드)를 전송합니다.")
     @PostMapping("/forgot-password")
     public ApiResponseDto<Object> forgotPassword(@RequestBody ForgotPasswordRequest req) {
         return wrap(authService.forgotPassword(req));
     }
 
-    @Operation(summary = "비밀번호 재설정", description = "이메일 + 인증코드 + 새 비밀번호로 비밀번호를 재설정합니다.")
+    @Operation(summary = "비밀번호 재설정 ( 비밀번호 잊음 )", description = "이메일 + 인증코드 + 새 비밀번호로 비밀번호를 재설정합니다.")
     @PostMapping("/reset-password")
     public ApiResponseDto<Object> resetPassword(@RequestBody PasswordResetConfirmRequest req) {
         return wrap(authService.resetPassword(req));
     }
 
     @Operation(
-            summary = "비밀번호 변경",
-            description = "로그인된 사용자의 비밀번호를 변경합니다. (PK idx 기준)",
+            summary = "로그아웃",
+            description = "현재 로그인한 사용자의 Refresh Token을 삭제하여 로그아웃합니다.",
             security = { @SecurityRequirement(name = "BearerAuth") }
     )
-    @PostMapping("/change-password/{idx}")
+    @PostMapping("/me/logout")
+    public ApiResponseDto<Object> logout(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        Long idx = user.getIdx();
+        AuthResponse res = authService.logoutByIdx(idx);
+        return wrap(res);
+    }
+
+    @Operation(
+            summary = "비밀번호 변경 ( 로그인된 사용자 )",
+            description = "현재 로그인한 사용자의 비밀번호를 변경합니다.",
+            security = { @SecurityRequirement(name = "BearerAuth") }
+    )
+    @PostMapping("/me/change-password")
     public ApiResponseDto<Object> changePassword(
-            @PathVariable Long idx,
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal UserPrincipal user,
             @RequestBody ChangePasswordRequest req
     ) {
+        Long idx = user.getIdx();
         AuthResponse res = authService.changePasswordByIdx(idx, req);
         return wrap(res);
     }
