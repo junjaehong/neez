@@ -87,8 +87,8 @@ public class BizCardServiceImpl implements BizCardService {
             u.setPassword("temp");
             u.setName("auto_generated");
             u.setEmail("auto@example.com");
-            u.setCreated_at(LocalDateTime.now());
-            u.setUpdated_at(LocalDateTime.now());
+            u.setCreatedAt(LocalDateTime.now());
+            u.setUpdatedAt(LocalDateTime.now());
             finalUserId = userRepository.save(u).getIdx();
         }
 
