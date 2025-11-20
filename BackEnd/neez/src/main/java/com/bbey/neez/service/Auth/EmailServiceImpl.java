@@ -1,4 +1,4 @@
-package com.bbey.neez.service;
+package com.bbey.neez.service.Auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,9 +1,10 @@
-package com.bbey.neez.controller;
+package com.bbey.neez.controller.Auth;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.auth.*;
 import com.bbey.neez.security.UserPrincipal;
-import com.bbey.neez.service.AuthService;
+import com.bbey.neez.service.Auth.AuthService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
