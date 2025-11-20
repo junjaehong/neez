@@ -113,17 +113,14 @@ public class AuthServiceImpl implements AuthService {
     // 로그아웃
     // ===============================
     @Override
-    public AuthResponse logout(LogoutRequest req) {
-
-        Optional<Users> userOpt = userRepository.findByUserId(req.getUserId());
+    public AuthResponse logoutByIdx(Long idx) {
+        Optional<Users> userOpt = userRepository.findById(idx);
         if (!userOpt.isPresent()) {
             return new AuthResponse(false, "존재하지 않는 유저입니다.");
         }
-
         Users user = userOpt.get();
         user.setRefreshToken(null);
         userRepository.save(user);
-
         return new AuthResponse(true, "로그아웃 완료");
     }
 
@@ -233,13 +230,11 @@ public class AuthServiceImpl implements AuthService {
     // 프로필 조회
     // ===============================
     @Override
-    public AuthResponse getProfile(String userId) {
-
-        Optional<Users> userOpt = userRepository.findByUserId(userId);
+    public AuthResponse getProfileByIdx(Long idx) {
+        Optional<Users> userOpt = userRepository.findById(idx);
         if (!userOpt.isPresent()) {
             return new AuthResponse(false, "존재하지 않는 유저입니다.");
         }
-
         return new AuthResponse(true, "조회 성공", userOpt.get());
     }
 
@@ -247,13 +242,8 @@ public class AuthServiceImpl implements AuthService {
     // 프로필 수정
     // ===============================
     @Override
-    public AuthResponse update(UpdateRequest req) {
-
-        if (req.getIdx() == null) {
-            return new AuthResponse(false, "회원 PK(idx)가 필요합니다.");
-        }
-
-        Optional<Users> userOpt = userRepository.findById(req.getIdx());
+    public AuthResponse updateByIdx(Long idx, UpdateRequest req) {
+        Optional<Users> userOpt = userRepository.findById(idx);
         if (!userOpt.isPresent()) {
             return new AuthResponse(false, "존재하지 않는 유저입니다.");
         }
@@ -277,29 +267,23 @@ public class AuthServiceImpl implements AuthService {
     // 비밀번호 변경
     // ===============================
     @Override
-    public AuthResponse changePassword(ChangePasswordRequest req) {
+    public AuthResponse changePasswordByIdx(Long idx, ChangePasswordRequest req) {
 
-        // 1) 필수값 체크
-        if (req.getUserId() == null ||
-                req.getCurrentPassword() == null ||
-                req.getNewPassword() == null) {
-            return new AuthResponse(false, "userId, currentPassword, newPassword는 필수입니다.");
+        if (req.getCurrentPassword() == null || req.getNewPassword() == null) {
+            return new AuthResponse(false, "현재 비밀번호와 새 비밀번호가 모두 필요합니다.");
         }
 
-        // 2) 유저 조회
-        Optional<Users> userOpt = userRepository.findByUserId(req.getUserId());
+        Optional<Users> userOpt = userRepository.findById(idx);
         if (!userOpt.isPresent()) {
             return new AuthResponse(false, "존재하지 않는 유저입니다.");
         }
 
         Users user = userOpt.get();
 
-        // 3) 현재 비밀번호 검증
         if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPassword())) {
             return new AuthResponse(false, "현재 비밀번호가 일치하지 않습니다.");
         }
 
-        // 4) 새 비밀번호 저장
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepository.save(user);
 
