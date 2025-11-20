@@ -1,15 +1,15 @@
 package com.bbey.neez.DTO.auth;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
-@Schema(description = "토큰 재발급 요청")
+import javax.validation.constraints.NotBlank;
+
+@Getter @Setter
 public class RefreshRequest {
 
-    @Schema(
-        description = "기존 Refresh Token",
-        example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    )
+    @Schema(description = "Refresh Token")
+    @NotBlank(message = "Refresh Token은 필수 입력 값입니다.")
     private String refreshToken;
 }

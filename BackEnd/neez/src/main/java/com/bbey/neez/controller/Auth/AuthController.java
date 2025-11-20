@@ -10,6 +10,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import javax.validation.Valid;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,7 +34,7 @@ public class AuthController {
 
     @Operation(summary = "로그인", description = "ID/비밀번호를 이용해 로그인하고 Access/Refresh 토큰을 반환합니다.")
     @PostMapping("/login")
-    public ApiResponseDto<Object> login(@RequestBody LoginRequest req) {
+    public ApiResponseDto<Object> login(@Valid @RequestBody LoginRequest req) {
         return wrap(authService.login(req));
     }
 

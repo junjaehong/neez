@@ -1,5 +1,7 @@
 package com.bbey.neez.DTO.auth;
 
+import javax.validation.constraints.NotBlank;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -7,10 +9,12 @@ import lombok.Data;
 @Schema(description = "로그인 요청")
 public class LoginRequest {
 
-    @Schema(example = "jaehong")
+    @Schema(description = "로그인 ID", example = "jaehong01")
+    @NotBlank(message = "아이디는 필수 입력 값입니다.")
     private String userId;
 
-    @Schema(example = "1q2w3e4r!")
+    @Schema(description = "비밀번호", example = "1234")
+    @NotBlank(message = "비밀번호는 필수 입력 값입니다.")
     private String password;
 
     public String getUserId() {
