@@ -52,17 +52,17 @@ public class AuthController {
         return wrap(authService.findUserId(req));
     }
 
-    // ⭐ 비밀번호 찾기 (1단계: 인증코드 발송)
-    @PostMapping("/forgot-password")
-    public ApiResponseDto<AuthResponse> forgotPassword(@RequestBody ForgotPasswordRequest req) {
-        return wrap(authService.forgotPassword(req));
-    }
+    // // ⭐ 비밀번호 찾기 (1단계: 인증코드 발송)
+    // @PostMapping("/forgot-password")
+    // public ApiResponseDto<AuthResponse> forgotPassword(@RequestBody ForgotPasswordRequest req) {
+    //     return wrap(authService.forgotPassword(req));
+    // }
 
-    // ⭐ 비밀번호 재설정 (2단계: 인증코드 확인 후 새 비밀번호 저장)
-    @PostMapping("/reset-password")
-    public ApiResponseDto<AuthResponse> resetPassword(@RequestBody PasswordResetConfirmRequest req) {
-        return wrap(authService.resetPassword(req));
-    }
+    // // ⭐ 비밀번호 재설정 (2단계: 인증코드 확인 후 새 비밀번호 저장)
+    // @PostMapping("/reset-password")
+    // public ApiResponseDto<AuthResponse> resetPassword(@RequestBody PasswordResetConfirmRequest req) {
+    //     return wrap(authService.resetPassword(req));
+    // }
 
     @GetMapping("/profile/{userId}")
     public ApiResponseDto<AuthResponse> getProfile(@PathVariable String userId) {
