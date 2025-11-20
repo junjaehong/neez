@@ -1,7 +1,9 @@
 package com.bbey.neez.jwt;
 
+import com.bbey.neez.security.CustomUserDetailsService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -16,9 +18,11 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final CustomUserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailsService userDetailsService) {
         this.jwtUtil = jwtUtil;
+        this.userDetailsService = userDetailsService;
     }
 
     @Override
@@ -27,33 +31,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        String header = request.getHeader("Authorization");
 
-        // Authorization 헤더가 없거나 Bearer로 시작하지 않으면 패스
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (header == null || !header.startsWith("Bearer ")) {
             chain.doFilter(request, response);
             return;
         }
 
-        String token = authHeader.substring(7); // "Bearer " 이후
+        String token = header.substring(7);
+        String userId = jwtUtil.getUserIdFromToken(token);
 
-        String userId = jwtUtil.getUserId(token);
-
-        // 아직 인증 안 된 상태에서만 처리
+        // SecurityContext에 인증이 없는 경우에만 처리
         if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            userId,
-                            null,
-                            null  // 권한 필요하면 나중에 추가
-                    );
+            // DB에서 UserPrincipal 불러오기
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
 
-            authentication.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
-            );
+            // 토큰 만료 확인
+            if (!jwtUtil.isExpired(token)) {
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                // UserPrincipal 기반 인증 객체 생성
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+
+                // SecurityContextHolder 에 인증정보 저장
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
 
         chain.doFilter(request, response);

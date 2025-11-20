@@ -32,9 +32,15 @@ public class Users {
 
     private boolean verified;   // 이메일 인증 여부
 
+    @Column(length = 500)
+    private String refreshToken; // Refresh Token 저장
+
+    private String resetCode;
+    private LocalDateTime resetCodeExpire;
+    
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
 
-    @Column(length = 500)
-    private String refreshToken; // Refresh Token 저장
+    
+
 }

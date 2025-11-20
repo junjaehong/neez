@@ -1,97 +1,65 @@
 package com.bbey.neez.service;
 
-import com.bbey.neez.entity.PasswordResetToken;
 import com.bbey.neez.entity.Users;
-import com.bbey.neez.repository.PasswordResetTokenRepository;
 import com.bbey.neez.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
 public class PasswordResetServiceImpl implements PasswordResetService {
 
     private final UserRepository userRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
 
-    /**
-     * 1단계: 아이디 + 이메일로 사용자 확인 후
-     * 6자리 인증코드 생성해서 이메일로 전송
-     */
+    // STEP 1: 인증코드 발송
     @Override
     public void sendResetCode(String userId, String email) {
 
-        // 아이디 + 이메일로 사용자 존재 여부 확인
-        Optional<Users> userOpt = userRepository.findByUserIdAndEmail(userId, email);
+        Users user = userRepository.findByUserIdAndEmail(userId, email)
+                .orElseThrow(() -> new IllegalArgumentException("아이디 또는 이메일이 잘못되었습니다."));
 
-        // 보안상 "없다"가 바로 드러나지 않게 그냥 리턴만 함
-        if (!userOpt.isPresent()) {
-            return;
-        }
+        // 6자리 랜덤 코드 생성
+        String code = String.valueOf((int)(Math.random() * 900000) + 100000);
 
-        // 6자리 인증코드 생성
-        String code = String.format("%06d", new Random().nextInt(999999));
+        // DB에 저장
+        user.setResetCode(code);
+        user.setResetCodeExpire(LocalDateTime.now().plusMinutes(5)); // 5분 유효
+        userRepository.save(user);
 
-        // 기존 토큰 삭제
-        passwordResetTokenRepository.deleteByEmail(email);
-
-        // 새 토큰 저장
-        PasswordResetToken token = new PasswordResetToken();
-        token.setEmail(email);
-        token.setCode(code);
-        token.setExpiryTime(LocalDateTime.now().plusMinutes(10));
-
-        passwordResetTokenRepository.save(token);
-
-        // 이메일 발송 (Reset 코드용 메일)
+        // 이메일 발송
         emailService.sendResetCodeEmail(email, code);
     }
 
-    /**
-     * 2단계: 이메일 + 코드로 토큰 검증 후
-     * 새 비밀번호로 변경
-     */
+    // STEP 2: 인증코드 검증 후 비밀번호 변경
     @Override
     public void resetPassword(String email, String code, String newPassword) {
 
-        // 이메일 + 코드로 토큰 조회
-        Optional<PasswordResetToken> tokenOpt =
-                passwordResetTokenRepository.findByEmailAndCode(email, code);
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
 
-        if (!tokenOpt.isPresent()) {
-            // 잘못된 코드 → 그냥 종료 (에러 응답을 따로 주고 싶으면 예외 던지고 @ControllerAdvice 로 처리)
-            return;
+        // 1) 코드 존재 확인
+        if (user.getResetCode() == null || !user.getResetCode().equals(code)) {
+            throw new IllegalArgumentException("잘못된 인증코드입니다.");
         }
 
-        PasswordResetToken token = tokenOpt.get();
-
-        // 만료 여부 체크
-        if (token.isExpired()) {
-            return;
+        // 2) 만료 확인
+        if (user.getResetCodeExpire() == null ||
+            user.getResetCodeExpire().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("인증코드가 만료되었습니다.");
         }
 
-        // 이메일로 사용자 조회
-        Optional<Users> userOpt = userRepository.findByEmail(email);
-
-        if (!userOpt.isPresent()) {
-            return;
-        }
-
-        Users user = userOpt.get();
-
-        // 새 비밀번호 암호화 저장
+        // 3) 비밀번호 변경
         user.setPassword(passwordEncoder.encode(newPassword));
-        user.setUpdated_at(LocalDateTime.now());
-        userRepository.save(user);
 
-        // 토큰 제거
-        passwordResetTokenRepository.delete(token);
+        // 4) 코드 초기화 (보안상 중요)
+        user.setResetCode(null);
+        user.setResetCodeExpire(null);
+
+        userRepository.save(user);
     }
 }
