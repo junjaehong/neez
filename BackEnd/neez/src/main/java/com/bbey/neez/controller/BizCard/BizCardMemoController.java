@@ -6,6 +6,7 @@ import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.service.BizCard.BizCardMemoService;
 import com.bbey.neez.DTO.cardRequest.*;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/bizcards")
 @Tag(name = "BizCard Memo API", description = "명함 메모 조회/수정 전용")
+@SecurityRequirement(name = "BearerAuth")
 public class BizCardMemoController {
 
     private final BizCardMemoService bizCardMemoService;

@@ -5,9 +5,10 @@ import com.bbey.neez.DTO.BizCardDto;
 import com.bbey.neez.entity.HashTag;
 import com.bbey.neez.service.BizCard.HashtagService;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api")
 @Tag(name = "Hashtag API", description = "명함 해시태그 부여/해제/조회")
+@SecurityRequirement(name = "BearerAuth")
 public class HashtagController {
 
     private final HashtagService hashtagService;

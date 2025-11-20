@@ -9,6 +9,7 @@ import com.bbey.neez.service.BizCard.BizCardService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/bizcards")
 @Tag(name = "BizCard CRUD API", description = "명함 수기 등록, 조회, 수정, 삭제, 복구, 검색")
+@SecurityRequirement(name = "BearerAuth") // ✅ 모든 BizCard CRUD는 JWT 필요
 public class BizCardController {
 
     private final BizCardService bizCardService;
@@ -97,7 +99,7 @@ public class BizCardController {
     }
 
     // ✅ 사용자 명함 목록
-    @Operation(summary = "사용자 명함 목록 조회")
+    @Operation(summary = "사용자 명함 목록 조회", description = "userIdx 기준으로 명함 목록을 페이지 단위로 조회합니다. page(0-based), size 를 쿼리스트링으로 전달하세요.")
     @GetMapping("/user/{userIdx}/page")
     public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> getBizCardsPage(
             @PathVariable Long userIdx,

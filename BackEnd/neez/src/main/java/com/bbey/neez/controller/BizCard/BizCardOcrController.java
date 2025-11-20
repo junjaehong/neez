@@ -8,6 +8,10 @@ import com.bbey.neez.entity.BizCardSaveResult;
 import com.bbey.neez.service.BizCard.BizCardOcrService;
 import com.bbey.neez.service.BizCard.BizCardService;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/bizcards")
 @Tag(name = "BizCard OCR API", description = "명함 이미지 OCR 등록 전용")
+@SecurityRequirement(name = "BearerAuth")
 public class BizCardOcrController {
 
         private final BizCardOcrService bizCardOcrService;

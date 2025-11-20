@@ -2,6 +2,8 @@ package com.bbey.neez.controller;
 
 import com.bbey.neez.DTO.CompanyDto;
 import com.bbey.neez.repository.CompanyRepository;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/companies")
 @Tag(name = "Company API", description = "회사 정보 조회 API")
+@SecurityRequirement(name = "BearerAuth")
 public class CompanyController {
 
     private final CompanyRepository companyRepository;

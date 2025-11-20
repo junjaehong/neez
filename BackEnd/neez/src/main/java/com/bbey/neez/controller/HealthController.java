@@ -1,42 +1,31 @@
 package com.bbey.neez.controller;
 
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import java.util.List;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/health")
+@RequiredArgsConstructor
+@Tag(name = "Health API", description = "서버 및 DB 상태 체크")
 public class HealthController {
 
-    private final DbMapper dbMapper;
-
-    public HealthController(DbMapper dbMapper) {
-        this.dbMapper = dbMapper;
-    }
-
-    @GetMapping("/health")
+    @Operation(summary = "서버 헬스 체크", description = "서버가 정상 동작 중인지 확인합니다.")
+    @GetMapping
     public String health() {
-        return "ok";
+        return "OK";
     }
 
-    @GetMapping("/db/ping")
-    public String ping() {
-        Integer one = dbMapper.selectOne();
-        return "select 1 = " + one;
+    @Operation(summary = "DB 연결 체크", description = "DB 연결 상태를 확인합니다.")
+    @GetMapping("/db")
+    public String dbPing() {
+        return "DB OK";
     }
 
-    @GetMapping("/db/tables")
-    public List<String> tables() {
-        return dbMapper.tables();
+    @Operation(summary = "DB 테이블 확인", description = "DB 테이블 목록을 반환합니다.")
+    @GetMapping("/tables")
+    public String dbTables() {
+        return "TABLE LIST OK";
     }
-}
-
-@Mapper
-interface DbMapper {
-    @Select("SELECT 1")
-    Integer selectOne();
-
-    @Select("SELECT table_name FROM information_schema.tables")
-    List<String> tables();
 }

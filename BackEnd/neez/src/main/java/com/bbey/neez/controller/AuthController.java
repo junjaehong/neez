@@ -2,21 +2,21 @@ package com.bbey.neez.controller;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.auth.*;
-import com.bbey.neez.security.UserPrincipal;
 import com.bbey.neez.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Auth API", description = "로그인 · 회원가입 · 이메일 인증 · 비밀번호 재설정 · 토큰 재발급")
 public class AuthController {
 
     private final AuthService authService;
 
-    // 공통 응답 래핑
     private ApiResponseDto<Object> wrap(AuthResponse res) {
         return new ApiResponseDto<>(
                 res.isSuccess(),
@@ -25,97 +25,51 @@ public class AuthController {
         );
     }
 
-    // JWT에서 현재 유저의 idx 꺼내기
-    private Long getCurrentUserIdx() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof UserPrincipal)) {
-            throw new RuntimeException("인증되지 않은 사용자입니다.");
-        }
-        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-        return principal.getUser().getIdx();
-    }
-
-    // ================= 로그인 / 회원가입 / 이메일 인증 =================
-
-    // 로그인
+    @Operation(summary = "로그인", description = "ID/비밀번호를 이용해 로그인하고 Access/Refresh 토큰을 반환합니다.")
     @PostMapping("/login")
     public ApiResponseDto<Object> login(@RequestBody LoginRequest req) {
         return wrap(authService.login(req));
     }
 
-    // 회원가입
+    @Operation(summary = "회원가입", description = "회원가입을 요청하면 이메일 인증 메일이 전송됩니다.")
     @PostMapping("/register")
     public ApiResponseDto<Object> register(@RequestBody RegisterRequest req) {
         return wrap(authService.register(req));
     }
 
-    // 이메일 인증 (토큰으로 Users INSERT)
+    @Operation(summary = "이메일 인증", description = "메일로 전송된 인증 링크 클릭 시 회원가입이 완료됩니다.")
     @GetMapping("/verify")
     public ApiResponseDto<Object> verify(@RequestParam("token") String token) {
         return wrap(authService.verifyEmail(token));
     }
 
-    // ================= 로그아웃 / 탈퇴 =================
-
-    // 로그아웃: 현재 토큰 기준
-    @PostMapping("/logout")
-    public ApiResponseDto<Object> logout() {
-        Long idx = getCurrentUserIdx();
-        return wrap(authService.logoutByIdx(idx));
-    }
-
-    // 회원탈퇴
-    @PostMapping("/delete")
-    public ApiResponseDto<Object> delete(@RequestBody DeleteRequest req) {
-        return wrap(authService.delete(req));
-    }
-
-    // ================= 아이디 찾기 / 비밀번호 재설정 (비로그인) =================
-
-    // 아이디 찾기
-    @PostMapping("/find-id")
-    public ApiResponseDto<Object> findId(@RequestBody FindIdRequest req) {
-        return wrap(authService.findUserId(req));
-    }
-
-    // 비밀번호 찾기 1단계: 인증코드 메일 전송 (비로그인)
+    @Operation(summary = "비밀번호 재설정 메일 요청", description = "등록된 이메일 주소로 비밀번호 재설정 코드(인증코드)를 전송합니다.")
     @PostMapping("/forgot-password")
     public ApiResponseDto<Object> forgotPassword(@RequestBody ForgotPasswordRequest req) {
         return wrap(authService.forgotPassword(req));
     }
 
-    // 비밀번호 재설정 2단계: 코드 검증 후 비번 변경 (비로그인)
+    @Operation(summary = "비밀번호 재설정", description = "이메일 + 인증코드 + 새 비밀번호로 비밀번호를 재설정합니다.")
     @PostMapping("/reset-password")
     public ApiResponseDto<Object> resetPassword(@RequestBody PasswordResetConfirmRequest req) {
         return wrap(authService.resetPassword(req));
     }
 
-    // ================= 프로필 조회 / 수정 (로그인 상태) =================
-
-    // 내 프로필 조회
-    @GetMapping("/profile")
-    public ApiResponseDto<Object> getProfile() {
-        Long idx = getCurrentUserIdx();
-        return wrap(authService.getProfileByIdx(idx));
+    @Operation(
+            summary = "비밀번호 변경",
+            description = "로그인된 사용자의 비밀번호를 변경합니다. (PK idx 기준)",
+            security = { @SecurityRequirement(name = "BearerAuth") }
+    )
+    @PostMapping("/change-password/{idx}")
+    public ApiResponseDto<Object> changePassword(
+            @PathVariable Long idx,
+            @RequestBody ChangePasswordRequest req
+    ) {
+        AuthResponse res = authService.changePasswordByIdx(idx, req);
+        return wrap(res);
     }
 
-    // 내 프로필 수정
-    @PostMapping("/update")
-    public ApiResponseDto<Object> update(@RequestBody UpdateRequest req) {
-        Long idx = getCurrentUserIdx();
-        return wrap(authService.updateByIdx(idx, req));
-    }
-
-    // ================= 비밀번호 변경 (로그인 상태) =================
-
-    @PostMapping("/change-password")
-    public ApiResponseDto<Object> changePassword(@RequestBody ChangePasswordRequest req) {
-        Long idx = getCurrentUserIdx();
-        return wrap(authService.changePasswordByIdx(idx, req));
-    }
-
-    // ================= 토큰 재발급 =================
-
+    @Operation(summary = "Access Token 재발급", description = "Refresh Token을 사용해 새로운 Access/Refresh 토큰을 발급합니다.")
     @PostMapping("/refresh")
     public ApiResponseDto<Object> refresh(@RequestBody RefreshRequest req) {
         return wrap(authService.refresh(req));
