@@ -169,6 +169,8 @@ public class BizCardServiceImpl implements BizCardService {
         BizCard card = bizCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
 
+        verifyOwnership(card.getUserIdx());  // 🔒 추가
+
         Long companyIdx = card.getCompanyIdx();
         String cardCompanyName = card.getCardCompanyName();
 
@@ -232,6 +234,8 @@ public class BizCardServiceImpl implements BizCardService {
     public BizCard updateBizCard(Long idx, Map<String, String> data, boolean rematchCompany) {
         BizCard card = bizCardRepository.findById(idx)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
+        
+        verifyOwnership(card.getUserIdx()); // 🔒 추가
 
         String name = data.get("name");
         if (name != null && !name.isEmpty()) {
@@ -310,6 +314,8 @@ public class BizCardServiceImpl implements BizCardService {
     public void deleteBizCard(Long id) {
         BizCard card = bizCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
+        
+        verifyOwnership(card.getUserIdx()); // 🔒 추가
 
         card.setIsDeleted(true);
         card.setUpdatedAt(LocalDateTime.now());
@@ -322,6 +328,8 @@ public class BizCardServiceImpl implements BizCardService {
         BizCard card = bizCardRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
 
+        verifyOwnership(card.getUserIdx()); // 🔒 추가
+        
         card.setIsDeleted(false);
         card.setUpdatedAt(LocalDateTime.now());
         bizCardRepository.save(card);
@@ -387,4 +395,13 @@ public class BizCardServiceImpl implements BizCardService {
                 memoContent,
                 hashtags);
     }
+
+    // 소유자 검증 메서드
+    private void verifyOwnership(Long cardUserIdx) {
+        Long current = SecurityUtil.getCurrentUserIdx();
+        if (!current.equals(cardUserIdx)) {
+            throw new RuntimeException("Not your BizCard. Access denied.");
+        }
+    }
+
 }
