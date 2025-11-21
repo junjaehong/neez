@@ -2,55 +2,56 @@ package com.bbey.neez.DTO;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.util.List;
 
-@Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "명함 정보 DTO")
 public class BizCardDto {
 
-        @Schema(description = "명함 고유 ID", example = "10")
+        @Schema(description = "명함 PK", example = "61")
         private Long idx;
 
-        @Schema(description = "사용자 고유 ID", example = "1")
+        @Schema(description = "사용자 PK", example = "15")
         private Long userIdx;
 
-        @Schema(description = "이름", example = "홍길동")
+        @Schema(description = "이름", example = "진형록")
         private String name;
 
-        @Schema(description = "명함에 적힌 회사 이름 (원문)", example = "삼성생명 대구금융SFP지점")
+        @Schema(description = "명함에 적힌 회사명", example = "(주)쿠로엔시스")
         private String cardCompanyName;
 
-        @Schema(description = "연결된 companies 테이블 PK", example = "3")
+        @Schema(description = "companies 테이블 PK (없으면 null)", example = "13")
         private Long companyIdx;
 
-        @Schema(description = "부서명", example = "개발1팀")
+        @Schema(description = "부서", example = "전략사업부")
         private String department;
 
-        @Schema(description = "직급", example = "주임")
+        @Schema(description = "직책", example = "선임연구원")
         private String position;
 
-        @Schema(description = "이메일", example = "gildong@naver.com")
+        @Schema(description = "이메일", example = "hrjin@curonsys.com")
         private String email;
 
-        @Schema(description = "휴대폰 번호", example = "010-1234-5678")
+        @Schema(description = "휴대폰 번호", example = "010.7520.9944")
         private String phoneNumber;
 
-        @Schema(description = "유선 전화번호", example = "02-987-6543")
+        @Schema(description = "대표 번호", example = "070.5121.6825")
         private String lineNumber;
 
-        @Schema(description = "팩스 번호", example = "02-333-2222")
+        @Schema(description = "팩스 번호", example = "061.337.6825")
         private String faxNumber;
 
-        @Schema(description = "주소", example = "서울시 강남구 테헤란로 123")
+        @Schema(description = "주소", example = "58217 전라남도 나주시 한빛로 262 스마트프라자 502호")
         private String address;
 
-        @Schema(description = "메모 내용", example = "네이버 담당자, 다음 주 회의 예정")
+        @Schema(description = "메모 내용 (파일에서 로드된 텍스트)", example = "")
         private String memoContent;
 
-        @Schema(description = "해시태그 목록", example = "[\"회의\", \"네이버\", \"중요\"]")
+        @Schema(description = "해시태그 목록", example = "[\"개발자\", \"클라이언트\"]")
         private List<String> hashTags;
 }

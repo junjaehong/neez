@@ -12,7 +12,9 @@ import com.bbey.neez.repository.UserRepository;
 import com.bbey.neez.security.SecurityUtil;
 import com.bbey.neez.service.Company.CompanyInfoExtractService;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -51,8 +53,15 @@ public class BizCardServiceImpl implements BizCardService {
     @Override
     public Page<BizCardDto> getMyBizCards(Pageable pageable) {
         Long userIdx = SecurityUtil.getCurrentUserIdx();
-        Page<BizCard> page = bizCardRepository
-                .findByUserIdxAndIsDeletedFalseOrderByCreatedAtDesc(userIdx, pageable);
+
+        // 🔥 여기서 클라이언트가 보낸 sort는 전부 무시하고
+        // createdAt DESC로 강제 고정
+        Pageable safePage = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedFalse(userIdx, safePage);
         return page.map(this::toDto);
     }
 

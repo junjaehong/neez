@@ -2,11 +2,12 @@ package com.bbey.neez.controller.BizCard;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.BizCardDto;
-import com.bbey.neez.DTO.cardRequest.*;
+import com.bbey.neez.DTO.cardRequest.BizCardManualRequest;
+import com.bbey.neez.DTO.cardRequest.BizCardUpdateRequest;
 import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.entity.BizCardSaveResult;
-import com.bbey.neez.service.BizCard.BizCardService;
 import com.bbey.neez.security.SecurityUtil;
+import com.bbey.neez.service.BizCard.BizCardService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.*;
 
 @RestController
@@ -53,7 +55,8 @@ public class BizCardController {
     // 🔹 내 명함 수기 등록 (/me/manual)
     @Operation(summary = "내 명함 수기 등록", description = "현재 로그인한 사용자의 명함을 수기로 등록한다.")
     @PostMapping("/me/manual")
-    public ResponseEntity<ApiResponseDto<BizCardDto>> createMyManual(@RequestBody BizCardManualRequest data) {
+    public ResponseEntity<ApiResponseDto<BizCardDto>> createMyManual(
+            @Valid @RequestBody BizCardManualRequest data) {
         try {
             Long userIdx = SecurityUtil.getCurrentUserIdx(); // 🔑 여기서만 유저 가져옴
 
@@ -80,7 +83,7 @@ public class BizCardController {
         }
     }
 
-    // ✅ 단건 조회 (추후에 서비스에서 "내 명함인지" 체크 넣어도 됨)
+    // ✅ 단건 조회
     @Operation(summary = "명함 상세 조회", description = "명함 1건의 상세 정보를 조회한다.")
     @GetMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<BizCardDto>> getBizCard(@PathVariable Long idx) {
@@ -113,8 +116,6 @@ public class BizCardController {
                     .body(new ApiResponseDto<>(false, e.getMessage(), null));
         }
     }
-
-    // 🔻 기존 /user/{userIdx}/page 는 제거하고 /me로 단일화했으니 주석/삭제
 
     // 🔹 내 명함 검색 (/me/search)
     @Operation(summary = "내 명함 검색", description = "현재 로그인한 사용자의 명함을 키워드로 검색한다.")
@@ -160,12 +161,12 @@ public class BizCardController {
         return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", exists));
     }
 
-    // ✅ 수정 (여기서는 idx만 받고, "내 명함인지" 검증은 서비스 쪽에서 처리하는 것이 깔끔)
+    // ✅ 수정
     @Operation(summary = "명함 정보 수정")
     @PutMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<BizCardDto>> updateBizCard(
             @PathVariable Long idx,
-            @RequestBody BizCardUpdateRequest body) {
+            @Valid @RequestBody BizCardUpdateRequest body) {
         try {
             Map<String, String> map = new HashMap<>();
             if (body.getName() != null)
