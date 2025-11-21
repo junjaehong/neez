@@ -9,6 +9,7 @@ import com.bbey.neez.entity.Users;
 import com.bbey.neez.repository.BizCardRepository;
 import com.bbey.neez.repository.CompanyRepository;
 import com.bbey.neez.repository.UserRepository;
+import com.bbey.neez.security.SecurityUtil;
 import com.bbey.neez.service.Company.CompanyInfoExtractService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +47,16 @@ public class BizCardServiceImpl implements BizCardService {
         return (s == null) ? "" : s;
     }
 
+    // ✅ 현재 로그인 유저의 명함 목록 (isDeleted = false)
+    @Override
+    public Page<BizCardDto> getMyBizCards(Pageable pageable) {
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
+        Page<BizCard> page = bizCardRepository
+                .findByUserIdxAndIsDeletedFalseOrderByCreatedAtDesc(userIdx, pageable);
+        return page.map(this::toDto);
+    }
+
+    // ✅ OCR 데이터 기반 저장 (userIdx는 외부에서 넘겨줄 수 있게 유지)
     @Override
     public BizCardSaveResult saveFromOcrData(Map<String, String> data, Long userIdx) {
         String companyName = nvl(data.get("company"));
@@ -63,7 +74,7 @@ public class BizCardServiceImpl implements BizCardService {
             } else {
                 Optional<Company> existed = (!address.isEmpty())
                         ? companyRepository.findFirstByNameAndAddress(companyName, address)
-                        : Optional.<Company>empty();
+                        : Optional.empty();
 
                 Company company = existed.orElseGet(() -> {
                     Company c = new Company();
@@ -137,11 +148,13 @@ public class BizCardServiceImpl implements BizCardService {
         return new BizCardSaveResult(saved, false);
     }
 
+    // ✅ 수기 등록 (컨트롤러에서 현재 유저 idx를 넣어서 호출)
     @Override
     public BizCardSaveResult saveManual(Map<String, String> data, Long userIdx) {
         return saveFromOcrData(data, userIdx);
     }
 
+    // ✅ 단건 상세 조회
     @Override
     public Map<String, Object> getBizCardDetail(Long id) {
         BizCard card = bizCardRepository.findById(id)
@@ -161,7 +174,7 @@ public class BizCardServiceImpl implements BizCardService {
 
         List<String> hashtags = hashtagService.getTagsOfCard(id);
 
-        Map<String, Object> cardMap = new LinkedHashMap<String, Object>();
+        Map<String, Object> cardMap = new LinkedHashMap<>();
         cardMap.put("idx", card.getIdx());
         cardMap.put("user_idx", card.getUserIdx());
         cardMap.put("name", card.getName());
@@ -205,6 +218,7 @@ public class BizCardServiceImpl implements BizCardService {
                 tags);
     }
 
+    // ✅ 수정
     @Override
     public BizCard updateBizCard(Long idx, Map<String, String> data, boolean rematchCompany) {
         BizCard card = bizCardRepository.findById(idx)
@@ -253,7 +267,7 @@ public class BizCardServiceImpl implements BizCardService {
         if (address != null)
             card.setAddress(address);
 
-        // ✅ 명시적으로 재매칭 요청이 들어온 경우
+        // ✅ 재매칭 요청이 온 경우 회사 재조회
         if (rematchCompany) {
             String rematchName = card.getCardCompanyName();
             String rematchAddr = card.getAddress();
@@ -282,6 +296,7 @@ public class BizCardServiceImpl implements BizCardService {
         return bizCardRepository.save(card);
     }
 
+    // ✅ 삭제
     @Override
     public void deleteBizCard(Long id) {
         BizCard card = bizCardRepository.findById(id)
@@ -292,6 +307,7 @@ public class BizCardServiceImpl implements BizCardService {
         bizCardRepository.save(card);
     }
 
+    // ✅ 복구
     @Override
     public void restoreBizCard(Long id) {
         BizCard card = bizCardRepository.findById(id)
@@ -302,36 +318,39 @@ public class BizCardServiceImpl implements BizCardService {
         bizCardRepository.save(card);
     }
 
+    // ✅ 삭제된 내 명함 목록
     @Override
-    public Page<BizCardDto> getBizCardsByUserIdx(Long userIdx, Pageable pageable) {
-        Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedFalseOrderByCreatedAtDesc(userIdx, pageable);
-        return page.map(this::toDto);
-    }
-
-    @Override
-    public Page<BizCardDto> getDeletedBizCardsByUserIdx(Long userIdx, Pageable pageable) {
+    public Page<BizCardDto> getMyDeletedBizCards(Pageable pageable) {
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
         Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedTrue(userIdx, pageable);
         return page.map(this::toDto);
     }
 
+    // ✅ 내 명함 검색
     @Override
-    public Page<BizCardDto> searchBizCards(Long userIdx, String keyword, Pageable pageable) {
+    public Page<BizCardDto> searchMyBizCards(String keyword, Pageable pageable) {
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
         Page<BizCard> page = bizCardRepository.searchByKeyword(userIdx, keyword, pageable);
         return page.map(this::toDto);
     }
 
+    // ✅ 내 명함 개수
     @Override
-    public long countBizCardsByUser(Long userIdx) {
+    public long countMyBizCards() {
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
         return bizCardRepository.countByUserIdxAndIsDeletedFalse(userIdx);
     }
 
+    // ✅ 내 명함 중복 여부
     @Override
-    public boolean existsBizCard(Long userIdx, String name, String email) {
+    public boolean existsMyBizCard(String name, String email) {
         if (name == null || email == null)
             return false;
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
         return bizCardRepository.existsByUserIdxAndNameAndEmailAndIsDeletedFalse(userIdx, name, email);
     }
 
+    // ✅ 공통 DTO 변환
     private BizCardDto toDto(BizCard card) {
         String memoContent = "";
         if (card.getMemo() != null && !card.getMemo().isEmpty()) {

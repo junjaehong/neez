@@ -6,12 +6,16 @@ import com.bbey.neez.DTO.cardRequest.*;
 import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.entity.BizCardSaveResult;
 import com.bbey.neez.service.BizCard.BizCardService;
+import com.bbey.neez.security.SecurityUtil;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,17 +33,31 @@ public class BizCardController {
         this.bizCardService = bizCardService;
     }
 
-    // ✅ 수기 등록
-    @Operation(summary = "명함 수기 등록", description = "사용자가 직접 입력한 명함 정보를 저장한다.\n" +
-            "요청의 company(명함 회사명) + address를 기반으로 회사 자동 매칭을 시도하고,\n" +
-            "companies 테이블에 회사 정보를 생성/갱신한 뒤,\n" +
-            "bizcards.company_idx로 연결한다.")
-    @PostMapping("/manual")
-    public ResponseEntity<ApiResponseDto<BizCardDto>> createManual(@RequestBody BizCardManualRequest data) {
-        try {
-            Long userIdx = data.getUser_idx();
+    // (옵션) 디버그용 - 필요 없으면 삭제해도 됨
+    @GetMapping("/me/test")
+    public ApiResponseDto<Object> myBizCardTest() {
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
+        return new ApiResponseDto<>(true, "현재 유저 idx: " + userIdx, null);
+    }
 
-            Map<String, String> map = new HashMap<String, String>();
+    // 🔹 내 명함 목록 조회 (/me)
+    @Operation(summary = "내 명함 목록 조회", description = "현재 로그인한 사용자의 명함을 페이지 단위로 조회한다.")
+    @GetMapping("/me")
+    public ApiResponseDto<Object> getMyBizCards(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        Page<BizCardDto> res = bizCardService.getMyBizCards(pageable);
+        return new ApiResponseDto<>(true, "내 명함 목록 조회 성공", res);
+    }
+
+    // 🔹 내 명함 수기 등록 (/me/manual)
+    @Operation(summary = "내 명함 수기 등록", description = "현재 로그인한 사용자의 명함을 수기로 등록한다.")
+    @PostMapping("/me/manual")
+    public ResponseEntity<ApiResponseDto<BizCardDto>> createMyManual(@RequestBody BizCardManualRequest data) {
+        try {
+            Long userIdx = SecurityUtil.getCurrentUserIdx(); // 🔑 여기서만 유저 가져옴
+
+            Map<String, String> map = new HashMap<>();
             map.put("company", data.getCompany());
             map.put("name", data.getName());
             map.put("department", data.getDepartment());
@@ -52,21 +70,18 @@ public class BizCardController {
             map.put("memo", data.getMemo());
 
             BizCardSaveResult result = bizCardService.saveManual(map, userIdx);
-
             BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
 
             return ResponseEntity.ok(
-                    new ApiResponseDto<BizCardDto>(true, result.isExisting() ? "already exists" : "ok", dto));
+                    new ApiResponseDto<>(true, result.isExisting() ? "already exists" : "ok", dto));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body(new ApiResponseDto<BizCardDto>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
         }
     }
 
-    // ✅ 단건 조회
-    @Operation(summary = "명함 상세 조회", description = "명함 1건의 상세 정보를 조회한다.\n" +
-            "응답에는 명함 원문 회사명(cardCompanyName)과 연결된 회사 IDX(companyIdx)가 모두 포함된다.\n" +
-            "회사 상세 정보가 필요하면 /api/companies/{companyIdx} 를 추가로 호출하면 된다.")
+    // ✅ 단건 조회 (추후에 서비스에서 "내 명함인지" 체크 넣어도 됨)
+    @Operation(summary = "명함 상세 조회", description = "명함 1건의 상세 정보를 조회한다.")
     @GetMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<BizCardDto>> getBizCard(@PathVariable Long idx) {
         try {
@@ -91,36 +106,68 @@ public class BizCardController {
                     (String) card.get("address"),
                     (String) card.get("memo_content"),
                     tags);
-            return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "ok", dto));
+
+            return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", dto));
         } catch (Exception e) {
             return ResponseEntity.status(404)
-                    .body(new ApiResponseDto<BizCardDto>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
         }
     }
 
-    // ✅ 사용자 명함 목록
-    @Operation(summary = "사용자 명함 목록 조회", description = "userIdx 기준으로 명함 목록을 페이지 단위로 조회합니다. page(0-based), size 를 쿼리스트링으로 전달하세요.")
-    @GetMapping("/user/{userIdx}/page")
-    public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> getBizCardsPage(
-            @PathVariable Long userIdx,
+    // 🔻 기존 /user/{userIdx}/page 는 제거하고 /me로 단일화했으니 주석/삭제
+
+    // 🔹 내 명함 검색 (/me/search)
+    @Operation(summary = "내 명함 검색", description = "현재 로그인한 사용자의 명함을 키워드로 검색한다.")
+    @GetMapping("/me/search")
+    public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> searchMyBizCards(
+            @RequestParam String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+
         PageRequest pageable = PageRequest.of(page, size);
-        Page<BizCardDto> result = bizCardService.getBizCardsByUserIdx(userIdx, pageable);
-        return ResponseEntity.ok(new ApiResponseDto<Page<BizCardDto>>(true, "ok", result));
+        Page<BizCardDto> result = bizCardService.searchMyBizCards(keyword, pageable);
+        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", result));
     }
 
-    // ✅ 명함 수정 (+ 회사 자동 재매칭 옵션)
-    @Operation(summary = "명함 정보 수정", description = "명함의 기본 정보를 수정한다.\n" +
-            "company_idx를 함께 보내면 명함과 연결된 회사(companies.idx)를 직접 변경할 수 있다.\n" +
-            "company(명함 회사명) 또는 address를 수정하고 rematchCompany=true 로 보내면,\n" +
-            "회사 정보를 다시 자동 조회하여 companies 와 재연결한다.")
+    // 🔹 내 삭제된 명함 목록 (/me/deleted)
+    @Operation(summary = "삭제된 내 명함 목록 조회", description = "현재 로그인한 사용자의 삭제된 명함 목록을 조회한다.")
+    @GetMapping("/me/deleted")
+    public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> getMyDeletedBizCards(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<BizCardDto> result = bizCardService.getMyDeletedBizCards(pageable);
+        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", result));
+    }
+
+    // 🔹 내 명함 개수 (/me/count)
+    @Operation(summary = "내 명함 개수 조회", description = "현재 로그인한 사용자의 명함 개수를 조회한다.")
+    @GetMapping("/me/count")
+    public ResponseEntity<ApiResponseDto<Long>> countMyBizCards() {
+        long count = bizCardService.countMyBizCards();
+        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", count));
+    }
+
+    // 🔹 내 명함 중복 여부 (/me/exists)
+    @Operation(summary = "내 명함 중복 확인", description = "현재 로그인한 사용자의 명함 중에 동일 이름+이메일이 존재하는지 확인한다.")
+    @GetMapping("/me/exists")
+    public ResponseEntity<ApiResponseDto<Boolean>> existsMyBizCard(
+            @RequestParam String name,
+            @RequestParam String email) {
+
+        boolean exists = bizCardService.existsMyBizCard(name, email);
+        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", exists));
+    }
+
+    // ✅ 수정 (여기서는 idx만 받고, "내 명함인지" 검증은 서비스 쪽에서 처리하는 것이 깔끔)
+    @Operation(summary = "명함 정보 수정")
     @PutMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<BizCardDto>> updateBizCard(
             @PathVariable Long idx,
             @RequestBody BizCardUpdateRequest body) {
         try {
-            Map<String, String> map = new HashMap<String, String>();
+            Map<String, String> map = new HashMap<>();
             if (body.getName() != null)
                 map.put("name", body.getName());
             if (body.getCompany() != null)
@@ -146,10 +193,10 @@ public class BizCardController {
 
             BizCard updated = bizCardService.updateBizCard(idx, map, rematchCompany);
             BizCardDto dto = toBizCardDto(updated, null, null);
-            return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "updated", dto));
+            return ResponseEntity.ok(new ApiResponseDto<>(true, "updated", dto));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(new ApiResponseDto<BizCardDto>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
         }
     }
 
@@ -159,68 +206,24 @@ public class BizCardController {
     public ResponseEntity<ApiResponseDto<Void>> deleteBizCard(@PathVariable Long idx) {
         try {
             bizCardService.deleteBizCard(idx);
-            return ResponseEntity.ok(new ApiResponseDto<Void>(true, "deleted", null));
+            return ResponseEntity.ok(new ApiResponseDto<>(true, "deleted", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(new ApiResponseDto<Void>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
         }
     }
 
     // ✅ 복구
     @Operation(summary = "명함 복구")
-    @PatchMapping("/{id}/restore")
-    public ResponseEntity<ApiResponseDto<Void>> restoreBizCard(@PathVariable Long id) {
+    @PatchMapping("/{idx}/restore")
+    public ResponseEntity<ApiResponseDto<Void>> restoreBizCard(@PathVariable Long idx) {
         try {
-            bizCardService.restoreBizCard(id);
-            return ResponseEntity.ok(new ApiResponseDto<Void>(true, "restored", null));
+            bizCardService.restoreBizCard(idx);
+            return ResponseEntity.ok(new ApiResponseDto<>(true, "restored", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(new ApiResponseDto<Void>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
         }
-    }
-
-    // ✅ 검색
-    @Operation(summary = "명함 검색")
-    @GetMapping("/user/{userIdx}/search")
-    public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> search(
-            @PathVariable Long userIdx,
-            @RequestParam String keyword,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        PageRequest pageable = PageRequest.of(page, size);
-        Page<BizCardDto> result = bizCardService.searchBizCards(userIdx, keyword, pageable);
-        return ResponseEntity.ok(new ApiResponseDto<Page<BizCardDto>>(true, "ok", result));
-    }
-
-    // ✅ 삭제된 명함 목록
-    @Operation(summary = "삭제된 명함 목록 조회")
-    @GetMapping("/user/{userIdx}/deleted")
-    public ResponseEntity<ApiResponseDto<Page<BizCardDto>>> getDeletedBizCards(
-            @PathVariable Long userIdx,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        PageRequest pageable = PageRequest.of(page, size);
-        Page<BizCardDto> result = bizCardService.getDeletedBizCardsByUserIdx(userIdx, pageable);
-        return ResponseEntity.ok(new ApiResponseDto<Page<BizCardDto>>(true, "ok", result));
-    }
-
-    // ✅ 개수
-    @Operation(summary = "명함 개수 조회")
-    @GetMapping("/user/{userIdx}/count")
-    public ResponseEntity<ApiResponseDto<Long>> countBizCards(@PathVariable Long userIdx) {
-        long count = bizCardService.countBizCardsByUser(userIdx);
-        return ResponseEntity.ok(new ApiResponseDto<Long>(true, "ok", count));
-    }
-
-    // ✅ 중복 확인
-    @Operation(summary = "명함 중복 확인")
-    @GetMapping("/user/{userIdx}/exists")
-    public ResponseEntity<ApiResponseDto<Boolean>> existsBizCard(
-            @PathVariable Long userIdx,
-            @RequestParam String name,
-            @RequestParam String email) {
-        boolean exists = bizCardService.existsBizCard(userIdx, name, email);
-        return ResponseEntity.ok(new ApiResponseDto<Boolean>(true, "ok", exists));
     }
 
     private BizCardDto toBizCardDto(BizCard card, String ignoredCompanyName, String memoContent) {
