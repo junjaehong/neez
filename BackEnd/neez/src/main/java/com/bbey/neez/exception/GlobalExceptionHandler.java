@@ -14,17 +14,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponseDto<Object>> handleValidationException(MethodArgumentNotValidException ex) {
         StringBuilder sb = new StringBuilder();
-
         ex.getBindingResult().getFieldErrors().forEach(error -> {
             sb.append(error.getField())
-                    .append(" : ")
+                    .append(": ")
                     .append(error.getDefaultMessage())
                     .append("; ");
         });
 
-        String message = sb.toString().trim();
-        if (message.endsWith(";")) {
-            message = message.substring(0, message.length() - 1);
+        String message = sb.toString();
+        if (message.endsWith("; ")) {
+            message = message.substring(0, message.length() - 2);
         }
 
         ApiResponseDto<Object> body = new ApiResponseDto<>(
@@ -35,7 +34,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-    // ✅ RuntimeException 공통 처리 (서비스 단에서 던지는 에러용)
+    // ✅ 리소스를 찾을 수 없는 경우 (404)
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<Object>> handleResourceNotFound(ResourceNotFoundException ex) {
+        ApiResponseDto<Object> body = new ApiResponseDto<>(
+                false,
+                ex.getMessage(),
+                null);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    // ✅ 권한 없는 접근 (403)
+    @ExceptionHandler(AccessDeniedBizException.class)
+    public ResponseEntity<ApiResponseDto<Object>> handleAccessDeniedBiz(AccessDeniedBizException ex) {
+        ApiResponseDto<Object> body = new ApiResponseDto<>(
+                false,
+                ex.getMessage(),
+                null);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    // ✅ 서비스 단에서 던지는 일반 RuntimeException (400)
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponseDto<Object>> handleRuntimeException(RuntimeException ex) {
         ApiResponseDto<Object> body = new ApiResponseDto<>(
@@ -45,7 +64,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-    // ✅ 나머지 예상 못 한 모든 에러 처리
+    // ✅ 나머지 예상 못 한 모든 에러 처리 (500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponseDto<Object>> handleException(Exception ex) {
         ApiResponseDto<Object> body = new ApiResponseDto<>(
