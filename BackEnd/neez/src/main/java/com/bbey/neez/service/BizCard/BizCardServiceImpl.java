@@ -34,11 +34,11 @@ public class BizCardServiceImpl implements BizCardService {
     private final CompanyInfoExtractService companyInfoExtractService;
 
     public BizCardServiceImpl(BizCardRepository bizCardRepository,
-            CompanyRepository companyRepository,
-            UserRepository userRepository,
-            MemoStorage memoStorage,
-            HashtagService hashtagService,
-            CompanyInfoExtractService companyInfoExtractService) {
+                              CompanyRepository companyRepository,
+                              UserRepository userRepository,
+                              MemoStorage memoStorage,
+                              HashtagService hashtagService,
+                              CompanyInfoExtractService companyInfoExtractService) {
 
         this.bizCardRepository = bizCardRepository;
         this.companyRepository = companyRepository;
@@ -69,7 +69,8 @@ public class BizCardServiceImpl implements BizCardService {
         Pageable safePage = PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
 
         Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedFalse(userIdx, safePage);
         return page.map(this::toDto);
@@ -77,7 +78,7 @@ public class BizCardServiceImpl implements BizCardService {
 
     // 🔥 쓰기 트랜잭션: OCR/수기 공통 저장
     @Override
-    @Transactional
+    @Transactional // readOnly=false, 메모/DB 모두 같은 트랜잭션
     public BizCardSaveResult saveFromOcrData(Map<String, String> data, Long userIdx) {
         String companyName = nvl(data.get("company"));
         String address = nvl(data.get("address"));
@@ -96,13 +97,16 @@ public class BizCardServiceImpl implements BizCardService {
                         ? companyRepository.findFirstByNameAndAddress(companyName, address)
                         : Optional.<Company>empty();
 
-                Company company = existed.orElseGet(() -> {
-                    Company c = new Company();
-                    c.setName(companyName);
-                    if (!address.isEmpty()) {
-                        c.setAddress(address);
+                Company company = existed.orElseGet(new java.util.function.Supplier<Company>() {
+                    @Override
+                    public Company get() {
+                        Company c = new Company();
+                        c.setName(companyName);
+                        if (!address.isEmpty()) {
+                            c.setAddress(address);
+                        }
+                        return companyRepository.save(c);
                     }
-                    return companyRepository.save(c);
                 });
 
                 companyIdx = company.getIdx();
@@ -152,17 +156,18 @@ public class BizCardServiceImpl implements BizCardService {
 
         BizCard saved = bizCardRepository.save(card);
 
+        // 🔥 메모 저장까지 하나의 트랜잭션으로 묶기
         String reqMemo = nvl(data.get("memo"));
         if (!reqMemo.isEmpty()) {
             String fileName = "card-" + saved.getIdx() + ".txt";
             try {
-                memoStorage.write(fileName, reqMemo);
+                memoStorage.write(fileName, reqMemo);  // 파일 저장
                 saved.setMemo(fileName);
                 saved.setUpdatedAt(LocalDateTime.now());
-                saved = bizCardRepository.save(saved);
+                saved = bizCardRepository.save(saved); // 메모 경로 업데이트
             } catch (IOException e) {
-                System.out.println("메모 파일 처리 실패: " + e.getMessage());
-                // 정책에 따라 여기서 예외를 던져 전체 롤백할지 결정 가능
+                // ❗ 파일 저장 실패 시 예외를 던져서 전체 트랜잭션 롤백
+                throw new RuntimeException("메모 파일 저장에 실패했습니다.", e);
             }
         }
 
@@ -178,7 +183,12 @@ public class BizCardServiceImpl implements BizCardService {
     @Override
     public Map<String, Object> getBizCardDetail(Long id) {
         BizCard card = bizCardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
+                .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
+                    @Override
+                    public RuntimeException get() {
+                        return new RuntimeException("BizCard not found: " + id);
+                    }
+                });
 
         verifyOwnership(card.getUserIdx()); // 🔒 소유자 검증
 
@@ -196,7 +206,7 @@ public class BizCardServiceImpl implements BizCardService {
 
         List<String> hashtags = hashtagService.getTagsOfCard(id);
 
-        Map<String, Object> cardMap = new LinkedHashMap<>();
+        Map<String, Object> cardMap = new LinkedHashMap<String, Object>();
         cardMap.put("idx", card.getIdx());
         cardMap.put("user_idx", card.getUserIdx());
         cardMap.put("name", card.getName());
@@ -245,7 +255,12 @@ public class BizCardServiceImpl implements BizCardService {
     @Transactional
     public BizCard updateBizCard(Long idx, Map<String, String> data, boolean rematchCompany) {
         BizCard card = bizCardRepository.findById(idx)
-                .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
+                .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
+                    @Override
+                    public RuntimeException get() {
+                        return new RuntimeException("BizCard not found: " + idx);
+                    }
+                });
 
         verifyOwnership(card.getUserIdx()); // 🔒 소유자 검증
 
@@ -306,11 +321,14 @@ public class BizCardServiceImpl implements BizCardService {
                     card.setCompanyIdx(compOpt.get().getIdx());
                 } else {
                     Optional<Company> existed = companyRepository.findFirstByNameAndAddress(rematchName, rematchAddr);
-                    Company company = existed.orElseGet(() -> {
-                        Company c = new Company();
-                        c.setName(rematchName);
-                        c.setAddress(rematchAddr);
-                        return companyRepository.save(c);
+                    Company company = existed.orElseGet(new java.util.function.Supplier<Company>() {
+                        @Override
+                        public Company get() {
+                            Company c = new Company();
+                            c.setName(rematchName);
+                            c.setAddress(rematchAddr);
+                            return companyRepository.save(c);
+                        }
                     });
                     card.setCompanyIdx(company.getIdx());
                 }
@@ -326,7 +344,12 @@ public class BizCardServiceImpl implements BizCardService {
     @Transactional
     public void deleteBizCard(Long id) {
         BizCard card = bizCardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
+                .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
+                    @Override
+                    public RuntimeException get() {
+                        return new RuntimeException("BizCard not found: " + id);
+                    }
+                });
 
         verifyOwnership(card.getUserIdx()); // 🔒 소유자 검증
 
@@ -340,7 +363,12 @@ public class BizCardServiceImpl implements BizCardService {
     @Transactional
     public void restoreBizCard(Long id) {
         BizCard card = bizCardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
+                .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
+                    @Override
+                    public RuntimeException get() {
+                        return new RuntimeException("BizCard not found: " + id);
+                    }
+                });
 
         verifyOwnership(card.getUserIdx()); // 🔒 소유자 검증
 

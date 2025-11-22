@@ -12,15 +12,15 @@ import com.bbey.neez.service.BizCard.BizCardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.util.*;
 
 @RestController
@@ -55,12 +55,11 @@ public class BizCardController {
     // 🔹 내 명함 수기 등록 (/me/manual)
     @Operation(summary = "내 명함 수기 등록", description = "현재 로그인한 사용자의 명함을 수기로 등록한다.")
     @PostMapping("/me/manual")
-    public ResponseEntity<ApiResponseDto<BizCardDto>> createMyManual(
-            @Valid @RequestBody BizCardManualRequest data) {
+    public ResponseEntity<ApiResponseDto<BizCardDto>> createMyManual(@RequestBody BizCardManualRequest data) {
         try {
             Long userIdx = SecurityUtil.getCurrentUserIdx(); // 🔑 여기서만 유저 가져옴
 
-            Map<String, String> map = new HashMap<>();
+            Map<String, String> map = new HashMap<String, String>();
             map.put("company", data.getCompany());
             map.put("name", data.getName());
             map.put("department", data.getDepartment());
@@ -76,10 +75,10 @@ public class BizCardController {
             BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
 
             return ResponseEntity.ok(
-                    new ApiResponseDto<>(true, result.isExisting() ? "already exists" : "ok", dto));
+                    new ApiResponseDto<BizCardDto>(true, result.isExisting() ? "already exists" : "ok", dto));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<BizCardDto>(false, e.getMessage(), null));
         }
     }
 
@@ -110,10 +109,10 @@ public class BizCardController {
                     (String) card.get("memo_content"),
                     tags);
 
-            return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", dto));
+            return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "ok", dto));
         } catch (Exception e) {
             return ResponseEntity.status(404)
-                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<BizCardDto>(false, e.getMessage(), null));
         }
     }
 
@@ -127,7 +126,7 @@ public class BizCardController {
 
         PageRequest pageable = PageRequest.of(page, size);
         Page<BizCardDto> result = bizCardService.searchMyBizCards(keyword, pageable);
-        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", result));
+        return ResponseEntity.ok(new ApiResponseDto<Page<BizCardDto>>(true, "ok", result));
     }
 
     // 🔹 내 삭제된 명함 목록 (/me/deleted)
@@ -139,7 +138,7 @@ public class BizCardController {
 
         PageRequest pageable = PageRequest.of(page, size);
         Page<BizCardDto> result = bizCardService.getMyDeletedBizCards(pageable);
-        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", result));
+        return ResponseEntity.ok(new ApiResponseDto<Page<BizCardDto>>(true, "ok", result));
     }
 
     // 🔹 내 명함 개수 (/me/count)
@@ -147,7 +146,7 @@ public class BizCardController {
     @GetMapping("/me/count")
     public ResponseEntity<ApiResponseDto<Long>> countMyBizCards() {
         long count = bizCardService.countMyBizCards();
-        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", count));
+        return ResponseEntity.ok(new ApiResponseDto<Long>(true, "ok", count));
     }
 
     // 🔹 내 명함 중복 여부 (/me/exists)
@@ -158,7 +157,7 @@ public class BizCardController {
             @RequestParam String email) {
 
         boolean exists = bizCardService.existsMyBizCard(name, email);
-        return ResponseEntity.ok(new ApiResponseDto<>(true, "ok", exists));
+        return ResponseEntity.ok(new ApiResponseDto<Boolean>(true, "ok", exists));
     }
 
     // ✅ 수정
@@ -166,9 +165,9 @@ public class BizCardController {
     @PutMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<BizCardDto>> updateBizCard(
             @PathVariable Long idx,
-            @Valid @RequestBody BizCardUpdateRequest body) {
+            @RequestBody BizCardUpdateRequest body) {
         try {
-            Map<String, String> map = new HashMap<>();
+            Map<String, String> map = new HashMap<String, String>();
             if (body.getName() != null)
                 map.put("name", body.getName());
             if (body.getCompany() != null)
@@ -194,10 +193,10 @@ public class BizCardController {
 
             BizCard updated = bizCardService.updateBizCard(idx, map, rematchCompany);
             BizCardDto dto = toBizCardDto(updated, null, null);
-            return ResponseEntity.ok(new ApiResponseDto<>(true, "updated", dto));
+            return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "updated", dto));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<BizCardDto>(false, e.getMessage(), null));
         }
     }
 
@@ -207,10 +206,10 @@ public class BizCardController {
     public ResponseEntity<ApiResponseDto<Void>> deleteBizCard(@PathVariable Long idx) {
         try {
             bizCardService.deleteBizCard(idx);
-            return ResponseEntity.ok(new ApiResponseDto<>(true, "deleted", null));
+            return ResponseEntity.ok(new ApiResponseDto<Void>(true, "deleted", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<Void>(false, e.getMessage(), null));
         }
     }
 
@@ -220,10 +219,10 @@ public class BizCardController {
     public ResponseEntity<ApiResponseDto<Void>> restoreBizCard(@PathVariable Long idx) {
         try {
             bizCardService.restoreBizCard(idx);
-            return ResponseEntity.ok(new ApiResponseDto<>(true, "restored", null));
+            return ResponseEntity.ok(new ApiResponseDto<Void>(true, "restored", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(new ApiResponseDto<>(false, e.getMessage(), null));
+                    .body(new ApiResponseDto<Void>(false, e.getMessage(), null));
         }
     }
 
