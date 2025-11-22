@@ -14,7 +14,6 @@ import com.bbey.neez.service.Company.CompanyInfoExtractService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,12 +33,11 @@ public class BizCardServiceImpl implements BizCardService {
     private final CompanyInfoExtractService companyInfoExtractService;
 
     public BizCardServiceImpl(BizCardRepository bizCardRepository,
-                              CompanyRepository companyRepository,
-                              UserRepository userRepository,
-                              MemoStorage memoStorage,
-                              HashtagService hashtagService,
-                              CompanyInfoExtractService companyInfoExtractService) {
-
+            CompanyRepository companyRepository,
+            UserRepository userRepository,
+            MemoStorage memoStorage,
+            HashtagService hashtagService,
+            CompanyInfoExtractService companyInfoExtractService) {
         this.bizCardRepository = bizCardRepository;
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
@@ -60,26 +58,21 @@ public class BizCardServiceImpl implements BizCardService {
         }
     }
 
-    // 🔹 내 명함 목록 (/me)
+    // 🔹 /me 목록
     @Override
     public Page<BizCardDto> getMyBizCards(Pageable pageable) {
         Long userIdx = SecurityUtil.getCurrentUserIdx();
-
-        // 클라이언트 sort는 무시하고 createdAt DESC로 고정
-        Pageable safePage = PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                Sort.by(Sort.Direction.DESC, "createdAt")
-        );
-
-        Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedFalse(userIdx, safePage);
+        Page<BizCard> page = bizCardRepository
+                .findByUserIdxAndIsDeletedFalseOrderByCreatedAtDesc(userIdx, pageable);
         return page.map(this::toDto);
     }
 
-    // 🔥 쓰기 트랜잭션: OCR/수기 공통 저장
+    // 🔥 OCR/수기 공통 저장 (현재 로그인 유저 기준)
     @Override
-    @Transactional // readOnly=false, 메모/DB 모두 같은 트랜잭션
-    public BizCardSaveResult saveFromOcrData(Map<String, String> data, Long userIdx) {
+    @Transactional
+    public BizCardSaveResult saveFromOcrData(Map<String, String> data) {
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
+
         String companyName = nvl(data.get("company"));
         String address = nvl(data.get("address"));
         Long companyIdx = null;
@@ -97,16 +90,13 @@ public class BizCardServiceImpl implements BizCardService {
                         ? companyRepository.findFirstByNameAndAddress(companyName, address)
                         : Optional.<Company>empty();
 
-                Company company = existed.orElseGet(new java.util.function.Supplier<Company>() {
-                    @Override
-                    public Company get() {
-                        Company c = new Company();
-                        c.setName(companyName);
-                        if (!address.isEmpty()) {
-                            c.setAddress(address);
-                        }
-                        return companyRepository.save(c);
+                Company company = existed.orElseGet(() -> {
+                    Company c = new Company();
+                    c.setName(companyName);
+                    if (!address.isEmpty()) {
+                        c.setAddress(address);
                     }
+                    return companyRepository.save(c);
                 });
 
                 companyIdx = company.getIdx();
@@ -117,6 +107,7 @@ public class BizCardServiceImpl implements BizCardService {
         if (userIdx != null && userIdx > 0 && userRepository.existsById(userIdx)) {
             finalUserId = userIdx;
         } else {
+            // 이 케이스는 거의 안 타야 정상 (/me는 인증 필수)
             Users u = new Users();
             u.setUserId("auto_" + System.currentTimeMillis());
             u.setPassword("temp");
@@ -156,17 +147,16 @@ public class BizCardServiceImpl implements BizCardService {
 
         BizCard saved = bizCardRepository.save(card);
 
-        // 🔥 메모 저장까지 하나의 트랜잭션으로 묶기
+        // 🔥 메모 저장도 같은 트랜잭션
         String reqMemo = nvl(data.get("memo"));
         if (!reqMemo.isEmpty()) {
             String fileName = "card-" + saved.getIdx() + ".txt";
             try {
-                memoStorage.write(fileName, reqMemo);  // 파일 저장
+                memoStorage.write(fileName, reqMemo);
                 saved.setMemo(fileName);
                 saved.setUpdatedAt(LocalDateTime.now());
-                saved = bizCardRepository.save(saved); // 메모 경로 업데이트
+                saved = bizCardRepository.save(saved);
             } catch (IOException e) {
-                // ❗ 파일 저장 실패 시 예외를 던져서 전체 트랜잭션 롤백
                 throw new RuntimeException("메모 파일 저장에 실패했습니다.", e);
             }
         }
@@ -176,21 +166,17 @@ public class BizCardServiceImpl implements BizCardService {
 
     @Override
     @Transactional
-    public BizCardSaveResult saveManual(Map<String, String> data, Long userIdx) {
-        return saveFromOcrData(data, userIdx);
+    public BizCardSaveResult saveManual(Map<String, String> data) {
+        // 수기 등록도 OCR과 동일 파이프라인 사용
+        return saveFromOcrData(data);
     }
 
     @Override
     public Map<String, Object> getBizCardDetail(Long id) {
         BizCard card = bizCardRepository.findById(id)
-                .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
-                    @Override
-                    public RuntimeException get() {
-                        return new RuntimeException("BizCard not found: " + id);
-                    }
-                });
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
 
-        verifyOwnership(card.getUserIdx()); // 🔒 소유자 검증
+        verifyOwnership(card.getUserIdx());
 
         Long companyIdx = card.getCompanyIdx();
         String cardCompanyName = card.getCardCompanyName();
@@ -250,19 +236,13 @@ public class BizCardServiceImpl implements BizCardService {
                 tags);
     }
 
-    // 🔥 수정 (트랜잭션)
     @Override
     @Transactional
     public BizCard updateBizCard(Long idx, Map<String, String> data, boolean rematchCompany) {
         BizCard card = bizCardRepository.findById(idx)
-                .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
-                    @Override
-                    public RuntimeException get() {
-                        return new RuntimeException("BizCard not found: " + idx);
-                    }
-                });
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + idx));
 
-        verifyOwnership(card.getUserIdx()); // 🔒 소유자 검증
+        verifyOwnership(card.getUserIdx());
 
         String name = data.get("name");
         if (name != null && !name.isEmpty()) {
@@ -307,7 +287,6 @@ public class BizCardServiceImpl implements BizCardService {
         if (address != null)
             card.setAddress(address);
 
-        // ✅ 명시적으로 재매칭 요청이 들어온 경우
         if (rematchCompany) {
             String rematchName = card.getCardCompanyName();
             String rematchAddr = card.getAddress();
@@ -321,14 +300,11 @@ public class BizCardServiceImpl implements BizCardService {
                     card.setCompanyIdx(compOpt.get().getIdx());
                 } else {
                     Optional<Company> existed = companyRepository.findFirstByNameAndAddress(rematchName, rematchAddr);
-                    Company company = existed.orElseGet(new java.util.function.Supplier<Company>() {
-                        @Override
-                        public Company get() {
-                            Company c = new Company();
-                            c.setName(rematchName);
-                            c.setAddress(rematchAddr);
-                            return companyRepository.save(c);
-                        }
+                    Company company = existed.orElseGet(() -> {
+                        Company c = new Company();
+                        c.setName(rematchName);
+                        c.setAddress(rematchAddr);
+                        return companyRepository.save(c);
                     });
                     card.setCompanyIdx(company.getIdx());
                 }
@@ -339,45 +315,64 @@ public class BizCardServiceImpl implements BizCardService {
         return bizCardRepository.save(card);
     }
 
-    // 🔥 삭제 (트랜잭션)
     @Override
     @Transactional
     public void deleteBizCard(Long id) {
         BizCard card = bizCardRepository.findById(id)
-                .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
-                    @Override
-                    public RuntimeException get() {
-                        return new RuntimeException("BizCard not found: " + id);
-                    }
-                });
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
 
-        verifyOwnership(card.getUserIdx()); // 🔒 소유자 검증
+        verifyOwnership(card.getUserIdx());
 
         card.setIsDeleted(true);
         card.setUpdatedAt(LocalDateTime.now());
         bizCardRepository.save(card);
     }
 
-    // 🔥 복구 (트랜잭션)
     @Override
     @Transactional
     public void restoreBizCard(Long id) {
         BizCard card = bizCardRepository.findById(id)
-                .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
-                    @Override
-                    public RuntimeException get() {
-                        return new RuntimeException("BizCard not found: " + id);
-                    }
-                });
+                .orElseThrow(() -> new RuntimeException("BizCard not found: " + id));
 
-        verifyOwnership(card.getUserIdx()); // 🔒 소유자 검증
+        verifyOwnership(card.getUserIdx());
 
         card.setIsDeleted(false);
         card.setUpdatedAt(LocalDateTime.now());
         bizCardRepository.save(card);
     }
 
-    // 🔹 내 명함 검색 (/me/search)
+    // 🔹 userIdx 기반 (관리자/통계용)
+    @Override
+    public Page<BizCardDto> getBizCardsByUserIdx(Long userIdx, Pageable pageable) {
+        Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedFalseOrderByCreatedAtDesc(userIdx, pageable);
+        return page.map(this::toDto);
+    }
+
+    @Override
+    public Page<BizCardDto> getDeletedBizCardsByUserIdx(Long userIdx, Pageable pageable) {
+        Page<BizCard> page = bizCardRepository.findByUserIdxAndIsDeletedTrue(userIdx, pageable);
+        return page.map(this::toDto);
+    }
+
+    @Override
+    public Page<BizCardDto> searchBizCards(Long userIdx, String keyword, Pageable pageable) {
+        Page<BizCard> page = bizCardRepository.searchByKeyword(userIdx, keyword, pageable);
+        return page.map(this::toDto);
+    }
+
+    @Override
+    public long countBizCardsByUser(Long userIdx) {
+        return bizCardRepository.countByUserIdxAndIsDeletedFalse(userIdx);
+    }
+
+    @Override
+    public boolean existsBizCard(Long userIdx, String name, String email) {
+        if (name == null || email == null)
+            return false;
+        return bizCardRepository.existsByUserIdxAndNameAndEmailAndIsDeletedFalse(userIdx, name, email);
+    }
+
+    // 🔹 /me 계열
     @Override
     public Page<BizCardDto> searchMyBizCards(String keyword, Pageable pageable) {
         Long userIdx = SecurityUtil.getCurrentUserIdx();
@@ -385,7 +380,6 @@ public class BizCardServiceImpl implements BizCardService {
         return page.map(this::toDto);
     }
 
-    // 🔹 내 삭제된 명함 목록 (/me/deleted)
     @Override
     public Page<BizCardDto> getMyDeletedBizCards(Pageable pageable) {
         Long userIdx = SecurityUtil.getCurrentUserIdx();
@@ -393,14 +387,12 @@ public class BizCardServiceImpl implements BizCardService {
         return page.map(this::toDto);
     }
 
-    // 🔹 내 명함 개수 (/me/count)
     @Override
     public long countMyBizCards() {
         Long userIdx = SecurityUtil.getCurrentUserIdx();
         return bizCardRepository.countByUserIdxAndIsDeletedFalse(userIdx);
     }
 
-    // 🔹 내 명함 중복 여부 (/me/exists)
     @Override
     public boolean existsMyBizCard(String name, String email) {
         if (name == null || email == null)

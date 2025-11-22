@@ -57,8 +57,7 @@ public class BizCardController {
     @PostMapping("/me/manual")
     public ResponseEntity<ApiResponseDto<BizCardDto>> createMyManual(@RequestBody BizCardManualRequest data) {
         try {
-            Long userIdx = SecurityUtil.getCurrentUserIdx(); // 🔑 여기서만 유저 가져옴
-
+            // ⚠️ 더 이상 userIdx 직접 사용 안 함. 서비스 내부에서 SecurityUtil 사용.
             Map<String, String> map = new HashMap<String, String>();
             map.put("company", data.getCompany());
             map.put("name", data.getName());
@@ -71,7 +70,8 @@ public class BizCardController {
             map.put("address", data.getAddress());
             map.put("memo", data.getMemo());
 
-            BizCardSaveResult result = bizCardService.saveManual(map, userIdx);
+            // 🔥 여기만 변경됨: userIdx 제거
+            BizCardSaveResult result = bizCardService.saveManual(map);
             BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
 
             return ResponseEntity.ok(
