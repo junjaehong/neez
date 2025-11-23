@@ -76,9 +76,14 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
         for (BizNoCandidate c : candidates) {
             if (isEmpty(c.cno))
                 continue;
+
             String crnoDigits = normalizeNumber(c.cno);
             String fssXml = callFssByCrno(crnoDigits);
             FssCorpInfo info = parseFssInfo(fssXml);
+
+            // 로그: FSS 응답 요약
+            logFssInfo(crnoDigits, info);
+
             if (info != null) {
                 c.fssCorpName = nvl(info.corpNm);
                 c.fssRepName = nvl(info.enpRprFnm);
@@ -117,6 +122,10 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
         fillCompanyFromMatched(company, matched, bizNoDigits, corpNoDigits);
 
         Company saved = companyRepository.save(company);
+        System.out.println("[extractAndSave] Company 저장 완료. idx=" + saved.getIdx()
+                + ", name=" + saved.getName()
+                + ", bizNo=" + saved.getBizNo()
+                + ", corpNo=" + saved.getCorpNo());
         return Optional.of(saved);
     }
 
@@ -150,6 +159,9 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
         company.setUpdatedAt(LocalDateTime.now());
 
         Company saved = companyRepository.save(company);
+        System.out.println("[matchOrCreateCompany] 새로운 Company 생성. idx=" + saved.getIdx()
+                + ", name=" + saved.getName()
+                + ", address=" + saved.getAddress());
         return Optional.of(saved);
     }
 
@@ -157,7 +169,7 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
 
     private void loadDartCorpCodes() {
         try {
-            // 🔹 설정이 없으면 바로 종료 (NPE 방지)
+            // 설정이 없으면 바로 종료 (NPE 방지)
             if (corpCodeCsvPath == null || corpCodeCsvPath.trim().isEmpty()) {
                 System.out.println("[loadDartCorpCodes] dart.corp-code-csv-path 설정 없음. corpCode.csv 로딩 스킵");
                 return;
@@ -205,8 +217,8 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
 
         try {
             String encodedName = URLEncoder.encode(companyName, "UTF-8");
-            // ✅ yml의 bizno.api-url 사용
-            String urlStr = bizApiUrl + "?key=" + bizApiServiceKey + "&q=" + encodedName;
+            // yml의 bizno.api-url 사용 + type=json 추가
+            String urlStr = bizApiUrl + "?key=" + bizApiServiceKey + "&type=json" + "&q=" + encodedName;
 
             String json = httpGet(urlStr);
             if (isEmpty(json)) {
@@ -215,23 +227,32 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
             }
 
             Map<?, ?> root = objectMapper.readValue(json, Map.class);
-            Object dataObj = root.get("data");
-            if (!(dataObj instanceof List))
+            Object itemsObj = root.get("items");
+            if (!(itemsObj instanceof List)) {
+                System.out.println("[callBizNoAndParse] items 필드가 리스트가 아닙니다");
                 return result;
+            }
 
-            List<?> lst = (List<?>) dataObj;
+            List<?> lst = (List<?>) itemsObj;
             for (Object o : lst) {
                 if (!(o instanceof Map))
                     continue;
                 Map<?, ?> m = (Map<?, ?>) o;
+
                 BizNoCandidate c = new BizNoCandidate();
-                c.company = nvl((String) m.get("company"));
-                c.bno = nvl((String) m.get("bno"));
-                c.cno = nvl((String) m.get("cno"));
+                c.company = nvl((String) m.get("company")); // 회사명
+                c.bno = nvl((String) m.get("bno"));         // 사업자등록번호
+                c.cno = nvl((String) m.get("cno"));         // 법인등록번호(없을 수 있음)
+
+                // 상태 / 과세유형은 필요시 확장 가능 (지금은 로그에만 활용 가능)
+                // String status  = nvl((String) m.get("bstt"));
+                // String taxType = nvl((String) m.get("taxtype"));
+
                 result.add(c);
             }
 
-            System.out.println("[callBizNoAndParse] BizNo 후보 수=" + result.size());
+            // 후보 리스트 요약 로그
+            logBizNoCandidates(companyName, result);
 
         } catch (Exception e) {
             System.out.println("[callBizNoAndParse] 예외 발생: " + e.getMessage());
@@ -241,6 +262,7 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
     }
 
     // =================== 금융위 기업개요조회 ===================
+
     private String callFssByCrno(String crnoDigits) {
         if (isEmpty(crnoDigits))
             return null;
@@ -278,7 +300,8 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
             Document doc = builder.parse(new InputSource(new StringReader(xml)));
             doc.getDocumentElement().normalize();
 
-            NodeList list = doc.getElementsByTagName("list");
+            // 실제 XML 구조: <items><item>...</item></items>
+            NodeList list = doc.getElementsByTagName("item");
             if (list.getLength() == 0)
                 return null;
 
@@ -375,23 +398,21 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
             int diff = best.score - second.score;
             if (diff < 10) {
                 System.out.println("[matchCompany] 상위 2개 점수 차이가 작아 확정 불가 → 매칭 포기");
-                System.out.println("=== 1st Candidate ===");
-                printCandidateDetail(best);
-                System.out.println("=== 2nd Candidate ===");
-                printCandidateDetail(second);
+                logMatchedCompany("1st Candidate", best);
+                logMatchedCompany("2nd Candidate", second);
                 return Optional.empty();
             }
         }
 
         System.out.println("[matchCompany] 최종 매칭 성공, score=" + best.score);
-        printCandidateDetail(best);
+        logMatchedCompany("Matched", best);
         return Optional.of(best);
     }
 
     private void fillCompanyFromMatched(Company company,
-            MatchedCompany mc,
-            String bizNoDigits,
-            String corpNoDigits) {
+                                        MatchedCompany mc,
+                                        String bizNoDigits,
+                                        String corpNoDigits) {
         BizNoCandidate c = mc.candidate;
 
         // 회사명
@@ -587,16 +608,56 @@ public class CompanyInfoExtractServiceImpl implements CompanyInfoExtractService 
         }
     }
 
-    private void printCandidateDetail(MatchedCompany mc) {
-        BizNoCandidate c = mc.candidate;
-        System.out.println("score        : " + mc.score);
-        System.out.println("company(Biz) : " + c.company);
-        System.out.println("corpName(FSS): " + c.fssCorpName);
-        System.out.println("repName(FSS) : " + c.fssRepName);
-        System.out.println("bizNo        : " + coalesce(c.fssBizNo, normalizeNumber(c.bno)));
-        System.out.println("corpNo(cno)  : " + normalizeNumber(c.cno));
-        System.out.println("address      : " + c.fssAddress);
-        System.out.println("homepage     : " + c.fssHomepage);
+    // =================== 로그 유틸 ===================
+
+    private void logBizNoCandidates(String query, List<BizNoCandidate> list) {
+        System.out.println("\n=== BizNo API 검색 결과 ===");
+        System.out.println("검색어: " + query);
+        System.out.println("총 후보 수: " + list.size());
         System.out.println("---------------------------------------------");
+
+        int i = 1;
+        for (BizNoCandidate c : list) {
+            System.out.printf("%d) 회사명: %s | BNO: %s | CNO: %s%n",
+                    i++, c.company, c.bno, c.cno);
+        }
+        System.out.println("---------------------------------------------\n");
+    }
+
+    private void logFssInfo(String crno, FssCorpInfo info) {
+        System.out.println("\n=== FSS 기업개요 조회 ===");
+        System.out.println("조회 CRNO: " + crno);
+        if (info == null) {
+            System.out.println("결과: 정보 없음");
+            System.out.println("---------------------------------------------\n");
+            return;
+        }
+        System.out.println("결과: 정상 응답");
+        System.out.println("---------------------------------------------");
+        System.out.println("기업명   : " + info.corpNm);
+        System.out.println("대표자   : " + info.enpRprFnm);
+        System.out.println("사업자번호: " + info.bzno);
+        System.out.println("주소     : " + info.enpBsadr);
+        System.out.println("홈페이지 : " + info.enpHmpgUrl);
+        System.out.println("---------------------------------------------\n");
+    }
+
+    private void logMatchedCompany(String label, MatchedCompany mc) {
+        BizNoCandidate c = mc.candidate;
+
+        System.out.println("\n=== 회사 매칭 결과 (" + label + ") ===");
+        System.out.println("최종 점수: " + mc.score);
+        System.out.println("---------------------------------------------");
+        System.out.println("[BIZNO 정보]");
+        System.out.println("- 회사명      : " + c.company);
+        System.out.println("- 사업자번호  : " + c.bno);
+        System.out.println("- 법인번호    : " + c.cno);
+        System.out.println();
+        System.out.println("[FSS 정보(보강)]");
+        System.out.println("- 기업명      : " + c.fssCorpName);
+        System.out.println("- 대표자명    : " + c.fssRepName);
+        System.out.println("- 주소        : " + c.fssAddress);
+        System.out.println("- 홈페이지    : " + c.fssHomepage);
+        System.out.println("---------------------------------------------\n");
     }
 }
