@@ -8,11 +8,9 @@ import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.entity.BizCardSaveResult;
 import com.bbey.neez.security.SecurityUtil;
 import com.bbey.neez.service.BizCard.BizCardService;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -20,6 +18,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import org.springdoc.api.annotations.ParameterObject;
 
 import java.util.*;
 
@@ -43,10 +43,10 @@ public class BizCardController {
     }
 
     // 🔹 내 명함 목록 조회 (/me)
-    @Operation(summary = "내 명함 목록 조회", description = "현재 로그인한 사용자의 명함을 페이지 단위로 조회한다.")
+    @Operation(summary = "내 명함 목록 조회 (최신순)", description = "현재 로그인한 사용자의 명함을 페이지 단위로 조회한다.")
     @GetMapping("/me")
     public ApiResponseDto<Object> getMyBizCards(
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Page<BizCardDto> res = bizCardService.getMyBizCards(pageable);
         return new ApiResponseDto<>(true, "내 명함 목록 조회 성공", res);
@@ -56,64 +56,53 @@ public class BizCardController {
     @Operation(summary = "내 명함 수기 등록", description = "현재 로그인한 사용자의 명함을 수기로 등록한다.")
     @PostMapping("/me/manual")
     public ResponseEntity<ApiResponseDto<BizCardDto>> createMyManual(@RequestBody BizCardManualRequest data) {
-        try {
-            // ⚠️ 더 이상 userIdx 직접 사용 안 함. 서비스 내부에서 SecurityUtil 사용.
-            Map<String, String> map = new HashMap<String, String>();
-            map.put("company", data.getCompany());
-            map.put("name", data.getName());
-            map.put("department", data.getDepartment());
-            map.put("position", data.getPosition());
-            map.put("email", data.getEmail());
-            map.put("mobile", data.getMobile());
-            map.put("tel", data.getTel());
-            map.put("fax", data.getFax());
-            map.put("address", data.getAddress());
-            map.put("memo", data.getMemo());
 
-            // 🔥 여기만 변경됨: userIdx 제거
-            BizCardSaveResult result = bizCardService.saveManual(map);
-            BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("company", data.getCompany());
+        map.put("name", data.getName());
+        map.put("department", data.getDepartment());
+        map.put("position", data.getPosition());
+        map.put("email", data.getEmail());
+        map.put("mobile", data.getMobile());
+        map.put("tel", data.getTel());
+        map.put("fax", data.getFax());
+        map.put("address", data.getAddress());
+        map.put("memo", data.getMemo());
 
-            return ResponseEntity.ok(
-                    new ApiResponseDto<BizCardDto>(true, result.isExisting() ? "already exists" : "ok", dto));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(new ApiResponseDto<BizCardDto>(false, e.getMessage(), null));
-        }
+        BizCardSaveResult result = bizCardService.saveManual(map);
+        BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
+
+        return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "ok", dto));
     }
 
     // ✅ 단건 조회
     @Operation(summary = "명함 상세 조회", description = "명함 1건의 상세 정보를 조회한다.")
     @GetMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<BizCardDto>> getBizCard(@PathVariable Long idx) {
-        try {
-            Map<String, Object> card = bizCardService.getBizCardDetail(idx);
 
-            @SuppressWarnings("unchecked")
-            List<String> tags = (List<String>) (card.get("hashtags") != null ? card.get("hashtags")
-                    : new ArrayList<String>());
+        Map<String, Object> card = bizCardService.getBizCardDetail(idx);
 
-            BizCardDto dto = new BizCardDto(
-                    (Long) card.get("idx"),
-                    (Long) card.get("user_idx"),
-                    (String) card.get("name"),
-                    (String) card.get("card_company_name"),
-                    (Long) card.get("company_idx"),
-                    (String) card.get("department"),
-                    (String) card.get("position"),
-                    (String) card.get("email"),
-                    (String) card.get("phone_number"),
-                    (String) card.get("line_number"),
-                    (String) card.get("fax_number"),
-                    (String) card.get("address"),
-                    (String) card.get("memo_content"),
-                    tags);
+        @SuppressWarnings("unchecked")
+        List<String> tags = (List<String>) (card.get("hashtags") != null ? card.get("hashtags")
+                : new ArrayList<String>());
 
-            return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "ok", dto));
-        } catch (Exception e) {
-            return ResponseEntity.status(404)
-                    .body(new ApiResponseDto<BizCardDto>(false, e.getMessage(), null));
-        }
+        BizCardDto dto = new BizCardDto(
+                (Long) card.get("idx"),
+                (Long) card.get("user_idx"),
+                (String) card.get("name"),
+                (String) card.get("card_company_name"),
+                (Long) card.get("company_idx"),
+                (String) card.get("department"),
+                (String) card.get("position"),
+                (String) card.get("email"),
+                (String) card.get("phone_number"),
+                (String) card.get("line_number"),
+                (String) card.get("fax_number"),
+                (String) card.get("address"),
+                (String) card.get("memo_content"),
+                tags);
+
+        return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "ok", dto));
     }
 
     // 🔹 내 명함 검색 (/me/search)
@@ -166,64 +155,50 @@ public class BizCardController {
     public ResponseEntity<ApiResponseDto<BizCardDto>> updateBizCard(
             @PathVariable Long idx,
             @RequestBody BizCardUpdateRequest body) {
-        try {
-            Map<String, String> map = new HashMap<String, String>();
-            if (body.getName() != null)
-                map.put("name", body.getName());
-            if (body.getCompany() != null)
-                map.put("company", body.getCompany());
-            if (body.getCompany_idx() != null)
-                map.put("company_idx", body.getCompany_idx().toString());
-            if (body.getDepartment() != null)
-                map.put("department", body.getDepartment());
-            if (body.getPosition() != null)
-                map.put("position", body.getPosition());
-            if (body.getEmail() != null)
-                map.put("email", body.getEmail());
-            if (body.getMobile() != null)
-                map.put("mobile", body.getMobile());
-            if (body.getTel() != null)
-                map.put("tel", body.getTel());
-            if (body.getFax() != null)
-                map.put("fax", body.getFax());
-            if (body.getAddress() != null)
-                map.put("address", body.getAddress());
 
-            boolean rematchCompany = Boolean.TRUE.equals(body.getRematchCompany());
+        Map<String, String> map = new HashMap<String, String>();
+        if (body.getName() != null)
+            map.put("name", body.getName());
+        if (body.getCompany() != null)
+            map.put("company", body.getCompany());
+        if (body.getCompany_idx() != null)
+            map.put("company_idx", body.getCompany_idx().toString());
+        if (body.getDepartment() != null)
+            map.put("department", body.getDepartment());
+        if (body.getPosition() != null)
+            map.put("position", body.getPosition());
+        if (body.getEmail() != null)
+            map.put("email", body.getEmail());
+        if (body.getMobile() != null)
+            map.put("mobile", body.getMobile());
+        if (body.getTel() != null)
+            map.put("tel", body.getTel());
+        if (body.getFax() != null)
+            map.put("fax", body.getFax());
+        if (body.getAddress() != null)
+            map.put("address", body.getAddress());
 
-            BizCard updated = bizCardService.updateBizCard(idx, map, rematchCompany);
-            BizCardDto dto = toBizCardDto(updated, null, null);
-            return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "updated", dto));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponseDto<BizCardDto>(false, e.getMessage(), null));
-        }
+        boolean rematchCompany = Boolean.TRUE.equals(body.getRematchCompany());
+
+        BizCard updated = bizCardService.updateBizCard(idx, map, rematchCompany);
+        BizCardDto dto = toBizCardDto(updated, null, null);
+        return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "updated", dto));
     }
 
     // ✅ 삭제
     @Operation(summary = "명함 삭제")
     @DeleteMapping("/{idx}")
     public ResponseEntity<ApiResponseDto<Void>> deleteBizCard(@PathVariable Long idx) {
-        try {
-            bizCardService.deleteBizCard(idx);
-            return ResponseEntity.ok(new ApiResponseDto<Void>(true, "deleted", null));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponseDto<Void>(false, e.getMessage(), null));
-        }
+        bizCardService.deleteBizCard(idx);
+        return ResponseEntity.ok(new ApiResponseDto<Void>(true, "deleted", null));
     }
 
     // ✅ 복구
     @Operation(summary = "명함 복구")
     @PatchMapping("/{idx}/restore")
     public ResponseEntity<ApiResponseDto<Void>> restoreBizCard(@PathVariable Long idx) {
-        try {
-            bizCardService.restoreBizCard(idx);
-            return ResponseEntity.ok(new ApiResponseDto<Void>(true, "restored", null));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponseDto<Void>(false, e.getMessage(), null));
-        }
+        bizCardService.restoreBizCard(idx);
+        return ResponseEntity.ok(new ApiResponseDto<Void>(true, "restored", null));
     }
 
     private BizCardDto toBizCardDto(BizCard card, String ignoredCompanyName, String memoContent) {

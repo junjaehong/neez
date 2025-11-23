@@ -9,11 +9,11 @@ import lombok.Data;
 @Schema(description = "로그인 요청")
 public class LoginRequest {
 
-    @Schema(description = "로그인 ID", example = "jaehong01")
+    @Schema(description = "로그인 ID", example = "neez_user01")
     @NotBlank(message = "아이디는 필수 입력 값입니다.")
     private String userId;
 
-    @Schema(description = "비밀번호", example = "1234")
+    @Schema(description = "비밀번호", example = "P@ssw0rd!")
     @NotBlank(message = "비밀번호는 필수 입력 값입니다.")
     private String password;
 
