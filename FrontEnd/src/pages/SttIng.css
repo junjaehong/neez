@@ -207,6 +207,11 @@
   box-shadow: 0 5px 20px rgba(115, 113, 100, 0.4);
 }
 
+.meeting-end-container {
+  margin-top: 20px;
+  padding: 0 20px 30px;
+}
+
 /* 언어 선택 팝업 */
 .language-options {
   display: flex;
@@ -245,4 +250,18 @@
 
 .language-flag {
   font-size: 24px;
+}
+
+.translation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.language-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 14px;
 }

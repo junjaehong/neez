@@ -8,7 +8,13 @@ import MyPage from './pages/MyPage';
 import MyCard from './pages/MyCard';
 import CardList from './pages/CardList';
 import CardDetail from './pages/CardDetail';
+<<<<<<< HEAD
 // import HashtagList from './pages/HashtagList';
+=======
+import SttCardSelect from './pages/SttCardSelect';
+import SttIng from './pages/SttIng';
+import CameraCapture from './pages/CameraCapture';
+>>>>>>> 9f1be15 (card2)
 import './App.css';
 import { AppProvider } from './context/AppContext';
 
@@ -24,8 +30,14 @@ function App() {
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/mycard" element={<MyCard />} />
           <Route path="/cardlist" element={<CardList />} />
+<<<<<<< HEAD
           {/* <Route path="/hashtaglist" element={<HashtagList />} /> */}
+=======
+>>>>>>> 9f1be15 (card2)
           <Route path="/carddetail/:id" element={<CardDetail />} />
+          <Route path="/sttcardselect" element={<SttCardSelect />} />
+          <Route path="/stting" element={<SttIng />} />
+          <Route path="/cameracapture" element={<CameraCapture />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

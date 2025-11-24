@@ -21,7 +21,7 @@ const CardList = () => {
     const fetchCards = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`http://192.168.70.114:8083/api/bizcards/user/${userIdx}/page?page=${page}&size=${size}`);
+        const response = await fetch(`http://localhost:8083/api/bizcards/user/${userIdx}/page?page=${page}&size=${size}`);
         if (!response.ok) {
           throw new Error('명함 목록 불러오기 실패');
         }

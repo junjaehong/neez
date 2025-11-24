@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import './SttCardSelect.css';
 
+const DEFAULT_MEETING_ID = 1;
+
 const SttCardSelect = () => {
   const navigate = useNavigate();
-  const { cardList, setMeetingParticipants } = useApp();
+  const { cardList, setMeetingParticipants, setCurrentMeeting } = useApp();
   const [selectedCards, setSelectedCards] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
@@ -38,6 +40,14 @@ const SttCardSelect = () => {
   const confirmStartMeeting = () => {
     const participants = cardList.filter(card => selectedCards.includes(card.id));
     setMeetingParticipants(participants);
+    if (setCurrentMeeting) {
+      setCurrentMeeting({
+        id: DEFAULT_MEETING_ID,
+        startedAt: new Date().toISOString(),
+        participantIds: participants.map(card => card.id ?? card.idx).filter(Boolean),
+        language: 'ko',
+      });
+    }
     navigate('/stting');
   };
 

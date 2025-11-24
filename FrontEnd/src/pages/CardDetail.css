@@ -136,6 +136,26 @@
   background: var(--primary-dark);
 }
 
+.start-meeting-btn {
+  padding: 6px 14px;
+  background: var(--primary-color);
+  color: #111;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.start-meeting-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.start-meeting-btn:not(:disabled):hover {
+  background: var(--primary-dark);
+}
+
 /* 해시태그 섹션 */
 .hashtag-section {
   margin-bottom: 30px;
@@ -146,6 +166,7 @@
   width: 100%;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   /* margin-bottom: 15px; */
 }
 

@@ -32,7 +32,7 @@ const CameraCapture = () => {
 
       // OCR API 호출
       const res = await axios.post(
-        'http://192.168.70.114:8083/api/bizcards/read/upload?user_idx=1',
+        'http://localhost:8083/api/bizcards/read/upload?user_idx=1',
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
