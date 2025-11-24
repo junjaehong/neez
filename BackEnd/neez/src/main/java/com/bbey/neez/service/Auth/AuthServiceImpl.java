@@ -1,12 +1,17 @@
 package com.bbey.neez.service.Auth;
 
 import com.bbey.neez.DTO.auth.*;
+import com.bbey.neez.entity.Company;
 import com.bbey.neez.entity.EmailVerificationToken;
 import com.bbey.neez.entity.Users;
 import com.bbey.neez.jwt.JwtUtil;
+import com.bbey.neez.repository.CompanyRepository;
 import com.bbey.neez.repository.EmailVerificationTokenRepository;
 import com.bbey.neez.repository.UserRepository;
 import com.bbey.neez.security.UserPrincipal;
+import com.bbey.neez.entity.Company;
+import com.bbey.neez.service.Company.CompanyInfoExtractService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,11 +33,13 @@ public class AuthServiceImpl implements AuthService {
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final CompanyInfoExtractService companyInfoExtractService;
 
     // 기존 코드에서 빠져 있어서 추가
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final PasswordResetService passwordResetService;
+    private final CompanyRepository companyRepository;
 
     // --------------------------------------------------------------------
     // 1. 회원가입: Users에 바로 저장하지 않고, EmailVerificationToken에만 저장
@@ -63,22 +70,16 @@ public class AuthServiceImpl implements AuthService {
         evt.setPassword(encodedPassword);
         evt.setName(req.getName());
         evt.setEmail(req.getEmail());
-        evt.setPhone(req.getPhone());
+        // 🔥 전화번호/회사정보는 회원가입 단계에서 받지 않는다.
+        // evt.setPhone(...) 등 아무것도 안 넣음
         evt.setExpiresAt(LocalDateTime.now().plusMinutes(30)); // 30분 유효
-
-        // ✅ 회사 관련 정보도 토큰에 저장
-        evt.setCardCompanyName(req.getCardCompanyName());
-        evt.setCompanyIdx(req.getCompanyIdx());
-        evt.setDepartment(req.getDepartment());
-        evt.setPosition(req.getPosition());
-        evt.setFax(req.getFax());
 
         emailVerificationTokenRepository.save(evt);
 
-        // 4) 인증 메일 발송 (dev 환경에서는 콘솔에만 출력하게 구현해 둔 상태)
+        // 4) 인증 메일 발송
         emailService.sendVerificationEmail(req.getEmail(), token);
 
-        // 5) 응답 (토큰/유저 정보는 주지 않고 안내 메시지만)
+        // 5) 응답
         return new AuthResponse(true, "회원가입이 접수되었습니다. 이메일을 확인해 주세요.", null);
     }
 
@@ -216,21 +217,14 @@ public class AuthServiceImpl implements AuthService {
             return new AuthResponse(false, "이미 가입된 이메일입니다.", null);
         }
 
-        // 실제 Users INSERT
+        // 실제 Users INSERT (회사 정보 X)
         Users user = new Users();
         user.setUserId(evt.getUserId());
         user.setPassword(evt.getPassword()); // 이미 인코딩된 상태
         user.setName(evt.getName());
         user.setEmail(evt.getEmail());
-        user.setPhone(evt.getPhone());
-        user.setVerified(true); // A안: 인증된 상태로만 Users에 들어옴
-
-        // ✅ 회사 정보 복사
-        user.setCardCompanyName(evt.getCardCompanyName());
-        user.setCompanyIdx(evt.getCompanyIdx());
-        user.setDepartment(evt.getDepartment());
-        user.setPosition(evt.getPosition());
-        user.setFax(evt.getFax());
+        // user.setPhone(...) : 지금은 회원가입에서 안 받으니 null / 추후 Update에서 세팅
+        user.setVerified(true); // 인증된 상태로만 Users에 들어옴
 
         userRepository.save(user);
 
@@ -264,6 +258,7 @@ public class AuthServiceImpl implements AuthService {
 
         Users user = userOpt.get();
 
+        // 기본 프로필 정보
         if (req.getName() != null) {
             user.setName(req.getName());
         }
@@ -271,13 +266,40 @@ public class AuthServiceImpl implements AuthService {
             user.setPhone(req.getPhone());
         }
 
-        // ✅ 회사 관련 필드 수정
-        if (req.getCardCompanyName() != null) {
-            user.setCardCompanyName(req.getCardCompanyName());
+        // ============================
+        // 회사 관련 정보 업데이트
+        // ============================
+        String newCompanyName = req.getCardCompanyName();
+        String newAddress = req.getAddress();
+
+        boolean needCompanyMatch = false;
+
+        // 1) 회사명 변경 여부 체크
+        if (newCompanyName != null) {
+            String trimmed = newCompanyName.trim();
+            String current = user.getCardCompanyName();
+
+            // 값이 바뀐 경우에만 매칭 다시 수행
+            if (!trimmed.isEmpty() && (current == null || !trimmed.equals(current))) {
+                user.setCardCompanyName(trimmed);
+                needCompanyMatch = true;
+            }
+            // 빈 문자열로 들어온 경우 → 회사 정보 초기화
+            if (trimmed.isEmpty()) {
+                user.setCardCompanyName(null);
+                user.setCompanyIdx(null);
+            }
         }
-        if (req.getCompanyIdx() != null) {
-            user.setCompanyIdx(req.getCompanyIdx());
+
+        // 2) 주소가 새로 들어온 경우, 회사매칭 시 같이 사용
+        if (newAddress != null && !newAddress.trim().isEmpty()) {
+            // 주소는 Users에 굳이 저장 안 하고, 매칭용으로만 사용하고
+            // 회사 공식 주소는 companies.address에 들어가게 설계하는게 깔끔
+            // (원하면 Users 쪽에 companyAddress 필드 추가해서 같이 저장해도 됨)
+            needCompanyMatch = true;
         }
+
+        // 3) 부서 / 직책 / 팩스는 그대로 Users에 저장
         if (req.getDepartment() != null) {
             user.setDepartment(req.getDepartment());
         }
@@ -286,6 +308,24 @@ public class AuthServiceImpl implements AuthService {
         }
         if (req.getFax() != null) {
             user.setFax(req.getFax());
+        }
+
+        // 4) 회사명 변경(or 주소 입력) 시 회사매칭 서비스 호출
+        if (needCompanyMatch && user.getCardCompanyName() != null && !user.getCardCompanyName().trim().isEmpty()) {
+
+            String companyNameForMatch = user.getCardCompanyName();
+            String addressForMatch = (newAddress != null ? newAddress : "");
+
+            // 1차: 외부 API까지 사용하는 무거운 매칭
+            Optional<Company> matched = companyInfoExtractService.extractAndSave(companyNameForMatch, addressForMatch);
+
+            // 2차: 실패 시 DB 기반 가벼운 매칭/생성
+            if (!matched.isPresent()) {
+                matched = companyInfoExtractService.matchOrCreateCompany(companyNameForMatch, addressForMatch);
+            }
+
+            // 매칭 성공 시 Users.companyIdx 갱신
+            matched.ifPresent(c -> user.setCompanyIdx(c.getIdx()));
         }
 
         user.setUpdatedAt(LocalDateTime.now());
