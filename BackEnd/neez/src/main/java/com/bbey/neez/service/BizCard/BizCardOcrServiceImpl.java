@@ -21,7 +21,7 @@ public class BizCardOcrServiceImpl implements BizCardOcrService {
     @Value("${ocr.apigw.secret:REPLACE_WITH_REAL_SECRET}")
     private String SECRET;
 
-    @Value("${upload.bizcard.dir:src/main/resources/BizCard}")
+    @Value("${upload.bizcard.dir}")
     private String uploadDir;
 
     @Override
@@ -140,34 +140,33 @@ public class BizCardOcrServiceImpl implements BizCardOcrService {
     }
 
     private Map<String, String> parseNameCardFromJson(String json) {
-        String name       = extractFirstText(json, "\"name\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
-        String department = extractFirstText(json, "\"department\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
-        String position   = extractFirstText(json, "\"position\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
-        String mobile     = extractFirstText(json, "\"mobile\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
-        String tel        = extractFirstText(json, "\"tel\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
-        String email      = extractFirstText(json, "\"email\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
-        String address    = extractFirstText(json, "\"address\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
+        String name = extractFirstText(json, "\"name\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
+        String department = extractFirstText(json,
+                "\"department\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
+        String position = extractFirstText(json, "\"position\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
+        String mobile = extractFirstText(json, "\"mobile\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
+        String tel = extractFirstText(json, "\"tel\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
+        String email = extractFirstText(json, "\"email\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
+        String address = extractFirstText(json, "\"address\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"");
 
         String fax = firstNonNull(
                 extractFirstText(json, "\"fax\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\""),
-                extractFirstText(json, "\"faxNo\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"")
-        );
+                extractFirstText(json, "\"faxNo\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\""));
 
         String company = firstNonNull(
                 extractFirstText(json, "\"company\"\\s*:\\s*\\[\\s*\\{[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\""),
-                extractFirstText(json, "\"companyName\"\\s*:\\s*\\[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\"")
-        );
+                extractFirstText(json, "\"companyName\"\\s*:\\s*\\[\\s\\S]*?\"text\"\\s*:\\s*\"(.*?)\""));
 
         Map<String, String> map = new LinkedHashMap<>();
-        map.put("company",   val(company));
-        map.put("name",      val(name));
-        map.put("department",val(department));
-        map.put("position",  val(position));
-        map.put("tel",       val(tel));
-        map.put("mobile",    val(mobile));
-        map.put("fax",       val(fax));
-        map.put("email",     val(email));
-        map.put("address",   val(address));
+        map.put("company", val(company));
+        map.put("name", val(name));
+        map.put("department", val(department));
+        map.put("position", val(position));
+        map.put("tel", val(tel));
+        map.put("mobile", val(mobile));
+        map.put("fax", val(fax));
+        map.put("email", val(email));
+        map.put("address", val(address));
 
         return map;
     }
@@ -179,7 +178,8 @@ public class BizCardOcrServiceImpl implements BizCardOcrService {
     }
 
     private static String unescape(String s) {
-        if (s == null || s.indexOf('\\') < 0) return s;
+        if (s == null || s.indexOf('\\') < 0)
+            return s;
         StringBuilder out = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
@@ -191,15 +191,36 @@ public class BizCardOcrServiceImpl implements BizCardOcrService {
                         out.append((char) Integer.parseInt(hex, 16));
                         i += 5;
                         continue;
-                    } catch (NumberFormatException ignore) {}
+                    } catch (NumberFormatException ignore) {
+                    }
                 }
                 switch (n) {
-                    case '"': case '\\': case '/': out.append(n); i++; continue;
-                    case 'b': out.append('\b'); i++; continue;
-                    case 'f': out.append('\f'); i++; continue;
-                    case 'n': out.append('\n'); i++; continue;
-                    case 'r': out.append('\r'); i++; continue;
-                    case 't': out.append('\t'); i++; continue;
+                    case '"':
+                    case '\\':
+                    case '/':
+                        out.append(n);
+                        i++;
+                        continue;
+                    case 'b':
+                        out.append('\b');
+                        i++;
+                        continue;
+                    case 'f':
+                        out.append('\f');
+                        i++;
+                        continue;
+                    case 'n':
+                        out.append('\n');
+                        i++;
+                        continue;
+                    case 'r':
+                        out.append('\r');
+                        i++;
+                        continue;
+                    case 't':
+                        out.append('\t');
+                        i++;
+                        continue;
                 }
             }
             out.append(c);
@@ -209,7 +230,8 @@ public class BizCardOcrServiceImpl implements BizCardOcrService {
 
     private static String firstNonNull(String... vals) {
         for (String v : vals) {
-            if (v != null && !v.isEmpty()) return v;
+            if (v != null && !v.isEmpty())
+                return v;
         }
         return null;
     }
