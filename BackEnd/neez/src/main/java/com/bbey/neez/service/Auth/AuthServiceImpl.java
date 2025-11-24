@@ -66,6 +66,13 @@ public class AuthServiceImpl implements AuthService {
         evt.setPhone(req.getPhone());
         evt.setExpiresAt(LocalDateTime.now().plusMinutes(30)); // 30분 유효
 
+        // ✅ 회사 관련 정보도 토큰에 저장
+        evt.setCardCompanyName(req.getCardCompanyName());
+        evt.setCompanyIdx(req.getCompanyIdx());
+        evt.setDepartment(req.getDepartment());
+        evt.setPosition(req.getPosition());
+        evt.setFax(req.getFax());
+
         emailVerificationTokenRepository.save(evt);
 
         // 4) 인증 메일 발송 (dev 환경에서는 콘솔에만 출력하게 구현해 둔 상태)
@@ -218,6 +225,13 @@ public class AuthServiceImpl implements AuthService {
         user.setPhone(evt.getPhone());
         user.setVerified(true); // A안: 인증된 상태로만 Users에 들어옴
 
+        // ✅ 회사 정보 복사
+        user.setCardCompanyName(evt.getCardCompanyName());
+        user.setCompanyIdx(evt.getCompanyIdx());
+        user.setDepartment(evt.getDepartment());
+        user.setPosition(evt.getPosition());
+        user.setFax(evt.getFax());
+
         userRepository.save(user);
 
         // 사용된 토큰 삭제
@@ -255,6 +269,23 @@ public class AuthServiceImpl implements AuthService {
         }
         if (req.getPhone() != null) {
             user.setPhone(req.getPhone());
+        }
+
+        // ✅ 회사 관련 필드 수정
+        if (req.getCardCompanyName() != null) {
+            user.setCardCompanyName(req.getCardCompanyName());
+        }
+        if (req.getCompanyIdx() != null) {
+            user.setCompanyIdx(req.getCompanyIdx());
+        }
+        if (req.getDepartment() != null) {
+            user.setDepartment(req.getDepartment());
+        }
+        if (req.getPosition() != null) {
+            user.setPosition(req.getPosition());
+        }
+        if (req.getFax() != null) {
+            user.setFax(req.getFax());
         }
 
         user.setUpdatedAt(LocalDateTime.now());
@@ -333,5 +364,18 @@ public class AuthServiceImpl implements AuthService {
         map.put("refreshToken", newRefresh);
 
         return new AuthResponse(true, "토큰 재발급 성공", map);
+    }
+
+    // ===============================
+    // ID / Email 중복 체크
+    // ===============================
+    @Override
+    public boolean isUserIdDuplicate(String userId) {
+        return userRepository.findByUserId(userId).isPresent();
+    }
+
+    @Override
+    public boolean isEmailDuplicate(String email) {
+        return userRepository.findByEmail(email).isPresent();
     }
 }

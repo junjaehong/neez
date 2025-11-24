@@ -41,4 +41,24 @@ public class EmailVerificationToken {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+
+    // ================================
+    // 회사 관련 필드
+    // ================================
+
+    @Column(name = "card_company_name", length = 255)
+    private String cardCompanyName;    // 명함용 회사명
+
+    @Column(name = "company_idx")
+    private Long companyIdx;           // companies.idx
+
+    @Column(length = 100)
+    private String department;         // 부서
+
+    @Column(length = 100)
+    private String position;           // 직급
+
+    @Column(length = 50)
+    private String fax;                // 팩스번호
 }
