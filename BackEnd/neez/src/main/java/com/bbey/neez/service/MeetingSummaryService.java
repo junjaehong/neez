@@ -1,4 +1,4 @@
-﻿package com.bbey.neez.service;
+package com.bbey.neez.service;
 
 import com.bbey.neez.client.OpenAiChatClient;
 import java.util.List;
