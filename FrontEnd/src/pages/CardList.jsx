@@ -241,9 +241,6 @@ const CardList = () => {
             </div>
           )}
         </div>
-
-        {/* 카메라 버튼 */}
-        <FAB />
         
       </div>
     </div>

@@ -1,9 +1,9 @@
-.stt-ing-container {
+/* .stt-ing-container {
   width: 100%;
   max-width: 390px;
   margin: 0 auto;
-}
-
+} */
+/* 
 .stt-ing-box {
   background: var(--white);
   border-radius: 20px;
@@ -11,26 +11,20 @@
   padding: 20px;
   min-height: 600px;
   position: relative;
-}
-
-.dark-mode .stt-ing-box {
-  background: var(--dark-surface);
-}
-
+} */
+ 
 .stt-ing-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  position: relative;
   margin-bottom: 20px;
 }
 
-.stt-ing-header h2 {
-  font-size: 20px;
-  color: var(--text-primary);
-}
-
-.dark-mode .stt-ing-header h2 {
-  color: var(--dark-text-primary);
+.stt-ing-header > p {
+  font-size: 18px;
+  color: #333;
+  font-weight: bold;
 }
 
 .language-button {
@@ -190,8 +184,8 @@
 /* 저장 버튼 */
 .save-meeting-button {
   width: 100%;
-  padding: 15px;
-  background: var(--primary-color);
+  padding: 10px;
+  background: #737164;
   color: white;
   border: none;
   border-radius: 10px;
@@ -199,13 +193,20 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-top: 20px;
 }
 
 .save-meeting-button:hover {
-  background: var(--primary-dark);
+  background: #5a5952;
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(115, 113, 100, 0.4);
 }
+
+/* .save-meeting-button {
+  width: calc(100% - 40px);
+  position: absolute;
+  bottom: 20px;
+} */
 
 /* 언어 선택 팝업 */
 .language-options {

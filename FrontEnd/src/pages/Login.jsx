@@ -19,7 +19,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("로그인 에러", error.response?.data)
+    // console.log("로그인 에러", error.response?.data)
     // 입력값 검증
     if (!userId || !password) {
       setError('아이디와 비밀번호를 입력해주세요.');
@@ -34,7 +34,8 @@ const Login = () => {
       navigate('/main'); // 로그인 성공하면 메인으로 이동
     } catch (err) {
       console.error('login error', err);
-      setError(err?.message || '로그인 실패');
+      console.log("서버 응답:", err?.response?.data);   // ← 서버 에러 제대로 찍힘
+      setError(err?.response?.data?.message || err?.message || '로그인 실패');
     } finally {
       setLoading(false);
     }

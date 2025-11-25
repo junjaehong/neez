@@ -1,10 +1,10 @@
-.stt-select-container {
+/* .stt-select-container {
   width: 100%;
   max-width: 390px;
   margin: 0 auto;
-}
+} */
 
-.stt-select-box {
+/* .stt-select-box {
   background: var(--white);
   border-radius: 20px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -13,31 +13,25 @@
   position: relative;
   display: flex;
   flex-direction: column;
-}
-
-.dark-mode .stt-select-box {
-  background: var(--dark-surface);
-}
+} */
 
 .stt-select-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  position: relative;
   margin-bottom: 20px;
 }
 
-.stt-select-header h2 {
-  font-size: 20px;
-  color: var(--text-primary);
+.stt-select-header > p {
+  font-size: 18px;
+  color: #333;
+  font-weight: bold;
 }
 
-.dark-mode .stt-select-header h2 {
-  color: var(--dark-text-primary);
-}
-
-.search-container {
+/* .search-container {
   margin-bottom: 20px;
-}
+} */
 
 .search-input {
   width: 100%;
@@ -47,12 +41,6 @@
   font-size: 14px;
   background: var(--background);
   transition: all 0.3s ease;
-}
-
-.dark-mode .search-input {
-  background: var(--dark-background);
-  color: var(--dark-text-primary);
-  border: 1px solid var(--dark-border);
 }
 
 .search-input:focus {
@@ -76,10 +64,6 @@
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
-}
-
-.dark-mode .card-select-item {
-  background: var(--dark-background);
 }
 
 .card-select-item:hover {
@@ -136,8 +120,8 @@
 
 .confirm-button {
   width: 100%;
-  padding: 15px;
-  background: var(--primary-color);
+  padding: 10px;
+  background: #737164;
   color: white;
   border: none;
   border-radius: 10px;
@@ -145,12 +129,19 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-top: 20px;
 }
 
 .confirm-button:hover {
-  background: var(--primary-dark);
+  background: #5a5952;
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(115, 113, 100, 0.4);
+}
+
+.confirm-button {
+  width: calc(100% - 40px);
+  position: absolute;
+  bottom: 20px;
 }
 
 /* 참석자 확인 팝업 */
@@ -210,25 +201,20 @@
   transition: all 0.3s ease;
 }
 
-.cancel-button {
+.start-button {
   background: #737164;
   color: white;
 }
 
-.dark-mode .cancel-button {
-  background: var(--dark-background);
-  color: var(--dark-text-primary);
-}
-
-.start-button {
-  background: var(--primary-color);
-  color: white;
-}
-
-.cancel-button:hover {
-  background: #5a5952;
+.cancel-button {
+  background: #BDBEB6;
+  color: #333;
 }
 
 .start-button:hover {
+  background: #5a5952;
+}
+
+.cancel-button:hover {
   background: var(--primary-dark);
 }

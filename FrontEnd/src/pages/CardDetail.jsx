@@ -250,7 +250,9 @@ const CardDetail = () => {
   // 기업 정보 조회
   const handleCompanyInfoClick = async () => {
     try {
-      const companyInfo = await axios.get(`${baseURL}/companies/${card.companyIdx}`);
+      const companyInfo = await axios.get(`${baseURL}/api/companies/${card.companyIdx}`,
+        { headers: { ...getAuthHeader() } }
+      );
       setCompanyInfo(companyInfo.data);
       setShowCompanyInfo(true);
       console.log('companyInfo API response:', companyInfo.data);
@@ -577,12 +579,12 @@ const CardDetail = () => {
             <button className="popup-close" onClick={() => setShowCompanyInfo(false)}>×</button>
             <h3>기업정보</h3>
             <div className="company-info">
-              <p><strong>회사이름:</strong> {companyInfo.name}</p>
-              <p><strong>대표이사:</strong> {companyInfo.repName}</p>
-              <p><strong>주소:</strong> {companyInfo.address}</p>
-              <p><strong>사이트:</strong> {companyInfo.homepage}</p>
-              <p><strong>사업자번호:</strong> {companyInfo.bizNo}</p>
-              <p><strong>법인번호:</strong> {companyInfo.corpNo}</p>
+              <p><strong>회사이름:</strong> {companyInfo.data.name}</p>
+              <p><strong>대표이사:</strong> {companyInfo.data.repName}</p>
+              <p><strong>주소:</strong> {companyInfo.data.address}</p>
+              <p><strong>사이트:</strong> {companyInfo.data.homepage}</p>
+              <p><strong>사업자번호:</strong> {companyInfo.data.bizNo}</p>
+              <p><strong>법인번호:</strong> {companyInfo.data.corpNo}</p>
             </div>
           </div>
         </div>
