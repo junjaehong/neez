@@ -13,7 +13,18 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/companies")
-@Tag(name = "Company API", description = "회사 정보 조회 API")
+@Tag(
+        name = "Company API",
+        description =
+                "회사 정보 조회 API\n\n" +
+                "📌 companyId란?\n" +
+                "- companies 테이블에 저장된 회사 레코드의 PK입니다.\n" +
+                "- 명함(BizCard)에 매칭된 회사의 공식 정보를 나타냅니다.\n" +
+                "- Swagger에서 테스트할 때는 실제 DB에 존재하는 companyId를 입력해야 합니다. (예: 1)\n\n" +
+                "이 API는 다음 상황에서 사용됩니다.\n" +
+                "- 명함 상세 화면에서 연결된 회사의 상세 정보를 보고 싶을 때\n" +
+                "- 회사명, 사업자번호 등을 기반으로 조회된 회사 중 하나를 선택해 상세 정보를 확인할 때\n"
+)
 @SecurityRequirement(name = "BearerAuth")
 public class CompanyController {
 

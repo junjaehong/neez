@@ -1,11 +1,12 @@
 package com.bbey.neez.service;
 
 import com.bbey.neez.client.OpenAiChatClient;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -15,24 +16,26 @@ public class MeetingMinutesService {
   private final OpenAiChatClient chatClient;
 
   public MeetingMinutesService(MeetingSpeechStreamService streamService,
-                               OpenAiChatClient chatClient) {
+      OpenAiChatClient chatClient) {
     this.streamService = streamService;
     this.chatClient = chatClient;
   }
 
-  public StreamMeetingMinutes finalizeStreamingMeeting(Long meetingId) {
-    String originalTranscript = streamService.getTranscriptText(meetingId);
-    String koreanTranscript = streamService.getKoreanTranscript(meetingId);
+  /**
+   * /meetings/me/{meetingId}/minutes
+   */
+  public StreamMeetingMinutes finalizeStreamingMeeting(Long userIdx, Long meetingId) {
+    String originalTranscript = streamService.getTranscriptText(userIdx, meetingId);
+    String koreanTranscript = streamService.getKoreanTranscript(userIdx, meetingId);
     String summary = summarizeInKorean(koreanTranscript);
-    List<MeetingSpeechStreamService.Segment> segments = streamService.getSegments(meetingId);
+    List<MeetingSpeechStreamService.Segment> segments = streamService.getSegments(userIdx, meetingId);
 
     return new StreamMeetingMinutes(
         meetingId,
         originalTranscript,
         koreanTranscript,
         summary,
-        segments
-    );
+        segments);
   }
 
   private String summarizeInKorean(String transcript) {
@@ -43,15 +46,14 @@ public class MeetingMinutesService {
     try {
       return chatClient.summarize(transcript);
     } catch (WebClientResponseException.TooManyRequests e) {
-      log.warn("Gemini/OpenAI rate limit while summarizing stream: {}", e.getResponseBodyAsString());
-      return "요약 요청이 많아 일시적으로 요약을 생성하지 못했습니다. 전체 대화 기록을 확인해 주세요.";
+      log.warn("요약 요청 과부하 (429 TooManyRequests)", e);
+      return "요약 서비스 요청이 많아 현재 자동 요약을 제공하지 못했습니다. 전체 회의록을 참고해 주세요.";
     } catch (WebClientResponseException e) {
-      log.error("Gemini/OpenAI summarization failed (HTTP {}): {}", e.getRawStatusCode(),
-          e.getResponseBodyAsString(), e);
-      return "요약을 생성하는 중 오류가 발생했습니다. 전체 대화 기록을 확인해 주세요.";
+      log.error("요약 HTTP {} 오류: {}", e.getRawStatusCode(), e.getResponseBodyAsString(), e);
+      return "요약 생성 중 외부 요약 서비스 오류가 발생했습니다.";
     } catch (Exception e) {
-      log.error("Unexpected error during stream summary", e);
-      return "요약을 생성하는 중 알 수 없는 오류가 발생했습니다. 전체 대화 기록을 확인해 주세요.";
+      log.error("요약 생성 중 알 수 없는 오류", e);
+      return "요약 생성 중 알 수 없는 오류가 발생했습니다.";
     }
   }
 
@@ -63,10 +65,10 @@ public class MeetingMinutesService {
     private final List<MeetingSpeechStreamService.Segment> segments;
 
     public StreamMeetingMinutes(Long meetingId,
-                                String originalTranscript,
-                                String koreanTranscript,
-                                String summary,
-                                List<MeetingSpeechStreamService.Segment> segments) {
+        String originalTranscript,
+        String koreanTranscript,
+        String summary,
+        List<MeetingSpeechStreamService.Segment> segments) {
       this.meetingId = meetingId;
       this.originalTranscript = originalTranscript;
       this.koreanTranscript = koreanTranscript;

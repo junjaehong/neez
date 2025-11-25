@@ -1,5 +1,5 @@
 # 🪪 BBEY / Neez Backend  
-> Spring Boot + MyBatis + MySQL 기반 명함 관리 백엔드 서비스
+> 명함 기반 기업정보 활용 회의록 자동화 AI 플랫폼
 
 ---
 
