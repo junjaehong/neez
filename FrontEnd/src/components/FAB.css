@@ -2,21 +2,17 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  border: None;
+  border: none;
+  position: fixed;
   font-size: 24px;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  bottom: 15%;
-  left: 85%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  /* background-color: #737164; */
+  background-color: #737164;
   cursor: pointer;
+  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
 }
 
 .camera-btn:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
+  box-shadow: 0 3px 15px rgba(135, 127, 108, 0.5);
 }
 
 .camera-btn:active {

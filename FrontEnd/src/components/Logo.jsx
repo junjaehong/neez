@@ -4,7 +4,7 @@ import './Logo.css';
 const Logo = ({ size = 'large' }) => {
   return (
     <div className={`logo ${size}`}>
-      LOGO
+      <img src=".\public\임의로고.png" alt="임의로고" />
     </div>
   );
 };

@@ -1,27 +1,49 @@
+
+
 .logo {
-  color: #737164;
-  font-weight: bold;
-  text-align: center;
+  display: flex;
+  /* align-items: center; */
+  /* margin: 0 auto; */
 }
 
 .logo.large {
-  font-size: 48px;
-  padding: 20px;
   margin: 0 auto;
+}
+
+.logo.large > img {
+  height: 300px;
 }
 
 .logo.medium {
-  font-size: 32px;
-  padding: 15px;
   margin: 0 auto;
+}
+
+.logo.medium > img {
+  height: 120px;
 }
 
 .logo.small {
-  font-size: 24px;
-  padding: 10px;
+  text-align: center;
   margin: 0 auto;
 }
 
-.logo.medium_left {
+/* .logo.medium {
   font-size: 32px;
+  padding: 15px;
+  margin: 0 auto;
+} */
+
+/* .logo.medium_left {
+  display: flex;
+  align-items: center;  
+} */
+
+.logo.medium_left > img {
+  height: 80px;
 }
+
+.logo.small > img {
+  height: 100px;
+  margin: 0 auto;
+}
+

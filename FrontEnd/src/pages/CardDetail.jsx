@@ -4,13 +4,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import './CardDetail.css';
 
-const DEFAULT_MEETING_ID = 1;
-
 const CardDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const baseURL = 'http://localhost:8083/api'; // 공통 prefix
-  const { cardList, meetingNotesStore, setMeetingParticipants, setCurrentMeeting } = useApp();
+  const baseURL = 'http://192.168.70.111:8083/api'; // 공통 prefix
+  // const { addMeetingNote } = useApp();
   
   const [card, setCard] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -64,22 +62,26 @@ const CardDetail = () => {
       // const companyInfo = await axios.get(`${baseURL}/companies/${cardRes.data.data.companyIdx}`);
       // console.log('companyInfo API response:', companyInfo.data);
 
-      // 회의록 리스트 API 입력 후 삭제 ▼// 회의록 리스트 API 입력 후 삭제 ▲
-      const cardFromContext = cardList.find(item => String(item.id ?? item.idx) === String(id));
-      const localNotes = meetingNotesStore?.[String(id)] || [];
-      const meetingNotesData =
-        (cardFromContext?.meetingNotes && cardFromContext.meetingNotes.length > 0)
-          ? cardFromContext.meetingNotes
-          : (localNotes.length > 0
-            ? localNotes
-            : (cardRes.data.data.meetingNotes && cardRes.data.data.meetingNotes.length > 0
-              ? cardRes.data.data.meetingNotes
-              : []));
+      // 회의록 리스트 API 입력 후 삭제 ▼
+        const defaultMeetings = [
+          {
+            date: "2025-11-04",
+            company: "NaverCloud",
+            content: "신규 프로젝트 일정 조율 및 역할 분담 논의...",
+          },
+          {
+            date: "2025-10-25",
+            company: "Naver",
+            content: "구 프로젝트 일정 조율 및 역할 분담 논의...",
+          }
+        ];
 
-      setCard({
-        ...cardRes.data.data,
-        meetingNotes: meetingNotesData
-      });
+        setCard({
+          ...cardRes.data.data,            // API에서 받은 카드 데이터
+          meetingNotes: defaultMeetings   // 기존 회의록 유지
+        });
+        // 회의록 리스트 API 입력 후 삭제 ▲
+
     } catch (err) {
       console.error("데이터 불러오기 실패:", err);
     }
@@ -92,36 +94,6 @@ const CardDetail = () => {
   useEffect(() => {
     reloadData();
   }, [id]);
-
-  const handleStartMeeting = () => {
-    if (!card) {
-      return;
-    }
-
-    const participantId = card.idx ?? card.id;
-    if (!participantId) {
-      alert('명함 정보가 올바르지 않습니다.');
-      return;
-    }
-
-    const participant = {
-      id: participantId,
-      name: card.name,
-      companyName: card.companyName || card.company,
-      position: card.position,
-      department: card.department,
-    };
-
-    setMeetingParticipants([participant]);
-    setCurrentMeeting({
-      id: participantId, // 선택한 명함 ID를 meetingId로 사용
-      startedAt: new Date().toISOString(),
-      title: `${participant.companyName || ''} ${participant.name || ''}`.trim() || '회의',
-      cardId: participantId,
-    });
-
-    navigate('/stting');
-  };
 
 
 
@@ -299,7 +271,7 @@ const CardDetail = () => {
   return (
     <div className="card-detail-container">
       <div className="card-detail-box">
-        <div className="card-detail-header">
+        <div className="card-detail-header app-header">
           <button className="back-button" onClick={handleBack}>←</button>
           <h2>명함 상세보기</h2>
           
@@ -506,13 +478,6 @@ const CardDetail = () => {
           <div className="meeting-section">
             <div className="section-header">
               <h3>회의록</h3>
-              <button
-                className="start-meeting-btn"
-                onClick={handleStartMeeting}
-                disabled={!card}
-              >
-                회의 시작
-              </button>
               {/* <button 
                 className="view-button"
                 onClick={() => setShowMeetingList(!showMeetingList)}
@@ -524,25 +489,19 @@ const CardDetail = () => {
             {/* {showMeetingList && ( */}
               <div className="meeting-list">
                 {card.meetingNotes.map((meeting, index) => (
-                  <div
-                    key={meeting.id ?? `meeting-${index}`}
-                    className="meeting-item"
-                    onClick={() => handleViewMeeting(meeting, index)}
-                  >
+                  <div key={meeting.id} className="meeting-item">
                     <span className="meeting-date">
                       {new Date(meeting.date).toLocaleDateString()}
                     </span>
                     <span 
                       className="meeting-title"
+                      onClick={() => handleViewMeeting(meeting, index)}
                     >
-                      {meeting.company || meeting.title || '회의록'}
+                      {meeting.company}
                     </span>
                     <button 
                       className="delete-meeting-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteMeeting(meeting.id);
-                      }}
+                      onClick={() => handleDeleteMeeting(meeting.id)}
                     >
                       ×
                     </button>

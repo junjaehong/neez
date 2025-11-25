@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import './Email.css';
@@ -83,9 +82,9 @@ const Email = () => {
   return (
     <div className="email-container">
       <div className="email-box">
-        <div className="email-header">
-          <button className="back-button" onClick={handleBack}>←</button>
-          <h2>이메일 변경</h2>
+        <div className="email-header app-header">
+          <button className="back-btn" onClick={handleBack}>←</button>
+          <p>이메일 변경</p>
           <div></div>
         </div>
 
@@ -153,7 +152,7 @@ const Email = () => {
             </div>
           )}
 
-          <button type="submit" className="submit-button">
+          <button type="submit" className="submit-button email-submit-button">
             이메일 변경
           </button>
         </form>

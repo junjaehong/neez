@@ -1,15 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect  } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Button from '../components/Button';
+import InputField from '../components/InputField';
 import './MyCard.css';
 
 const MyCard = () => {
   const navigate = useNavigate();
-  const { myCard, updateMyCard } = useApp();
+  const { currentUser, updateCurrentUser, fetchMyCard, updateMyCard } = useApp();
   const [formData, setFormData] = useState({
-    ...myCard
+    name: '',
+    company: '',
+    department: '',
+    position: '',
+    phone: '',
+    email: '',
+    address: '',
+    fax: '',
+    website: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  // 컴포넌트 마운트 시 최신 데이터 가져오기
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      // 먼저 서버에서 최신 데이터 가져오기
+      const userData = await fetchMyCard();
+      setFormData({
+        name: userData.name || '',
+        company: userData.company || '',
+        department: userData.department || '',
+        position: userData.position || '',
+        phone: userData.phone || '',
+        email: userData.email || '',
+        address: userData.address || '',
+        fax: userData.fax || '',
+        website: userData.website || ''
+      });
+    } catch (err) {
+      // 서버 데이터 가져오기 실패 시 로컬 데이터 사용
+      if (currentUser) {
+        setFormData({
+          name: currentUser.name || '',
+          company: currentUser.company || '',
+          department: currentUser.department || '',
+          position: currentUser.position || '',
+          phone: currentUser.phone || '',
+          email: currentUser.email || '',
+          address: currentUser.address || '',
+          fax: currentUser.fax || '',
+          website: currentUser.website || ''
+        });
+      }
+    }
+  };
+
+  // useEffect(() => {
+  //   if (currentUser) setFormData(currentUser);
+  // }, [currentUser]);
 
   const handleBack = () => {
     navigate('/mypage');
@@ -21,148 +74,196 @@ const MyCard = () => {
       ...prev,
       [name]: value
     }));
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    updateMyCard(formData);
-    alert('내 명함이 수정되었습니다!');
-    navigate('/main');
+  const validateForm = () => {
+    if (!formData.name) {
+      setError('이름은 필수 입력 사항입니다.');
+      return false;
+    }
+    
+    if (formData.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('올바른 이메일 형식을 입력해주세요.');
+        return false;
+      }
+    }
+    
+    if (formData.phone) {
+      const phoneRegex = /^[0-9-]+$/;
+      if (!phoneRegex.test(formData.phone)) {
+        setError('전화번호는 숫자와 하이픈(-)만 입력 가능합니다.');
+        return false;
+      }
+    }
+    
+    return true;
   };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      await updateMyCard(formData);
+      alert('내 명함이 수정되었습니다!');
+      navigate('/main');
+    } catch (err) {
+      console.error('명함 수정 실패:', err);
+      setError('명함 수정 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+   const handleReset = () => {
+    loadUserData();
+    setError('');
+  };
+
 
   return (
     <div className="mycard-container">
       <div className="mycard-box">
-
-        {/* 내 명함 관리 헤더 */}
-        <div className="mycard-header">
-          <button className="back-button" onClick={handleBack}>
-            ←
-          </button>
-          <h2>내 명함 관리</h2>
-          <div></div>
+        <div className="mycard-header app-header">
+          <button className="back-btn" onClick={handleBack}>←</button>
+          <p>내 명함 관리</p>
         </div>
 
-        {/* 내 명함 수정 폼 */}
         <div className="mycard-content">
-          <table>
-            <tbody>
-              <tr>
-                <td>이름</td>
-                <td>
-                  <input 
-                    type="text" 
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    // placeholder='홍길동'
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td>직급</td>
-                <td>
-                  <input 
-                    type="text" 
-                    name="position"
-                    value={formData.position}
-                    onChange={handleInputChange}
-                    // placeholder='팀장'
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td>부서</td>
-                <td>
-                  <input 
-                    type="text" 
-                    name="department"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                    // placeholder='총무팀'
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td>회사 이름</td>
-                <td>
-                  <input 
-                    type="text" 
-                    name="company"
-                    value={formData.company}
-                    onChange={handleInputChange}
-                    // placeholder='NaverCloud'
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td>휴대전화</td>
-                <td>
-                  <input 
-                    type="text" 
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    // placeholder='010-1234-5678'
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td>이메일</td>
-                <td>
-                  <input 
-                    type="email" 
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    // placeholder='asdf@naver.com'
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td>주소</td>
-                <td>
-                  <input 
-                    type="text" 
-                    name="address"
-                    value={formData.address || ''}
-                    onChange={handleInputChange}
-                    // placeholder='서울시 강남구'
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td>팩스</td>
-                <td>
-                  <input 
-                    type="text" 
-                    name="fax"
-                    value={formData.fax || ''}
-                    onChange={handleInputChange}
-                    // placeholder='02-123-4567'
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td>웹사이트</td>
-                <td>
-                  <input 
-                    type="text" 
-                    name="website"
-                    value={formData.website || ''}
-                    onChange={handleInputChange}
-                    // placeholder='www.navercloud.com'
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <Button type="button" variant="primary" fullWidth onClick={handleSubmit}>
+          <form onSubmit={handleSubmit}>
+            {error && (
+              <div className="error-banner">
+                {error}
+              </div>
+            )}
+            
+
+              <div className="form-group">
+                <label>이름 <span className="required">*</span></label>
+                <input
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="이름 입력"
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>회사</label>
+                <input
+                  name="company"
+                  type="text"
+                  value={formData.company}
+                  onChange={handleInputChange}
+                  placeholder="회사명 입력"
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>부서</label>
+                <input
+                  name="department"
+                  type="text"
+                  value={formData.department}
+                  onChange={handleInputChange}
+                  placeholder="부서명 입력"
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>직급</label>
+                <input
+                  name="position"
+                  type="text"
+                  value={formData.position}
+                  onChange={handleInputChange}
+                  placeholder="직급 입력"
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>휴대전화</label>
+                <input
+                  name="phone"
+                  type="text"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="010-1234-5678"
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>이메일</label>
+                <input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="example@company.com"
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>팩스</label>
+                <input
+                  name="fax"
+                  type="text"
+                  value={formData.fax}
+                  onChange={handleInputChange}
+                  placeholder="02-123-4567"
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>주소</label>
+                <input
+                  name="address"
+                  type="text"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  placeholder="회사 주소 입력"
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>웹사이트</label>
+                <input
+                  name="website"
+                  type="text"
+                  value={formData.website}
+                  onChange={handleInputChange}
+                  placeholder="www.company.com"
+                  disabled={loading}
+                />
+              </div>
+            </form>
+          </div>
+
+        <Button
+          className="mycard-save-btn"
+          variant="primary"
+          fullWidth
+          onClick={handleSubmit}
+        >
           저장
         </Button>
-        
       </div>
     </div>
   );
@@ -170,92 +271,3 @@ const MyCard = () => {
 
 export default MyCard;
 
-
-
-// import React, { useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import '../components/InputField';
-// import Button from '../components/Button';
-// import './Mycard.css';
-
-// const Mycard = () => {
-
-//   const navigate = useNavigate();
-//     const handleBack = () => {
-//       navigate('/mypage');
-//     };
-
-    
-//   return (
-//     <div className="mycard-container">
-//       <div className="mycard-box">
-
-//         {/* 내 명함 관리 헤더 */}
-//         <div className="mycard-header">
-//           <button className="back-button" onClick={handleBack}>
-//             ←
-//           </button>
-//         </div>
-
-//         {/* 내 명함 수정안 */}
-//         <div className="mycard-content">
-//           <table>
-//               <tbody>
-//                 <tr>
-//                   <td>이름</td>
-//                   <td><input type="text" placeholder='홍길동'/></td>
-//                 </tr>
-//                 <tr>
-//                   <td>직급</td>
-//                   <td><input type="text" placeholder='팀장'/></td>
-//                 </tr>
-//                 <tr>
-//                   <td>부서</td>
-//                   <td><input type="text" placeholder='총무팀'/></td>
-//                 </tr>
-//                 <tr>
-//                   <td>회사 이름</td>
-//                   <td><input type="text" placeholder='NaverCloud'/></td>
-//                 </tr>
-//                 <tr>
-//                   <td>휴대전화</td>
-//                   <td><input type="text" placeholder='010-1234-5678'/></td>
-//                 </tr>
-//                 <tr>
-//                   <td>이메일</td>
-//                   <td>asdf@naver.com</td>
-//                 </tr>
-//                 {/* <tr>
-//                   <td>유선전화</td>
-//                   <td><input type="text" placeholder='036-000-0000'/></td>
-//                 </tr> */}
-//               </tbody>
-//             </table>
-//           {/* <form onSubmit={handleSubmit} className="login-form">
-//             <InputField
-//               name="id"
-//               type="text"
-//               placeholder="ID"
-//               value={formData.id}
-//               onChange={handleChange}
-//             />
-//             <InputField
-//               name="password"
-//               type="password"
-//               placeholder="PW"
-//               value={formData.password}
-//               onChange={handleChange}
-//             />
-//             </form> */}
-//         <p className="mycard-plus">추가</p>
-//         </div>
-//         <Button type="submit" variant="primary" fullWidth>
-//           저장
-//         </Button>
-        
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Mycard;

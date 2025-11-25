@@ -69,10 +69,9 @@ const Password = () => {
   return (
     <div className="password-container">
       <div className="password-box">
-        <div className="password-header">
-          <button className="back-button" onClick={handleBack}>←</button>
-          <h2>비밀번호 변경</h2>
-          <div></div>
+        <div className="password-header app-header">
+          <button className="back-btn" onClick={handleBack}>←</button>
+          <p>비밀번호 변경</p>
         </div>
 
         <form onSubmit={handleSubmit} className="password-form">

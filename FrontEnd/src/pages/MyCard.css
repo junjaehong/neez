@@ -1,21 +1,26 @@
-.mycard-container {
+/* .mycard-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #f5f5f5;
   padding: 20px 0;
-}
+} */
 
-.mycard-box {
+/* .mycard-box {
   background: #e7e7e3;
   padding: 30px 40px;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 500px;
   max-width: 90%;
-  
-  /* position: relative; */
+  position: relative;
+} */
+
+.mycard-box {
+  /* background: #BDBEB6;; */
+  /* background: #F5F5F5; */
+  position: relative;
 }
 
 .mycard-header {
@@ -26,75 +31,49 @@
   margin-bottom: 20px;
 }
 
-.back-button {
+.back-btn {
   position: absolute;
   left: 0;
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #737164;
-  cursor: pointer;
-  padding: 5px 10px;
   transition: color 0.3s;
 }
 
-.back-button:hover {
-  color: #5a5952;
+.mycard-header > p {
+  font-size: 18px;
+  color: #333;
+  font-weight: bold;
 }
 
 .mycard-content {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px 30px;
-  margin: 30% 0;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-  width: 95%;
-  max-width: 400px;
-  /* position: absolute; */
-  /* z-index: 1000; */
+  margin-bottom: 25px;
+  /* 추가된 부분: 내부 스크롤 허용 및 모바일 스무스 스크롤 */
+  overflow-y: auto; /* 세로 스크롤 허용 */
+  /* -webkit-overflow-scrolling: touch; iOS에서 스무스 스크롤 */
+  /* 뷰포트에 맞춘 최대 높이 (헤더/여백에 따라 값 조정) */
+  max-height: 510px;
 }
 
-/* 표 스타일 */
-.mycard-content table {
-  width: 100%;
-  border-collapse: collapse;
+.mycard-content input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
   font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s;
+  background-color: #f9f9f9;
+  margin: 5px 0;
 }
 
-.mycard-content tr {
-  margin-bottom: 10px;
+.mycard-content input:focus {
+  border-color: #737164;
 }
 
-.mycard-content td {
-  padding: 6px 4px;
-  border-bottom: 1px solid #73716429;
-}
-
-.mycard-content td:first-child {
-  /* background-color: #737164;; */
-  /* color: #fff; */
-  /* border-bottom: 4px solid #ffffff; */
-  /* text-align: center; */
-  font-weight: bold;
-  color: #737164;
-  border-radius: 2px;
-  width: 30%;
-}
-
-.mycard-content td:last-child {
-  padding-left: 20px;
-}
-
-.mycard-content tr:last-child td {
-  border-bottom: None;
-}
-
-.mycard-plus {
+/* .mycard-plus {
   text-align: right;
   font-weight: bold;
   color: #737164;
   cursor: pointer;
-}
+} */
 
 @media (max-width: 768px) {
   .mypage-box {

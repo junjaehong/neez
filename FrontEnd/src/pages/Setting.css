@@ -1,4 +1,4 @@
-.setting-container {
+/* .setting-container {
   width: 100%;
   max-width: 390px;
   margin: 0 auto;
@@ -11,26 +11,24 @@
   padding: 20px;
   min-height: 600px;
   position: relative;
-}
+} */
 
-.dark-mode .setting-box {
+/* .dark-mode .setting-box {
   background: var(--dark-surface);
-}
+} */
 
 .setting-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-}
-
-.setting-header h2 {
-  font-size: 20px;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 40px;
   color: var(--text-primary);
 }
 
-.dark-mode .setting-header h2 {
-  color: var(--dark-text-primary);
+.setting-header > p {
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .setting-content {
@@ -40,29 +38,39 @@
 }
 
 /* 설정 항목 */
-.setting-item {
-  border-bottom: 1px solid var(--border);
-}
-
-.dark-mode .setting-item {
-  border-bottom: 1px solid var(--dark-border);
-}
+/* .setting-item {
+  border-bottom: 1px solid var(--border-primary);
+} */
 
 .setting-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  /* align-items: center;
   padding: 20px 10px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease; */
+
+  padding: 20px;
+  margin-bottom: 20px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.setting-row.active {
+  background: rgba(90, 89, 81, 0.2);
+}
+
+.setting-row:last-child {
+  margin-bottom: 10px;;
 }
 
 .setting-row:hover {
-  background-color: rgba(115, 113, 100, 0.05);
-}
-
-.dark-mode .setting-row:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--brand-hover);
 }
 
 .setting-row span:first-child {
@@ -71,9 +79,6 @@
   font-weight: 500;
 }
 
-.dark-mode .setting-row span:first-child {
-  color: var(--dark-text-primary);
-}
 
 .setting-value {
   font-size: 14px;
@@ -88,16 +93,17 @@
   overflow: hidden;
   transition: max-height 0.3s ease-out;
   max-height: 0;
-  background: var(--background);
-}
-
-.dark-mode .toggle-menu {
-  background: var(--dark-background);
+  background: var(--bg-tertiary);
+  margin-top: -10px;
+  border-radius: 15px;
 }
 
 .toggle-menu.open {
   max-height: 300px;
   transition: max-height 0.5s ease-in;
+  /* margin-top: -12px; */
+  margin-bottom: 8px;
+  border-radius: 15px;
 }
 
 .toggle-option {
@@ -107,27 +113,18 @@
   padding: 15px 20px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  border-top: 1px solid var(--border);
-}
-
-.dark-mode .toggle-option {
-  border-top: 1px solid var(--dark-border);
+  /* border-top: 1px solid var(--border-primary); */
+  background-color: var(--bg-tertiary);
 }
 
 .toggle-option:hover {
-  background-color: rgba(115, 113, 100, 0.1);
-}
-
-.dark-mode .toggle-option:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--hover-btn);
 }
 
 .toggle-option.selected {
-  background-color: rgba(115, 113, 100, 0.15);
-}
-
-.dark-mode .toggle-option.selected {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--brand-hover);
+  color: var(--brand-primary);
+  font-weight: 600;
 }
 
 .toggle-option span:first-child {
@@ -135,9 +132,6 @@
   color: var(--text-primary);
 }
 
-.dark-mode .toggle-option span:first-child {
-  color: var(--dark-text-primary);
-}
 
 .check {
   color: var(--primary-color);
@@ -170,19 +164,11 @@
   margin-bottom: 15px;
 }
 
-.dark-mode .info-content p {
-  color: var(--dark-text-primary);
-}
-
 .about-item {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.dark-mode .about-item {
-  border-bottom: 1px solid var(--dark-border);
+  /* border-bottom: 1px solid var(--border-primary); */
 }
 
 .about-item strong {
@@ -190,17 +176,9 @@
   color: var(--text-secondary);
 }
 
-.dark-mode .about-item strong {
-  color: var(--dark-text-secondary);
-}
-
 .about-item span {
   font-size: 14px;
   color: var(--text-primary);
-}
-
-.dark-mode .about-item span {
-  color: var(--dark-text-primary);
 }
 
 .about-description {
@@ -210,18 +188,10 @@
   border-radius: 10px;
 }
 
-.dark-mode .about-description {
-  background: var(--dark-background);
-}
-
 .about-description p {
   font-size: 14px;
   line-height: 1.6;
   color: var(--text-primary);
-}
-
-.dark-mode .about-description p {
-  color: var(--dark-text-primary);
 }
 
 /* 스크롤바 스타일 */

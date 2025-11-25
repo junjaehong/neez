@@ -315,6 +315,12 @@
   margin-bottom: 10px;
 }
 
+.meeting-item {
+  display: flex;
+  justify-content: space-between;
+}
+
+
 .dark-mode .meeting-notes-section h3 {
   color: var(--dark-text-primary);
 }

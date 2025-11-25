@@ -1,29 +1,20 @@
-.main-container {
+/* .main-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #f5f5f5;
   padding: 20px 0;
-}
+} */
 
 .main-box {
-  background: white; 
-  padding: 30px 40px;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 500px;
-  height: 100%;
-  max-width: 90%;
+  /* background: #BDBEB6;; */
+  background: #F5F5F5;
   position: relative;
 }
 
 .main-header {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  position: relative;
-  margin-bottom: 20px;
 }
 
 .header-right {
@@ -39,47 +30,88 @@
     cursor: pointer;
 }
 
+/* .main-mycard {
+  display: inline-block;
+  width: 92px;
+  border-radius: 15px;
+  text-align: center;
+  line-height: 30px;
+  color: #737164;
+  margin-top: 38%;
+  margin-bottom: 8px;
+  color: #fff;
+} */
+
 .main-card-content {
-    background-color: #f5f5f5;
+    background-color: #fff;
     border-radius: 10px;
-    margin: 45% 0;
-    padding: 5% 10%;
-    cursor: pointer
+    margin: 52% 0;
+    padding: 5% 6%;
+    cursor: pointer;
+    box-shadow: 0 3px 15px rgba(146, 144, 127, 0.512);
+    height: 207px;
+    width: 340px;
 }
 
-.card-company {
+.no-card-placeholder {
+    text-align: center;
+    font-size: 16px;
+    padding: 60px 0;
+}
+
+.no-card-placeholder p {
+    margin-bottom: 5px;
+    color: #737164;
+}
+
+.main-card-company {
     text-align: right; 
+    font-size: 20px;
     margin-bottom: 60px;
+    color: #737164;
 }
 
 .main-card-text li {
-    font-size: 18px;
+    font-size: 15px;
     margin-bottom: 3px;
+    color: #333;
     list-style: none;
 }
 
 .main-card-text li:nth-child(1) > span {
     font-size: 24px;
     font-weight: 900;
+    color: #333;
 }
 
 
 /* 어두운 배경 (팝업 활성화 시) */
-.main-box.dimmed {
+.main-box.dimmed,
+.main-boxdimmed {
   filter: brightness(50%);
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  min-height: 700px;
+  position: relative;
 }
 
 /* 팝업창 */
 .popup-content {
   background-color: white;
-  
   border-radius: 8px;
   padding: 20px 30px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
   width: 80%;
-  max-width: 400px;
-  position: absolute;
-  /* z-index: 1000; */
+  max-width: 340px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
 }
 
 /* 닫기 버튼 */
