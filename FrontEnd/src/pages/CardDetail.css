@@ -38,7 +38,7 @@
 
 /* 스크롤바 스타일 */
 .mycard-content::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 .mycard-content::-webkit-scrollbar-track {
