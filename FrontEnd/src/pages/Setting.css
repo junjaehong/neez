@@ -1,0 +1,214 @@
+/* .setting-container {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.setting-box {
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  min-height: 600px;
+  position: relative;
+} */
+
+/* .dark-mode .setting-box {
+  background: var(--dark-surface);
+} */
+
+.setting-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 40px;
+  color: var(--text-primary);
+}
+
+.setting-header > p {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.setting-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* 설정 항목 */
+/* .setting-item {
+  border-bottom: 1px solid var(--border-primary);
+} */
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  /* align-items: center;
+  padding: 20px 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease; */
+
+  padding: 20px;
+  margin-bottom: 20px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.setting-row.active {
+  background: rgba(90, 89, 81, 0.2);
+}
+
+.setting-row:last-child {
+  margin-bottom: 10px;;
+}
+
+.setting-row:hover {
+  background-color: var(--brand-hover);
+}
+
+.setting-row span:first-child {
+  font-size: 16px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+
+.setting-value {
+  font-size: 14px;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* 토글 메뉴 */
+.toggle-menu {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  max-height: 0;
+  background: var(--bg-tertiary);
+  margin-top: -10px;
+  border-radius: 15px;
+}
+
+.toggle-menu.open {
+  max-height: 300px;
+  transition: max-height 0.5s ease-in;
+  /* margin-top: -12px; */
+  margin-bottom: 8px;
+  border-radius: 15px;
+}
+
+.toggle-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  /* border-top: 1px solid var(--border-primary); */
+  background-color: var(--bg-tertiary);
+}
+
+.toggle-option:hover {
+  background-color: var(--hover-btn);
+}
+
+.toggle-option.selected {
+  background-color: var(--brand-hover);
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.toggle-option span:first-child {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+
+.check {
+  color: var(--primary-color);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* 정보 팝업 스타일 */
+.info-content {
+  margin-top: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.info-content h4 {
+  font-size: 16px;
+  color: var(--primary-color);
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.info-content h4:first-child {
+  margin-top: 0;
+}
+
+.info-content p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.about-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  /* border-bottom: 1px solid var(--border-primary); */
+}
+
+.about-item strong {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.about-item span {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.about-description {
+  margin-top: 20px;
+  padding: 15px;
+  background: var(--background);
+  border-radius: 10px;
+}
+
+.about-description p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+/* 스크롤바 스타일 */
+.info-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.info-content::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 10px;
+}
+
+.info-content::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+}
+
+.info-content::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}

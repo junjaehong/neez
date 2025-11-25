@@ -1,0 +1,489 @@
+.card-detail-container {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.card-detail-box {
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  min-height: 600px;
+  position: relative;
+}
+
+.dark-mode .card-detail-box {
+  background: var(--dark-surface);
+  color: var(--dark-text-primary);
+}
+
+.card-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.card-detail-header h2 {
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.dark-mode .card-detail-header h2 {
+  color: var(--dark-text-primary);
+}
+
+.bottom-btn-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.edit-btn {
+  padding: 8px 16px;
+  /* background: var(--primary-color); */
+  color: #111;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.edit-btn:hover {
+  background: var(--primary-dark);
+}
+
+.delete-btn {
+  padding: 8px 16px;
+  color: #111;
+  background-color: #ff3b30;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background: #d62822;
+}
+
+.card-info-table {
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+.card-info-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dark-mode .card-info-table td {
+  border-bottom: 1px solid var(--dark-border);
+}
+
+.card-info-table td:first-child {
+  font-weight: 600;
+  color: var(--text-secondary);
+  width: 30%;
+}
+
+.dark-mode .card-info-table td:first-child {
+  color: var(--dark-text-secondary);
+}
+
+.card-info-table input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.dark-mode .card-info-table input {
+  background: var(--dark-background);
+  color: var(--dark-text-primary);
+  border: 1px solid var(--dark-border);
+}
+
+.company-link {
+  color: var(--primary-color);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.company-link:hover {
+  color: var(--primary-dark);
+}
+
+.save-button {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary-color);
+  color: #111;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.save-button:hover {
+  background: var(--primary-dark);
+}
+
+.start-meeting-btn {
+  padding: 6px 14px;
+  background: var(--primary-color);
+  color: #111;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.start-meeting-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.start-meeting-btn:not(:disabled):hover {
+  background: var(--primary-dark);
+}
+
+/* 해시태그 섹션 */
+.hashtag-section {
+  margin-bottom: 30px;
+}
+
+.section-header {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  /* margin-bottom: 15px; */
+}
+
+.section-header h3 {
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.dark-mode .section-header h3 {
+  color: var(--dark-text-primary);
+}
+
+.add-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #222;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-button:hover {
+  background: var(--primary-dark);
+}
+
+.hashtag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.hashtag {
+  display: inline-block;
+  padding: 6px 14px;
+  background: var(--primary-color);
+  color: #222;
+  border-radius: 15px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hashtag:hover {
+  background: var(--primary-dark);
+  transform: scale(1.05);
+}
+
+.hashtag-input {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.hashtag-input input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.dark-mode .hashtag-input input {
+  background: var(--dark-background);
+  color: var(--dark-text-primary);
+  border: 1px solid var(--dark-border);
+}
+
+.hashtag-input button {
+  padding: 8px 20px;
+  background: var(--primary-color);
+  color: #222;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.hashtag-input button:hover {
+  background: var(--primary-dark);
+}
+
+/* 메모 섹션 */
+.memo-section {
+  margin-bottom: 30px;
+}
+
+.memo-section h3 {
+  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.dark-mode .memo-section h3 {
+  color: var(--dark-text-primary);
+}
+
+.memo-section textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+  margin-bottom: 10px;
+}
+
+.dark-mode .memo-section textarea {
+  background: var(--dark-background);
+  color: var(--dark-text-primary);
+  border: 1px solid var(--dark-border);
+}
+
+.memo-section button {
+  padding: 8px 20px;
+  background: var(--primary-color);
+  color: #222;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.memo-section button:hover {
+  background: var(--primary-dark);
+}
+
+/* 회의록 섹션 */
+.meeting-notes-section {
+  margin-bottom: 20px;
+}
+
+.meeting-notes-section {
+  margin-bottom: 20px;
+}
+
+.meeting-notes-section h3 {
+  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.meeting-item {
+  display: flex;
+  justify-content: space-between;
+}
+
+
+.dark-mode .meeting-notes-section h3 {
+  color: var(--dark-text-primary);
+}
+
+.view-notes-button {
+  padding: 8px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.view-notes-button:hover {
+  background: var(--primary-dark);
+}
+
+/* 팝업 스타일 */
+/* .popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.popup-content {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 350px;
+  width: 90%;
+  max-height: 70vh;
+  overflow-y: auto;
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+.dark-mode .popup-content {
+  background: var(--dark-surface);
+  color: var(--dark-text-primary);
+}
+
+.popup-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.popup-close:hover {
+  color: var(--text-primary);
+} */
+
+.company-group {
+  display: flex;
+  justify-content: space-between
+}
+
+.company-info p {
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.meeting-note-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+  padding: 10px;
+  background: rgba(115, 113, 100, 0.1);
+  border-radius: 10px;
+}
+
+.meeting-note-navigation button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--primary-color);
+  padding: 5px 10px;
+}
+
+.meeting-note-navigation button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.meeting-note-content {
+  padding: 20px;
+  background: var(--background);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  min-height: 150px;
+}
+
+.dark-mode .meeting-note-content {
+  background: var(--dark-background);
+}
+
+.delete-note-button {
+  width: 100%;
+  padding: 10px;
+  background: var(--error);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.delete-note-button:hover {
+  background: #cc0000;
+}
+
+.language-options {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.language-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--background);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.dark-mode .language-options label {
+  background: var(--dark-background);
+}
+
+.language-options input[type="radio"] {
+  accent-color: var(--primary-color);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

@@ -1,0 +1,223 @@
+/* .mypage-container {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+} */
+
+/* .mypage-box {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  min-height: 600px;
+  position: relative;
+} */
+
+.mypage-header {
+   margin-bottom: 40px;
+}
+
+/* .mypage-header .logo {
+  flex: 1;
+  text-align: center;
+  margin-right: 40px;
+} */
+
+.welcome-text {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.welcome-text h2 {
+  font-size: 20px;
+  color: var(--text);
+  font-weight: normal;
+}
+
+.welcome-text strong {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 24px;
+  color: #737164;
+}
+
+.mypage-menu {
+  margin: 40px 0;
+  position: relative;
+}
+
+.mypage-menu ul {
+  list-style: none;
+  padding: 0;
+}
+
+.mypage-menu ul li:first-child {
+  margin-bottom: 15px;
+}
+
+.mypage-menu li {
+  padding: 20px;
+  margin-bottom: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+}
+
+.mypage-menu li:hover {
+  background: var(--hover-btn);
+  color: var(--primary-color);
+  transform: translateX(10px);
+}
+
+.mypage-menu li.active {
+  background: rgba(115, 113, 100, 0.2);
+  color: var(--primary-color);
+}
+
+.mypage-menu li::after {
+  /* content: '→'; */
+  position: absolute;
+  right: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mypage-menu li:hover::after {
+  opacity: 1;
+}
+
+/* 계정관리 토글 메뉴 */
+.account-toggle {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease-out;
+  margin-top: -10px;
+  margin-bottom: 15px;
+  border-radius: 15px;
+}
+
+.account-toggle.open {
+  max-height: 200px;
+  transition: max-height 0.5s ease-in;
+  border-radius: 15px;
+}
+
+.toggle-item {
+  padding: 15px 30px;
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--brand-primary);
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-item:hover {
+  background: rgba(119, 116, 101, 0.15);
+  padding-left: 40px;
+  color: var(--text);
+  /* border-left-color: var(--error); */
+}
+
+/* .toggle-item.delete {
+  color: var(--error);
+  border-left-color: var(--error);
+} */
+
+/* .toggle-item.delete:hover {
+  background: rgba(255, 68, 68, 0.1);
+} */
+
+.logout {
+  position: absolute;
+  top: 90%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  /* margin-top: 50px; */
+}
+
+.logout h3 {
+  color: #BDBEB6;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  letter-spacing: 1px;
+}
+
+.logout h3:hover {
+  color: #ff4444;
+}
+
+/* 팝업 스타일 */
+.popup-message {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.mypage-popup-content {
+  text-align: center;
+  padding: 40px 30px;
+}
+
+.mypage-popup-content h3 {
+  font-size: 20px;
+  color: #333;
+}
+
+.popup-message p {
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #ff4444;
+  font-weight: 600;
+}
+
+.popup-message .warning {
+  color: #333;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.cancel-button,
+.delete-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-button {
+  background: #737164;
+  color: white;
+}
+
+.cancel-button:hover {
+  background: #5a5952;
+}
+
+.delete-button {
+  background: #F5F5F5;
+  color: #5a5952;
+}
+
+.delete-button:hover {
+  background: #cc0000;
+  color: white;
+}
