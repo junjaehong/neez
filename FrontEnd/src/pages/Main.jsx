@@ -97,7 +97,7 @@ const Main = () => {
               </tr>
               <tr>
                 <td>회사</td>
-                <td>{currentUser.company}</td>
+                <td>{currentUser.cardCompanyName}</td>
               </tr>
               <tr>
                 <td>부서</td>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import api from '../api/client';
+import { getAuthHeader } from '../api/auth';
 import './CardDetail.css';
 
 const CardDetail = () => {

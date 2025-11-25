@@ -60,7 +60,6 @@ const Mypage = () => {
 
         {/* 반갑습니다 */}
         <div className="welcome-text">
-          {/* <h2>반갑습니다. <strong></strong>&nbsp;님</h2> */}
           <h2>반갑습니다. <strong>{currentUser.name}</strong>&nbsp;님</h2>
         </div>
 

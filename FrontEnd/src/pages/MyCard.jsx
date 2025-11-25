@@ -10,7 +10,7 @@ const MyCard = () => {
   const { currentUser, updateCurrentUser, fetchMyCard, updateMyCard } = useApp();
   const [formData, setFormData] = useState({
     name: '',
-    company: '',
+    cardCompanyName: '',
     department: '',
     position: '',
     phone: '',
@@ -30,10 +30,12 @@ const MyCard = () => {
   const loadUserData = async () => {
     try {
       // 먼저 서버에서 최신 데이터 가져오기
-      const userData = await fetchMyCard();
+      const response = await fetchMyCard();
+      const userData = response.data;
+      // console.log(userData);
       setFormData({
         name: userData.name || '',
-        company: userData.company || '',
+        cardCompanyName: userData.cardCompanyName || '',
         department: userData.department || '',
         position: userData.position || '',
         phone: userData.phone || '',
@@ -47,7 +49,7 @@ const MyCard = () => {
       if (currentUser) {
         setFormData({
           name: currentUser.name || '',
-          company: currentUser.company || '',
+          cardCompanyName: currentUser.cardCompanyName || '',
           department: currentUser.department || '',
           position: currentUser.position || '',
           phone: currentUser.phone || '',
@@ -112,6 +114,12 @@ const MyCard = () => {
     setError('');
     
     try {
+
+      const payload = {
+        ...formData,
+        cardCompanyName: formData.cardCompanyName
+      };
+
       await updateMyCard(formData);
       alert('내 명함이 수정되었습니다!');
       navigate('/main');
@@ -144,14 +152,13 @@ const MyCard = () => {
                 {error}
               </div>
             )}
-            
 
               <div className="form-group">
                 <label>이름 <span className="required">*</span></label>
                 <input
                   name="name"
                   type="text"
-                  value={formData.name}
+                  value={formData.name || ''}
                   onChange={handleInputChange}
                   placeholder="이름 입력"
                   disabled={loading}
@@ -161,9 +168,9 @@ const MyCard = () => {
               <div className="form-group">
                 <label>회사</label>
                 <input
-                  name="company"
+                  name="cardCompanyName"
                   type="text"
-                  value={formData.company}
+                  value={formData.cardCompanyName || ''}
                   onChange={handleInputChange}
                   placeholder="회사명 입력"
                   disabled={loading}
@@ -175,7 +182,7 @@ const MyCard = () => {
                 <input
                   name="department"
                   type="text"
-                  value={formData.department}
+                  value={formData.department || ''}
                   onChange={handleInputChange}
                   placeholder="부서명 입력"
                   disabled={loading}
@@ -187,7 +194,7 @@ const MyCard = () => {
                 <input
                   name="position"
                   type="text"
-                  value={formData.position}
+                  value={formData.position || ''}
                   onChange={handleInputChange}
                   placeholder="직급 입력"
                   disabled={loading}
@@ -199,7 +206,7 @@ const MyCard = () => {
                 <input
                   name="phone"
                   type="text"
-                  value={formData.phone}
+                  value={formData.phone || ''}
                   onChange={handleInputChange}
                   placeholder="010-1234-5678"
                   disabled={loading}
@@ -211,7 +218,7 @@ const MyCard = () => {
                 <input
                   name="email"
                   type="email"
-                  value={formData.email}
+                  value={formData.email || ''}
                   onChange={handleInputChange}
                   placeholder="example@company.com"
                   disabled={loading}
@@ -223,7 +230,7 @@ const MyCard = () => {
                 <input
                   name="fax"
                   type="text"
-                  value={formData.fax}
+                  value={formData.fax || ''}
                   onChange={handleInputChange}
                   placeholder="02-123-4567"
                   disabled={loading}
@@ -235,7 +242,7 @@ const MyCard = () => {
                 <input
                   name="address"
                   type="text"
-                  value={formData.address}
+                  value={formData.address || ''}
                   onChange={handleInputChange}
                   placeholder="회사 주소 입력"
                   disabled={loading}
@@ -247,7 +254,7 @@ const MyCard = () => {
                 <input
                   name="website"
                   type="text"
-                  value={formData.website}
+                  value={formData.website || ''}
                   onChange={handleInputChange}
                   placeholder="www.company.com"
                   disabled={loading}

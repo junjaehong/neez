@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { loadConfig } from '../api/configLoader';
+import { getAuthHeader } from '../api/auth';
 import axios from 'axios';
 import './CameraCapture.css';
 
@@ -13,17 +15,40 @@ const CameraCapture = () => {
   const [capturedImage, setCapturedImage] = useState(null);
   const [extractedData, setExtractedData] = useState({
     name: '',
-    position: '',
+    cardCompanyName: '',
     department: '',
-    company: '',
-    phone: '',
-    email: ''
+    position: '',
+    email: '',
+    phoneNumber: '',
+    lineNumber: '',
+    faxNumber: '',
+    address: '',
+    // memoContent: '',
+    // hashTags: []
   });
 
+  /////////////////////////////////////
+  const [baseURL, setBaseURL] = useState('');
+
+  // config.xml에서 baseURL 가져오기
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const config = await loadConfig();
+        setBaseURL(config.baseURL);
+      } catch (err) {
+        console.error('config 로드 실패:', err);
+      }
+    };
+    fetchConfig();
+  }, []);
+  /////////////////////////////////////
 
   const handleOCR = async (base64Image) => {
+    if (!baseURL) return;
     try {
       // Base64 → Blob 변환
+      const response = await fetch(base64Image);
       const blob = await (await fetch(base64Image)).blob();
 
       // FormData에 담기
@@ -31,34 +56,41 @@ const CameraCapture = () => {
       formData.append('file', blob, 'capture.png');
 
       // OCR API 호출
-      const res = await axios.post(
-        'http://192.168.70.111:8083/api/bizcards/read/upload?user_idx=1',
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
+      const res = await fetch(`${baseURL}/api/bizcards/read`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          ...getAuthHeader() 
         }
-      );
+      });
 
-      console.log('✅ OCR 응답 데이터:', res.data);
+       if (!res.ok) {
+        throw new Error(`HTTP 오류: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      console.log('✅ OCR 응답 데이터:', data);
 
       // API 결과 구조에 맞게 매핑
       // (예: res.data.result.name, res.data.result.phone 등)
-      setExtractedData({
-        idx: res.data.data.idx || '',
-        userIdx: res.data.data.userIdx || '',
-        name: res.data.data.name || '',
-        companyName: res.data.data.companyName || '',
-        department: res.data.data.department || '',
-        position: res.data.data.position || '',
-        email: res.data.data.email || '',
-        phoneNumber: res.data.data.phoneNumber || '',
-        lineNumber: res.data.data.lineNumber || '',
-        faxNumber: res.data.data.faxNumber || '',
-        address: res.data.data.address || '',
-        memoContent: res.data.data.memoContent || '',
-        hashTags: res.data.data.hashTags || ''
-
-      });
+      if (data.success && data.data) {
+        setExtractedData({
+          idx: data.data.idx || '',
+          userIdx: data.data.userIdx || '',
+          name: data.data.name || '',
+          cardCompanyName: data.data.cardCompanyName || '',
+          department: data.data.department || '',
+          position: data.data.position || '',
+          email: data.data.email || '',
+          phoneNumber: data.data.phoneNumber || '',
+          lineNumber: data.data.lineNumber || '',
+          faxNumber: data.data.faxNumber || '',
+          address: data.data.address || '',
+          // memoContent: res.data.data.memoContent || '',
+          // hashTags: res.data.data.hashTags || ''
+        });
+      }
     } catch (err) {
       console.error('❌ OCR 요청 실패:', err);
       alert('OCR 분석 중 오류가 발생했습니다.');
