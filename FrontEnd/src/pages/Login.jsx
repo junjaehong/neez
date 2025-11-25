@@ -27,7 +27,7 @@ const Login = () => {
     }
 
     setLoading(true);
-    setError('');
+    // setError('');
 
     try {
       await login(userId, password);
