@@ -44,32 +44,51 @@ const CameraCapture = () => {
   }, []);
   /////////////////////////////////////
 
+  function base64ToBlob(base64) {
+    const arr = base64.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+
+    return new Blob([u8arr], { type: mime });
+  }
+  /////////////////////////////////////
+
   const handleOCR = async (base64Image) => {
     if (!baseURL) return;
     try {
       // Base64 → Blob 변환
-      const response = await fetch(base64Image);
-      const blob = await (await fetch(base64Image)).blob();
+      const blob = base64ToBlob(base64Image);
+      // const response = await fetch(base64Image);
+      // const blob = await (await fetch(base64Image)).blob();
 
       // FormData에 담기
       const formData = new FormData();
       formData.append('file', blob, 'capture.png');
 
+      for (let pair of formData.entries()) {
+         console.log("폼데이터:", pair[0], pair[1]);
+}
+
       // OCR API 호출
       const res = await fetch(`${baseURL}/api/bizcards/read`, {
         method: 'POST',
-        body: formData,
         headers: {
           ...getAuthHeader() 
-        }
+        },
+        body: formData,
       });
 
        if (!res.ok) {
         throw new Error(`HTTP 오류: ${res.status}`);
       }
-
+      
       const data = await res.json();
-
       console.log('✅ OCR 응답 데이터:', data);
 
       // API 결과 구조에 맞게 매핑
@@ -90,6 +109,7 @@ const CameraCapture = () => {
           // memoContent: res.data.data.memoContent || '',
           // hashTags: res.data.data.hashTags || ''
         });
+        
       }
     } catch (err) {
       console.error('❌ OCR 요청 실패:', err);
