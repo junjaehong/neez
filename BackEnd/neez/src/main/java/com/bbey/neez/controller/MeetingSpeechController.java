@@ -1,9 +1,10 @@
 package com.bbey.neez.controller;
 
 import com.bbey.neez.security.SecurityUtil;
-import com.bbey.neez.service.MeetingMinutesService;
-import com.bbey.neez.service.MeetingSummaryService;
-import com.bbey.neez.service.MeetingSpeechStreamService;
+import com.bbey.neez.service.Meet.MeetingMinutesService;
+import com.bbey.neez.service.Meet.MeetingSpeechStreamService;
+import com.bbey.neez.service.Meet.MeetingSummaryService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

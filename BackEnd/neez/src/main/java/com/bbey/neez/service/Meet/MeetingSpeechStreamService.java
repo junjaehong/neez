@@ -1,4 +1,4 @@
-package com.bbey.neez.service;
+package com.bbey.neez.service.Meet;
 
 import com.bbey.neez.client.ClovaSpeechClient;
 import com.bbey.neez.client.ClovaSpeechClient.ClovaResult;

@@ -1,4 +1,4 @@
-package com.bbey.neez.service;
+package com.bbey.neez.service.Meet;
 
 import java.util.Collections;
 import java.util.List;
