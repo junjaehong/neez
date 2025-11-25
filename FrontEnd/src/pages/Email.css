@@ -1,0 +1,130 @@
+.email-container {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.email-box {
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  min-height: 600px;
+  position: relative;
+}
+
+.dark-mode .email-box {
+  background: var(--dark-surface);
+}
+
+.email-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.email-header h2 {
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.dark-mode .email-header h2 {
+  color: var(--dark-text-primary);
+}
+
+.email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.dark-mode .form-group label {
+  color: var(--dark-text-secondary);
+}
+
+.form-group input {
+  padding: 12px 15px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.dark-mode .form-group input {
+  background: var(--dark-background);
+  color: var(--dark-text-primary);
+  border: 1px solid var(--dark-border);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(115, 113, 100, 0.1);
+}
+
+.disabled-input {
+  background-color: var(--background) !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}
+
+.dark-mode .disabled-input {
+  background-color: var(--dark-background) !important;
+}
+
+.error-message {
+  color: var(--error);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.verification-button {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.verification-button:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 15px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+}
+
+.submit-button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(115, 113, 100, 0.4);
+}

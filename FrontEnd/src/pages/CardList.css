@@ -1,0 +1,136 @@
+.cardlist-container {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.cardlist-box {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  min-height: 600px;
+  position: relative;
+}
+
+.cardlist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+/* .hashtag-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+} */
+
+.hashtag-icon {
+  position: absolute;
+  right: 0;
+  font-size: 24px;
+  color: #737164;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.cardlist {
+  margin-top: 30px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.card-item {
+  background: #f8f8f8;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.card-item:hover {
+  transform: translateX(10px);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+}
+
+.card-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.card-item-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+.card-item-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.card-item-info {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.card-item-company {
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 5px;
+}
+
+.card-item-position {
+  margin-bottom: 5px;
+}
+
+.card-item-contact {
+  font-size: 13px;
+  color: #999;
+}
+
+.card-tags {
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.card-tag {
+  background: #667eea;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 50px 0;
+  color: #999;
+}
+
+.empty-state svg {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+  opacity: 0.3;
+}
+
+.card-item:hover .delete-btn {
+  opacity: 1;
+}

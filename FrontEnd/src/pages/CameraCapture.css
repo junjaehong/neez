@@ -1,0 +1,186 @@
+.camera-container {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.camera-box {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  min-height: 600px;
+  position: relative;
+}
+
+.camera-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.camera-header h2 {
+  font-size: 20px;
+  color: #333;
+}
+
+.camera-view {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.camera-frame {
+  width: 90%;
+  height: 60%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 10px;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.3);
+}
+
+.capture-button {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: 4px solid white;
+  font-size: 28px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.capture-button:hover {
+  transform: translateX(-50%) scale(1.1);
+}
+
+.capture-button:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.captured-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.captured-image {
+  width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.extracted-data {
+  padding: 20px;
+  background: #f8f8f8;
+  border-radius: 10px;
+}
+
+.extracted-data h3 {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.ocr-notice {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.data-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.data-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.data-field label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.data-field input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.data-field input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.retake-button,
+.save-button {
+  flex: 1;
+  padding: 15px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retake-button {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.retake-button:hover {
+  background: #e9e9e9;
+}
+
+.save-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.save-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}

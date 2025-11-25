@@ -1,0 +1,71 @@
+.camera-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: None;
+  font-size: 24px;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  bottom: 15%;
+  left: 85%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* background-color: #737164; */
+  cursor: pointer;
+}
+
+.camera-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
+}
+
+.camera-btn:active {
+  transform: scale(0.95);
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+.fab-menu-item:hover {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  transform: translateX(-5px);
+}
+
+@media (max-width: 768px) {
+  .camera-btn {
+    bottom: 20px;
+    right: 20px;
+  }
+  
+  .fab-menu {
+    bottom: 85px;
+    right: 20px;
+  }
+}
+
+
+
+/* .camera-btn{
+  position: absolute;
+  bottom: 12%;
+  left: 82%;
+  background-color: #737164;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: None;
+  cursor: pointer;
+
+  color: #fff;
+} */

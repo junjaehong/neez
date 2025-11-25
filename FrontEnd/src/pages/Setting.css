@@ -1,0 +1,244 @@
+.setting-container {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.setting-box {
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  min-height: 600px;
+  position: relative;
+}
+
+.dark-mode .setting-box {
+  background: var(--dark-surface);
+}
+
+.setting-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.setting-header h2 {
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.dark-mode .setting-header h2 {
+  color: var(--dark-text-primary);
+}
+
+.setting-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* 설정 항목 */
+.setting-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.dark-mode .setting-item {
+  border-bottom: 1px solid var(--dark-border);
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.setting-row:hover {
+  background-color: rgba(115, 113, 100, 0.05);
+}
+
+.dark-mode .setting-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.setting-row span:first-child {
+  font-size: 16px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.dark-mode .setting-row span:first-child {
+  color: var(--dark-text-primary);
+}
+
+.setting-value {
+  font-size: 14px;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* 토글 메뉴 */
+.toggle-menu {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  max-height: 0;
+  background: var(--background);
+}
+
+.dark-mode .toggle-menu {
+  background: var(--dark-background);
+}
+
+.toggle-menu.open {
+  max-height: 300px;
+  transition: max-height 0.5s ease-in;
+}
+
+.toggle-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  border-top: 1px solid var(--border);
+}
+
+.dark-mode .toggle-option {
+  border-top: 1px solid var(--dark-border);
+}
+
+.toggle-option:hover {
+  background-color: rgba(115, 113, 100, 0.1);
+}
+
+.dark-mode .toggle-option:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.toggle-option.selected {
+  background-color: rgba(115, 113, 100, 0.15);
+}
+
+.dark-mode .toggle-option.selected {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.toggle-option span:first-child {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.dark-mode .toggle-option span:first-child {
+  color: var(--dark-text-primary);
+}
+
+.check {
+  color: var(--primary-color);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* 정보 팝업 스타일 */
+.info-content {
+  margin-top: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.info-content h4 {
+  font-size: 16px;
+  color: var(--primary-color);
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.info-content h4:first-child {
+  margin-top: 0;
+}
+
+.info-content p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.dark-mode .info-content p {
+  color: var(--dark-text-primary);
+}
+
+.about-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dark-mode .about-item {
+  border-bottom: 1px solid var(--dark-border);
+}
+
+.about-item strong {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.dark-mode .about-item strong {
+  color: var(--dark-text-secondary);
+}
+
+.about-item span {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.dark-mode .about-item span {
+  color: var(--dark-text-primary);
+}
+
+.about-description {
+  margin-top: 20px;
+  padding: 15px;
+  background: var(--background);
+  border-radius: 10px;
+}
+
+.dark-mode .about-description {
+  background: var(--dark-background);
+}
+
+.about-description p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.dark-mode .about-description p {
+  color: var(--dark-text-primary);
+}
+
+/* 스크롤바 스타일 */
+.info-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.info-content::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 10px;
+}
+
+.info-content::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+}
+
+.info-content::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
