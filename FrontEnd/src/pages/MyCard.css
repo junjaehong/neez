@@ -18,7 +18,7 @@
 } */
 
 .mycard-box {
-  /* background: #BDBEB6;; */
+  /* background: #BDBEB6; */
   /* background: #F5F5F5; */
   position: relative;
 }
@@ -74,6 +74,26 @@
   color: #737164;
   cursor: pointer;
 } */
+
+/* 스크롤바 스타일 */
+.mycard-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mycard-content::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 10px;
+}
+
+.mycard-content::-webkit-scrollbar-thumb {
+  background: #c3c4bf;
+  border-radius: 10px;
+}
+
+.mycard-content::-webkit-scrollbar-thumb:hover {
+  background: var(--backdark);
+}
+
 
 @media (max-width: 768px) {
   .mypage-box {

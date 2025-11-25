@@ -1,4 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import * as authApi from '../api/auth';
+import { setAuthToken } from '../api/client';
+import api from '../api/client';
+import { loadConfig } from '../api/configLoader';
 
 const AppContext = createContext();
 
@@ -11,265 +15,384 @@ export const useApp = () => {
 };
 
 export const AppProvider = ({ children }) => {
-  // 사용자 정보
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
-  // 내 명함 정보
-  const [myCard, setMyCard] = useState({
-    name: '홍길동',
-    position: '팀장',
-    department: '총무팀',
-    company: 'NaverCloud',
-    phone: '010-1234-5678',
-    email: 'asdf@navercloud.com',
-    address: '서울시 강남구',
-    fax: '02-123-4567',
-    website: 'www.navercloud.com',
-    // customFields: [] // 추가 필드
-  });
-  
-  // 수집한 명함 목록
-  const [cardList, setCardList] = useState([
-    {
-      id: 1,
-      name: '홍길동',
-      position: '대표이사',
-      department: '경영지원',
-      company: 'NaverCloud',
-      phone: '010-1234-5678',
-      email: 'ceo@navercloud.com',
-      createdAt: '2025.10.24',
-      hashtags: ['#중요', '#거래처'],
-      memo: '',
-      companyInfo: '',
-      meetingNotes: []
-    },
-    {
-      id: 2,
-      name: '김길태',
-      position: '팀장',
-      department: '인사과',
-      company: 'Coupang',
-      phone: '010-8765-4321',
-      email: 'tae@coupang.com',
-      createdAt: '2025.10.29',
-      hashtags: ['#마케팅', '#영업'],
-      memo: '',
-      companyInfo: '',
-      meetingNotes: []
+  const [configReady, setConfigReady] = useState(false);
+  const [baseURL, setBaseURL] = useState('');
+
+  // 인증 정보
+  const [auth, setAuth] = useState(() => {
+    try {
+      return {
+        accessToken: localStorage.getItem('accessToken'),
+        refreshToken: localStorage.getItem('refreshToken'),
+        user: JSON.parse(localStorage.getItem('user') || 'null'),
+      };
+    } catch {
+      return { accessToken: null, refreshToken: null, user: null };
     }
-  ]);
-
-  // 해시태그 목록
-  const [hashtags, setHashtags] = useState(['중요', '거래처', '개발', '마케팅', '영업', '인사']);
-  
-  // 설정
-  const [settings, setSettings] = useState({
-    language: 'ko', // ko, en, ja
-    darkMode: false,
-    fontSize: 'medium' // small, medium, large
   });
 
-  // STT 관련
+  const isLoggedIn = !!auth?.accessToken;
+  const [currentUser, setCurrentUser] = useState(auth?.user || null);
+  const [cardList, setCardList] = useState([]);
+  const [hashtags, setHashtags] = useState(['중요', '거래처', '개발', '마케팅', '영업', '인사']);
+
+  // 설정
+  const [settings, setSettings] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('appSettings')) || { 
+        language: 'ko', 
+        darkMode: false, 
+        fontSize: 'medium' 
+      };
+    } catch {
+      return { language: 'ko', darkMode: false, fontSize: 'medium' };
+    }
+  });
+
   const [meetingParticipants, setMeetingParticipants] = useState([]);
   const [currentMeeting, setCurrentMeeting] = useState(null);
+  const [selectedNote, setSelectedNote] = useState(null);
 
-  // 회의록 리스트
-  const [meetingNotes, setMeetingNotes] = useState([
-    {
-    date: "25.10.24",
-    company: "NaverCloud",
-    content: "신규 프로젝트 일정 조율 및 역할 분담 논의...",
-  }
-  ]);
-  // 팝업용
-  const [selectedNote, setSelectedNote] = useState(null); 
-
-  // localStorage에 데이터 저장
+  // Config 로드
   useEffect(() => {
-    const savedData = localStorage.getItem('cardAppData');
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      if (parsedData.myCard) setMyCard(parsedData.myCard);
-      if (parsedData.cardList) setCardList(parsedData.cardList);
-      if (parsedData.currentUser) {
-        setCurrentUser(parsedData.currentUser);
-        setIsLoggedIn(true);
+    const initConfig = async () => {
+      try {
+        const config = await loadConfig();
+        setBaseURL(config.baseURL);
+      } catch (error) {
+        console.error('Config load failed:', error);
+      } finally {
+        setConfigReady(true);
       }
-      if (parsedData.settings) setSettings(parsedData.settings);
-      if (parsedData.hashtags) setHashtags(parsedData.hashtags);
-    }
+    };
+    initConfig();
   }, []);
 
+  // 초기화: localStorage 토큰이 있으면 axios에 적용
   useEffect(() => {
-    const dataToSave = {
-      myCard,
-      cardList,
-      currentUser,
-      settings,
-      hashtags
-    };
-    localStorage.setItem('cardAppData', JSON.stringify(dataToSave));
-    
-    // 다크모드 적용
-    if (settings.darkMode) {
-      document.body.classList.add('dark-mode');
+    if (auth.accessToken) {
+      setAuthToken(auth.accessToken);
     } else {
-      document.body.classList.remove('dark-mode');
+      setAuthToken(null);
+    }
+  }, [auth.accessToken]);
+
+  // auth 변경 시 localStorage 동기화
+  useEffect(() => {
+    try {
+      if (auth.accessToken) {
+        localStorage.setItem('accessToken', auth.accessToken);
+      } else {
+        localStorage.removeItem('accessToken');
+      }
+
+      if (auth.refreshToken) {
+        localStorage.setItem('refreshToken', auth.refreshToken);
+      } else {
+        localStorage.removeItem('refreshToken');
+      }
+
+      if (auth.user) {
+        localStorage.setItem('user', JSON.stringify(auth.user));
+      } else {
+        localStorage.removeItem('user');
+      }
+    } catch (e) {
+      console.error('localStorage error:', e);
+    }
+  }, [auth]);
+
+  // settings 변경 처리
+  useEffect(() => {
+    if (settings.darkMode) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+
+    const textSizeMap = { 
+      small: '14px', 
+      medium: '16px', 
+      large: '18px' 
+    };
+    document.documentElement.style.setProperty(
+      '--app-text-size', 
+      textSizeMap[settings.fontSize] || textSizeMap.medium
+    );
+
+    if (settings.language) {
+      document.documentElement.lang = settings.language;
+    }
+
+    try {
+      localStorage.setItem('appSettings', JSON.stringify(settings));
+    } catch (e) {
+      console.error('localStorage error:', e);
+    }
+  }, [settings]);
+  
+  // 회원가입
+  const register = async ({ userId, password, name, email }) => {
+    const data = await authApi.register({ userId, password, name, email });
+
+    // 서버 응답 구조에 맞춰 user/profile 추출
+    const profile = data.user || data.profile || { name, email };
+    setCurrentUser(profile);
+    
+    // 서버가 토큰을 반환하면 auth 상태로 반영 (옵션)
+    if (data.accessToken || data.refreshToken) {
+      setAuth({
+        accessToken: data.accessToken || null,
+        refreshToken: data.refreshToken || null,
+        user: profile
+      });
     }
     
-    // 폰트 크기 적용
-    document.body.className = document.body.className.replace(/font-size-\w+/, '');
-    document.body.classList.add(`font-size-${settings.fontSize}`);
-  }, [myCard, cardList, currentUser, settings, hashtags]);
-
-  // 내 명함 수정
-  const updateMyCard = (updatedCard) => {
-    setMyCard(updatedCard);
-  };
-
-  // 명함 추가
-  const addCard = (newCard) => {
-    const card = {
-      ...newCard,
-      id: Date.now(),
-      createdAt: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace('.', ''),
-      hashtags: [],
-      memo: '',
-      companyInfo: '',
-      meetingNotes: []
-    };
-    setCardList([card, ...cardList]);
-  };
-
-  // 명함 삭제
-  const deleteCard = (cardId) => {
-    setCardList(cardList.filter(card => card.id !== cardId));
-  };
-
-  // 명함 수정
-  const updateCard = (cardId, updatedCard) => {
-    setCardList(cardList.map(card => 
-      card.id === cardId ? { ...card, ...updatedCard } : card
-    ));
-  };
-
-  // 해시태그 추가
-  const addHashtag = (tag) => {
-    if (!hashtags.includes(tag)) {
-      setHashtags([...hashtags, tag]);
-    }
-  };
-
-  // 해시태그 삭제
-  const deleteHashtag = (tag) => {
-    setHashtags(hashtags.filter(t => t !== tag));
-    // 명함에서도 해당 해시태그 제거
-    setCardList(cardList.map(card => ({
-      ...card,
-      hashtags: card.hashtags.filter(t => t !== `#${tag}`)
-    })));
-  };
-
-  // 명함에 해시태그 추가
-  const addHashtagToCard = (cardId, tag) => {
-    setCardList(cardList.map(card => {
-      if (card.id === cardId) {
-        const tagWithHash = tag.startsWith('#') ? tag : `#${tag}`;
-        if (!card.hashtags.includes(tagWithHash)) {
-          return { ...card, hashtags: [...card.hashtags, tagWithHash] };
-        }
-      }
-      return card;
-    }));
-  };
-
-  // 회의록 추가
-  const addMeetingNote = (cardId, note) => {
-    setCardList(cardList.map(card => {
-      if (card.id === cardId) {
-        return { 
-          ...card, 
-          meetingNotes: [...(card.meetingNotes || []), {
-            id: Date.now(),
-            date: new Date().toISOString(),
-            content: note,
-            language: settings.language
-          }]
-        };
-      }
-      return card;
-    }));
-  };
-
-  // 설정 업데이트
-  const updateSettings = (newSettings) => {
-    setSettings({ ...settings, ...newSettings });
+    return data;
   };
 
   // 로그인
-  const login = (userId, password) => {
-    setCurrentUser({ id: userId, name: myCard.name });
-    setIsLoggedIn(true);
-    return true;
+  ///////////////////////////
+  const login = async (userId, password) => {
+    // if (!baseURL) {
+    //   console.warn("config.xml에 baseURL 없음. 기본값 사용");
+    //   setBaseURL(process.env.REACT_APP_BASE_URL);
+    // }
+
+    if (!configReady) {
+      console.warn("⚠️ config.xml이 아직 로드되지 않았습니다. 잠시 대기 후 재시도합니다.");
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    // if (!configReady) {
+    //   await new Promise(resolve => {
+    //     const interval = setInterval(() => {
+    //       if (configReady) {
+    //         clearInterval(interval);
+    //         resolve();
+    //       }
+    //     }, 50);
+    //   });
+    // }
+  ////////////////////////////
+    try {
+      ////////////////////////////
+      await api.ensureConfig?.();
+      ////////////////////////////
+      const { accessToken, refreshToken, user } = await authApi.login(userId, password);
+      // 1) axios 즉시 업데이트 (중요)
+      setAuthToken(accessToken);
+
+      // 2) 상태 반영
+      setAuth({ accessToken, refreshToken, user });
+
+      // 3) 토큰이 axios에 확실히 반영된 후 호출
+      await fetchMyCard();
+
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    }
+  }
+    // setAuth({ accessToken, refreshToken, user });
+    
+    // try {
+    //   await fetchMyCard();
+    // } catch (err) {
+    //   // 내 명함 불러오기 실패해도 로그인은 성공
+    //   console.error('Failed to fetch user card:', err);
+    // }
+    
+  //   return { accessToken, refreshToken, user };
+  // };
+
+  // 내 명함 불러오기
+  const fetchMyCard = async () => {
+    try {
+      const res = await api.get('/api/users/me');
+      const userData = res.data;
+
+      if (!userData.success) {
+        throw new Error(userData.message || '내 명함 조회 실패');
+      }
+
+      // 실제 사용자 정보는 userData.data 안에 있음
+      const user = userData.data;
+
+      setCurrentUser(user);
+      setAuth(prev => ({ ...prev, user }));
+
+      return userData;
+    } catch (err) {
+      console.error("내 명함 불러오기 실패:", err);
+      throw err;
+    }
   };
+
+  // 내 명함 수정하기
+  const updateMyCard = async (data) => {
+    try {
+      const res = await api.post('/api/users/me', data);
+      const updatedUser = res.data.data;
+      
+      setCurrentUser(prev => ({ ...prev, ...updatedUser }));
+      setAuth(prev => ({ ...prev, user: { ...prev.user, ...updatedUser } }));
+      
+      return updatedUser;
+    } catch (err) {
+      console.error("내 명함 수정 실패:", err);
+      throw err;
+    }
+  };
+
 
   // 로그아웃
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+    
+    setAuth({ accessToken: null, refreshToken: null, user: null });
     setCurrentUser(null);
-    setIsLoggedIn(false);
+    setAuthToken(null);
   };
 
-  // 회원가입
-  const register = (userData) => {
-    console.log('회원가입:', userData);
-    return true;
-  };
 
   // 비밀번호 변경
-  const changePassword = (oldPassword, newPassword) => {
-    // 실제로는 API 호출
-    console.log('비밀번호 변경');
-    return true;
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      const res = await api.post('/api/auth/me/change-password', {
+        currentPassword,
+        newPassword
+      });
+      return res.data.success || true;
+    } catch (err) {
+      console.error('비밀번호 변경 실패:', err);
+      return false;
+    }
   };
 
   // 이메일 변경
-  const changeEmail = (newEmail) => {
-    // 실제로는 API 호출
-    console.log('이메일 변경:', newEmail);
-    return true;
+  const changeEmail = async (email) => {
+    try {
+      const res = await api.post('/api/users/change-email', { email });
+      if (res.data.success) {
+        setCurrentUser(prev => ({ ...prev, email }));
+        setAuth(prev => ({ 
+          ...prev, 
+          user: { ...prev.user, email } 
+        }));
+      }
+      return res.data.success || true;
+    } catch (err) {
+      console.error('이메일 변경 실패:', err);
+      return false;
+    }
   };
 
   // 회원 탈퇴
-  const deleteAccount = () => {
-    // 실제로는 API 호출
-    localStorage.removeItem('cardAppData');
-    setCurrentUser(null);
-    setIsLoggedIn(false);
-    return true;
+  const deleteAccount = async () => {
+    try {
+      await api.delete('/api/users/me');
+      
+      // 모든 데이터 초기화
+      localStorage.removeItem('cardAppData');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      
+      setAuth({ accessToken: null, refreshToken: null, user: null });
+      setCurrentUser(null);
+      setCardList([]);
+      
+      return true;
+    } catch (err) {
+      console.error('회원 탈퇴 실패:', err);
+      return false;
+    }
+  };
+
+  // 설정 업데이트
+  const updateSettings = (patch) => {
+    setSettings(prev => ({ ...prev, ...patch }));
+  };
+
+  const updateCurrentUser = (data) => {
+    setCurrentUser(prev => ({ ...prev, ...data }));
+    setAuth(prev => ({ 
+      ...prev, 
+      user: { ...prev.user, ...data } 
+    }));
+  };
+
+  // 명함 관련 함수들
+  const addCard = (newCard) => {
+    const card = { 
+      ...newCard, 
+      id: Date.now(), 
+      createdAt: new Date().toLocaleDateString('ko-KR') 
+    };
+    setCardList(prev => [card, ...prev]);
+  };
+
+  const deleteCard = (cardId) => {
+    setCardList(prev => prev.filter(c => c.id !== cardId));
+  };
+
+  const updateCard = (cardId, updatedCard) => {
+    setCardList(prev => prev.map(c => 
+      c.id === cardId ? { ...c, ...updatedCard } : c
+    ));
+  };
+
+  const addMeetingNote = (cardId, note) => {
+    setCardList(prev => prev.map(card => 
+      card.id === cardId 
+        ? { 
+            ...card, 
+            meetingNotes: [
+              ...(card.meetingNotes || []), 
+              { 
+                id: Date.now(), 
+                date: new Date().toISOString(), 
+                content: note, 
+                language: settings.language 
+              }
+            ] 
+          } 
+        : card
+    ));
   };
 
   const value = {
+    // State
+    baseURL,
     currentUser,
     isLoggedIn,
-    myCard,
     cardList,
     hashtags,
     settings,
     meetingParticipants,
     currentMeeting,
+    selectedNote,
+
+    // Setters
     setMeetingParticipants,
     setCurrentMeeting,
+    setSelectedNote,
+
+    // Functions
+    fetchMyCard,
     updateMyCard,
+    updateCurrentUser,
     addCard,
     deleteCard,
     updateCard,
-    addHashtag,
-    deleteHashtag,
-    addHashtagToCard,
     addMeetingNote,
     updateSettings,
+    
+    // Auth
     login,
     logout,
     register,
@@ -278,5 +401,20 @@ export const AppProvider = ({ children }) => {
     deleteAccount
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {!configReady ? (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh' 
+        }}>
+          Loading...
+        </div>
+      ) : (
+        children
+      )}
+    </AppContext.Provider>
+  );
 };
