@@ -42,8 +42,8 @@
 
 .input-button {
   padding: 10px 20px;
-  background-color: #737164;
-  color: white;
+  background-color: #BDBEB6;
+  color: #333;
   border: none;
   border-radius: 5px;
   cursor: pointer;
@@ -53,5 +53,6 @@
 }
 
 .input-button:hover {
-  background-color: #5a5952;
+  background-color: #737164;
+  color: white;
 }

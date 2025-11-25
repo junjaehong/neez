@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Logo from '../components/Logo';
-import FAB from '../components/FAB';
 import './Mypage.css';
 
 const Mypage = () => {
   const navigate = useNavigate();
-  const { myCard, logout, deleteAccount } = useApp();
+  const { currentUser, logout, deleteAccount } = useApp();
   const [showAccountToggle, setShowAccountToggle] = useState(false);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   
@@ -52,8 +51,8 @@ const Mypage = () => {
       <div className="mypage-box">
 
         {/* 마이페이지 헤더 */}
-        <div className="mypage-header">
-          <button className="back-button" onClick={handleBack}>
+        <div className="mypage-header app-header">
+          <button className="back-btn" onClick={handleBack}>
             ←
           </button>
           <Logo size="small" />
@@ -61,7 +60,8 @@ const Mypage = () => {
 
         {/* 반갑습니다 */}
         <div className="welcome-text">
-          <h2>반갑습니다. <strong>{myCard.name}</strong>님</h2>
+          {/* <h2>반갑습니다. <strong></strong>&nbsp;님</h2> */}
+          <h2>반갑습니다. <strong>{currentUser.name}</strong>&nbsp;님</h2>
         </div>
 
         {/* 마이페이지 메뉴 */}
@@ -71,7 +71,8 @@ const Mypage = () => {
             <li onClick={() => setShowAccountToggle(!showAccountToggle)}
                 className={showAccountToggle ? 'active' : ''}
             >
-              계정관리 {showAccountToggle ? '▲' : '▼'}
+              계정관리 
+              {/* {showAccountToggle ? '▲' : '▼'} */}
             </li>
             </ul>
             {/* 계정관리 토글 메뉴 */}
@@ -96,20 +97,19 @@ const Mypage = () => {
           <h3>LOGOUT</h3>
         </div>
 
-        {/* 카메라 버튼 */}
-        <FAB />
-        
       </div>
 
       {/* 계정 탈퇴 확인 팝업 */}
       {showDeletePopup && (
         <div className="popup-overlay" onClick={() => setShowDeletePopup(false)}>
-          <div className="popup-content" onClick={e => e.stopPropagation()}>
+          <div className="popup-content mypage-popup-content" onClick={e => e.stopPropagation()}>
             <button className="popup-close" onClick={() => setShowDeletePopup(false)}>×</button>
             <h3>계정 탈퇴</h3>
             <div className="popup-message">
               <p>정말 탈퇴하시겠습니까?</p>
-              <p className="warning">탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.</p>
+              <p className="warning">탈퇴 시 모든 데이터가 삭제되며
+                <br />
+                복구할 수 없습니다.</p>
             </div>
             <div className="popup-actions">
               <button 

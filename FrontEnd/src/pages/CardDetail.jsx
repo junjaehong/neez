@@ -7,7 +7,7 @@ import './CardDetail.css';
 const CardDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const baseURL = 'http://192.168.70.114:8083/api'; // 공통 prefix
+  const baseURL = 'http://192.168.70.111:8083/api'; // 공통 prefix
   // const { addMeetingNote } = useApp();
   
   const [card, setCard] = useState(null);
@@ -271,7 +271,7 @@ const CardDetail = () => {
   return (
     <div className="card-detail-container">
       <div className="card-detail-box">
-        <div className="card-detail-header">
+        <div className="card-detail-header app-header">
           <button className="back-button" onClick={handleBack}>←</button>
           <h2>명함 상세보기</h2>
           
