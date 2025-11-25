@@ -13,7 +13,7 @@ const SearchBar = ({ onSearch }) => {
   };
 
   return (
-    <form className="search-container" onSubmit={handleSearch}>
+    <form className="search-area" onSubmit={handleSearch}>
       <div className="search-content">
         <input
           type="text"

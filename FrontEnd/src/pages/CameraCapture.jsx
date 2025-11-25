@@ -72,14 +72,14 @@ const CameraCapture = () => {
       formData.append('file', blob, 'capture.png');
 
       for (let pair of formData.entries()) {
-         console.log("폼데이터:", pair[0], pair[1]);
-}
+         console.log("폼데이터:", pair[0], pair[1] instanceof Blob, pair[1].size);
+      }
 
       // OCR API 호출
-      const res = await fetch(`${baseURL}/api/bizcards/read`, {
+      const res = await fetch(`${baseURL}/api/bizcards/read/upload`, {
         method: 'POST',
         headers: {
-          ...getAuthHeader() 
+          ...getAuthHeader()
         },
         body: formData,
       });
@@ -240,10 +240,10 @@ const CameraCapture = () => {
     <div className="camera-container">
       <div className="camera-box">
         <div className="camera-header">
-          <button className="back-button" onClick={handleBack}>
+          <button className="back-btn" onClick={handleBack}>
             ←
           </button>
-          <h2>명함 촬영</h2>
+          <p>명함 촬영</p>
           <div></div>
         </div>
 

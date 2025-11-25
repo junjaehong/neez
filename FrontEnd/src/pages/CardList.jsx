@@ -185,7 +185,7 @@ const CardList = () => {
 
         {/* 명함 목록 헤더 */}
         <div className="cardlist-header app-header">
-          <button className="back-button" onClick={handleBack}>
+          <button className="back-btn" onClick={handleBack}>
             ←
           </button>
           {/* <div className="hashtag-icon" onClick={handleHashtagList}>#</div> */}
@@ -208,7 +208,7 @@ const CardList = () => {
                 >
                   ×
                 </button> */}
-                <div className="card-item-header">
+                <div className="card-item-head">
                   <div className="card-item-name">{card.name}</div>
                   <div className="card-item-date">{card.createdAt}</div>
                 </div>

@@ -1,38 +1,60 @@
-.card-detail-container {
+/* .card-detail-container {
   width: 100%;
   max-width: 390px;
   margin: 0 auto;
-}
+} */
 
-.card-detail-box {
+/* .card-detail-box {
   background: var(--white);
   border-radius: 20px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   padding: 20px;
   min-height: 600px;
   position: relative;
-}
-
-.dark-mode .card-detail-box {
-  background: var(--dark-surface);
-  color: var(--dark-text-primary);
-}
+} */
 
 .card-detail-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 20px;
 }
 
-.card-detail-header h2 {
-  font-size: 20px;
-  color: var(--text-primary);
+.card-detail-header > p {
+  font-size: 18px;
+  color: #333;
+  font-weight: bold;
 }
 
-.dark-mode .card-detail-header h2 {
-  color: var(--dark-text-primary);
+.card-detail-content {
+  margin-bottom: 25px;
+  /* 추가된 부분: 내부 스크롤 허용 및 모바일 스무스 스크롤 */
+  overflow-y: auto; /* 세로 스크롤 허용 */
+  /* -webkit-overflow-scrolling: touch; iOS에서 스무스 스크롤 */
+  /* 뷰포트에 맞춘 최대 높이 (헤더/여백에 따라 값 조정) */
+  max-height: 510px;
 }
+
+/* 스크롤바 스타일 */
+.mycard-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mycard-content::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 10px;
+}
+
+.mycard-content::-webkit-scrollbar-thumb {
+  background: #c3c4bf;
+  border-radius: 10px;
+}
+
+.mycard-content::-webkit-scrollbar-thumb:hover {
+  background: var(--backdark);
+}
+
 
 .bottom-btn-group {
   display: flex;
@@ -118,7 +140,7 @@
   color: var(--primary-dark);
 }
 
-.save-button {
+/* .save-button {
   width: 100%;
   padding: 12px;
   background: var(--primary-color);
@@ -134,7 +156,7 @@
 
 .save-button:hover {
   background: var(--primary-dark);
-}
+} */
 
 /* 해시태그 섹션 */
 .hashtag-section {
