@@ -1,7 +1,6 @@
-package com.bbey.neez.entity.meet;
+package com.bbey.neez.entity.Meet;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -10,6 +9,9 @@ import java.time.LocalDateTime;
 @Table(name = "meetRTChunks")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class MeetRTChunk {
 
     @Id
@@ -17,23 +19,22 @@ public class MeetRTChunk {
     private Long idx;
 
     @Column(name = "meet_idx", nullable = false)
-    private Long meetIdx;  // 나중에 @ManyToOne( Meeting ) 으로 바꿔도 됨
+    private Long meetIdx;       // meetings.idx
 
-    @Column(name = "seq", nullable = false)
-    private Long seq;
+    @Column(nullable = false)
+    private Long seq;           // chunk 순서
 
-    @Column(name = "chunk_type", nullable = false, length = 16)
-    private String chunkType;   // 예: "partial", "final"
+    @Column(name = "chunk_type", length = 16, nullable = false)
+    private String chunkType;   // STT / USER_NOTE 등 구분용 (안쓰면 STT 고정)
 
     @Column(name = "lang_code", length = 10)
-    private String langCode;    // 예: "ko", "en"
+    private String langCode;    // ko, en 등
 
-    @Lob
-    @Column(name = "content", nullable = false)
-    private String content;     // STT 결과 텍스트
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String content;     // 인식된 텍스트
 
     @Column(name = "is_final", nullable = false)
-    private boolean finalChunk; // tinyint(1) ↔ boolean
+    private boolean finalChunk; // tinyint(1) -> boolean
 
     @Column(name = "created_at", updatable = false, insertable = false)
     private LocalDateTime createdAt;

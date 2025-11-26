@@ -1,13 +1,14 @@
-package com.bbey.neez.entity.meet;
+package com.bbey.neez.entity.Meet;
 
-import com.bbey.neez.entity.BizCard;
 import lombok.*;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "meetingParticipants")
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -17,14 +18,12 @@ public class MeetingParticipant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idx;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "meet_idx", nullable = false)
-    private Meeting meeting;  // 회의 엔티티 (이미 존재해야 함)
+    @Column(name = "meet_idx", nullable = false)
+    private Long meetIdx;       // meetings.idx
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bizcard_idx", nullable = false)
-    private BizCard bizCard;  // 명함 엔티티 (bizCards 테이블 매핑)
+    @Column(name = "bizcard_idx", nullable = false)
+    private Long bizcardIdx;    // bizCards.idx
 
-    @Column(nullable = false, name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(name = "created_at", updatable = false, insertable = false)
+    private LocalDateTime createdAt;
 }

@@ -1,12 +1,11 @@
-package com.bbey.neez.repository.meet;
+package com.bbey.neez.repository.Meet;
 
-import com.bbey.neez.entity.meet.MeetRTChunk;
+import com.bbey.neez.entity.Meet.MeetRTChunk;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
 public interface MeetRTChunkRepository extends JpaRepository<MeetRTChunk, Long> {
 
-    // 회의별 전체 조각을 순서대로
     List<MeetRTChunk> findByMeetIdxOrderBySeqAsc(Long meetIdx);
 }

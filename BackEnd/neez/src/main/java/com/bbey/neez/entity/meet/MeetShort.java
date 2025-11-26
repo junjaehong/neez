@@ -1,7 +1,6 @@
-package com.bbey.neez.entity.meet;
+package com.bbey.neez.entity.Meet;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -10,6 +9,9 @@ import java.time.LocalDateTime;
 @Table(name = "meetShorts")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class MeetShort {
 
     @Id
@@ -17,20 +19,19 @@ public class MeetShort {
     private Long idx;
 
     @Column(name = "user_idx", nullable = false)
-    private Long userIdx;      // users.idx (나중에 @ManyToOne User 로 바꿔도 ok)
+    private Long userIdx;     // 만든 사람 (또는 회의 생성자)
 
-    @Column(name = "title", nullable = false, length = 200)
-    private String title;      // 회의명 (예: 251126-고객미팅)
+    @Column(nullable = false, length = 200)
+    private String title;     // 회의명 (meetings.title 복사해서 저장)
 
-    @Lob
-    @Column(name = "shorts")
-    private String shorts;     // 요약본
+    @Column(name = "shorts", columnDefinition = "TEXT")
+    private String shorts;    // 요약 내용 (bullet list)
 
     @Column(name = "summary_lang", length = 10)
-    private String summaryLang; // "ko", "en" 등
+    private String summaryLang;  // ko 등
 
     @Column(name = "audio_url", length = 500)
-    private String audioUrl;    // 원본 녹음 파일 위치
+    private String audioUrl;  // 전체 녹음 파일 URL
 
     @Column(name = "created_at", updatable = false, insertable = false)
     private LocalDateTime createdAt;

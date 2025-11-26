@@ -1,7 +1,6 @@
-package com.bbey.neez.entity.meet;
+package com.bbey.neez.entity.Meet;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -10,6 +9,9 @@ import java.time.LocalDateTime;
 @Table(name = "meetTranslations")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class MeetTranslation {
 
     @Id
@@ -17,14 +19,13 @@ public class MeetTranslation {
     private Long idx;
 
     @Column(name = "meet_idx", nullable = false)
-    private Long meetIdx;     // 회의 ID
+    private Long meetIdx;
 
-    @Column(name = "lang_code", nullable = false, length = 10)
-    private String langCode;  // 번역 언어 코드 (예: "en")
+    @Column(name = "lang_code", length = 10, nullable = false)
+    private String langCode;    // 번역 언어
 
-    @Lob
-    @Column(name = "translated")
-    private String translated; // 번역된 전체 텍스트 or 조각
+    @Column(columnDefinition = "TEXT")
+    private String translated;  // 번역 결과 전체
 
     @Column(name = "created_at", updatable = false, insertable = false)
     private LocalDateTime createdAt;
