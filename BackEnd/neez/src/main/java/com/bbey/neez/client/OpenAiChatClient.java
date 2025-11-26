@@ -1,219 +1,174 @@
 package com.bbey.neez.client;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.util.Collections;
+import java.util.List;
+
+@Slf4j
 @Component
 public class OpenAiChatClient {
 
-  private static final String DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com";
-  private static final String DEFAULT_MODEL = "models/gemini-1.5-flash";
-  private static final String FALLBACK_MESSAGE = "요약 서비스가 구성되지 않아 자동 요약을 제공할 수 없습니다.";
-  private static final Logger log = LoggerFactory.getLogger(OpenAiChatClient.class);
+    private static final String FALLBACK_MESSAGE = "- 요약 기능이 비활성화되었습니다.";
 
-  private final WebClient webClient;
-  private final String model;
-  private final double temperature;
-  private final boolean enabled;
-
-  public OpenAiChatClient(
-      WebClient.Builder builder,
-      @Value("${gemini.api-key:${openai.api-key:}}") String apiKey,
-      @Value("${gemini.model:${openai.model:" + DEFAULT_MODEL + "}}") String model,
-      @Value("${gemini.temperature:0.2}") double temperature,
-      @Value("${gemini.base-url:" + DEFAULT_BASE_URL + "}") String baseUrl) {
-
-    this.model = model;
-    this.temperature = temperature;
-
-    if (!StringUtils.hasText(apiKey)) {
-      log.warn("Gemini/OpenAI API key not configured (gemini.api-key or openai.api-key). OpenAiChatClient disabled.");
-      this.webClient = builder.baseUrl(baseUrl).build();
-      this.enabled = false;
-      return;
-    }
-
-    this.webClient = builder
-        .baseUrl(baseUrl)
-        .defaultHeader("x-goog-api-key", apiKey)
-        .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-        .build();
-
-    this.enabled = true;
-  }
-
-  public String summarize(String transcript) {
-    if (!enabled) {
-      return FALLBACK_MESSAGE;
-    }
-
-    GeminiRequest request = GeminiRequest.of(model, temperature, transcript);
-
-    GeminiResponse response = webClient.post()
-        .uri(uriBuilder -> uriBuilder
-            .path("/v1beta/")          // 변경: 변수 치환 대신 경로 조립
-            .path(model)               // model에 포함된 '/'를 그대로 사용
-            .path(":generateContent")
-            .build())
-        .bodyValue(request)
-        .retrieve()
-        .bodyToMono(GeminiResponse.class)
-        .block();
-
-    if (response == null) {
-      throw new IllegalStateException("Gemini 응답이 없습니다.");
-    }
-
-    return response.firstText()
-        .orElseThrow(() -> new IllegalStateException("Gemini 응답에서 요약을 찾을 수 없습니다"));
-  }
-
-  // === DTOs ===
-
-  private static class GeminiRequest {
-    private final List<Content> contents;
-    private final GenerationConfig generationConfig;
-
-    private GeminiRequest(List<Content> contents, GenerationConfig generationConfig) {
-      this.contents = contents;
-      this.generationConfig = generationConfig;
-    }
-
-    static GeminiRequest of(String model, double temperature, String transcript) {
-      // 'system'은 유효하지 않음. Google GL API는 'model' 또는 'user'를 사용.
-      Content system = Content.of("model", "You are an assistant that provides concise bullet summaries of meeting transcripts.");
-      Content user = Content.of("user", transcript);
-      GenerationConfig config = new GenerationConfig(temperature);
-
-      return new GeminiRequest(Arrays.asList(system, user), config);
-    }
-
-    public List<Content> getContents() {
-      return contents;
-    }
-
-    public GenerationConfig getGenerationConfig() {
-      return generationConfig;
-    }
-  }
-
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  private static class Content {
-    private String role;
-    private List<Part> parts;
-
-    Content() {
-      // for Jackson
-    }
-
-    private Content(String role, List<Part> parts) {
-      this.role = role;
-      this.parts = parts;
-    }
-
-    static Content of(String role, String text) {
-      return new Content(role, Collections.singletonList(new Part(text)));
-    }
-
-    public String getRole() {
-      return role;
-    }
-
-    public void setRole(String role) {
-      this.role = role;
-    }
-
-    public List<Part> getParts() {
-      return parts;
-    }
-
-    public void setParts(List<Part> parts) {
-      this.parts = parts;
-    }
-  }
-
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  private static class Part {
-    private String text;
-
-    Part() {
-      // for Jackson
-    }
-
-    Part(String text) {
-      this.text = text;
-    }
-
-    public String getText() {
-      return text;
-    }
-
-    public void setText(String text) {
-      this.text = text;
-    }
-  }
-
-  private static class GenerationConfig {
+    private final WebClient webClient;
+    private final String model;
     private final double temperature;
+    private final boolean enabled;
 
-    GenerationConfig(double temperature) {
-      this.temperature = temperature;
+    public OpenAiChatClient(
+            @Value("${gemini.api-key}") String apiKey,
+            @Value("${gemini.model}") String model,
+            @Value("${gemini.temperature:0.2}") double temperature,
+            @Value("${gemini.base-url}") String baseUrl
+    ) {
+        this.model = model;
+        this.temperature = temperature;
+        this.enabled = StringUtils.hasText(apiKey);
+
+        this.webClient = WebClient.builder()
+                .baseUrl(baseUrl + "/v1beta")  // https://generativelanguage.googleapis.com/v1beta
+                .defaultHeader("x-goog-api-key", apiKey)
+                .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                .build();
     }
 
-    public double getTemperature() {
-      return temperature;
-    }
-  }
+    /**
+     * 회의 내용 요약
+     */
+    public String summarize(String transcript) {
+        if (!enabled) return FALLBACK_MESSAGE;
+        if (!StringUtils.hasText(transcript)) return "- 회의 내용이 비어 있습니다.";
 
-  private static class GeminiResponse {
-    private List<Candidate> candidates;
+        try {
+            GeminiRequest request = GeminiRequest.fromTranscript(transcript, temperature);
 
-    Optional<String> firstText() {
-      if (candidates == null || candidates.isEmpty()) {
-        return Optional.empty();
-      }
-      return candidates.stream()
-          .map(Candidate::firstText)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .findFirst();
-    }
+            GeminiResponse response = webClient.post()
+                    .uri("/models/{model}:generateContent", model)
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(GeminiResponse.class)
+                    .block();
 
-    public List<Candidate> getCandidates() {
-      return candidates;
-    }
+            if (response == null || response.candidates == null || response.candidates.isEmpty())
+                return "- 요약 결과가 비어 있습니다.";
 
-    public void setCandidates(List<Candidate> candidates) {
-      this.candidates = candidates;
-    }
-  }
+            GeminiResponse.Candidate candidate = response.candidates.get(0);
+            if (candidate == null || candidate.content == null)
+                return "- 요약 결과가 비어 있습니다.";
 
-  private static class Candidate {
-    private Content content;
+            return candidate.content.extractTextOnly();
 
-    Optional<String> firstText() {
-      if (content == null || content.getParts() == null || content.getParts().isEmpty()) {
-        return Optional.empty();
-      }
-      return Optional.ofNullable(content.getParts().get(0).getText());
+        } catch (WebClientResponseException e) {
+            log.error("Gemini 요약 호출 실패 (HTTP {}): {}", e.getRawStatusCode(), e.getResponseBodyAsString());
+            throw e;
+        }
     }
 
-    public Content getContent() {
-      return content;
+    // -------------------------------------------------------
+    // Gemini 요청/응답 구조
+    // -------------------------------------------------------
+
+    /**
+     * generateContent 요청 DTO
+     */
+    private static class GeminiRequest {
+        public List<Content> contents;
+        public GenerationConfig generationConfig;
+
+        public GeminiRequest(List<Content> contents, GenerationConfig generationConfig) {
+            this.contents = contents;
+            this.generationConfig = generationConfig;
+        }
+
+        public static GeminiRequest fromTranscript(String transcript, double temperature) {
+
+            String prompt =
+                    "너는 회의/통화 내용을 요약하는 전문가이다.\n" +
+                    "아래 규칙을 반드시 지켜서 요약을 작성하라.\n" +
+                    "\n" +
+                    "1. 반드시 한국어로 작성한다.\n" +
+                    "2. 출력은 '-' 로 시작하는 bullet list만 작성한다.\n" +
+                    "3. 회의가 짧으면 1~2개의 bullet, 길면 주요 논의/결정/액션 위주로 여러 bullet 작성.\n" +
+                    "4. '회의 내용이 짧다', '요약이 어렵다', '맥락이 부족하다' 등의 설명은 절대 쓰지 않는다.\n" +
+                    "5. bullet 외의 문장, 제목, 마크다운(## 등), 결론 등은 절대 작성하지 않는다.\n" +
+                    "\n" +
+                    "다음은 요약할 회의 전문이다:\n";
+
+            String fullText = prompt + transcript;
+
+            Content userMsg = Content.user(fullText);
+            GenerationConfig config = new GenerationConfig(temperature, 512);
+
+            return new GeminiRequest(Collections.singletonList(userMsg), config);
+        }
     }
 
-    public void setContent(Content content) {
-      this.content = content;
+    /**
+     * Content(메시지)
+     */
+    private static class Content {
+        public String role; // user
+        public List<Part> parts; // [{text: "..."}]
+
+        public Content(String role, List<Part> parts) {
+            this.role = role;
+            this.parts = parts;
+        }
+
+        public static Content user(String text) {
+            return new Content("user", Collections.singletonList(new Part(text)));
+        }
+
+        public String extractTextOnly() {
+            if (parts == null || parts.isEmpty()) return null;
+
+            StringBuilder sb = new StringBuilder();
+            for (Part p : parts) {
+                if (p.text != null) sb.append(p.text);
+            }
+            return sb.toString().trim();
+        }
     }
-  }
+
+    /**
+     * Part 구조
+     */
+    private static class Part {
+        public String text;
+
+        public Part(String text) {
+            this.text = text;
+        }
+    }
+
+    /**
+     * Generation 설정
+     */
+    private static class GenerationConfig {
+        public Double temperature;
+        public Integer maxOutputTokens;
+
+        public GenerationConfig(Double temperature, Integer maxOutputTokens) {
+            this.temperature = temperature;
+            this.maxOutputTokens = maxOutputTokens;
+        }
+    }
+
+    /**
+     * 응답 DTO
+     */
+    private static class GeminiResponse {
+        public List<Candidate> candidates;
+
+        private static class Candidate {
+            public Content content;
+        }
+    }
 }

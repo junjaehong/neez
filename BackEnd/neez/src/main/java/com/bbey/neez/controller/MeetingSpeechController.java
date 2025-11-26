@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,12 +42,15 @@ public class MeetingSpeechController {
     this.streamService = streamService;
   }
 
-  @Operation(summary = "단일 회의 음성 업로드 + STT + 요약", description = "하나의 전체 음성 파일을 업로드하여 STT와 요약을 수행합니다.\n" +
-      "meetingId는 회의를 구분하는 임의의 숫자입니다. (예: 1)\n")
-  @PostMapping("/{meetingId}/audio")
+  @Operation(summary = "단일 회의 음성 업로드 + STT + 요약", description = "하나의 전체 음성 파일을 업로드하여 STT와 요약을 수행합니다.\n"
+      + "meetingId는 회의를 구분하는 임의의 숫자입니다. (예: 1)\n")
+  @PostMapping(value = "/{meetingId}/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE // 🔥 이 줄 추가
+  )
   public ResponseEntity<Map<String, Object>> upload(
       @Parameter(description = "회의 세션 ID (예: 1)") @PathVariable Long meetingId,
-      @RequestPart("file") MultipartFile file,
+
+      @Parameter(description = "업로드할 회의 음성 파일") @RequestPart("file") MultipartFile file, // 🔥 그대로 사용해도 됨
+
       @Parameter(description = "원본 언어 코드 (예: ko)", example = "ko") @RequestParam(value = "sourceLang", required = false) String sourceLang)
       throws Exception {
 
@@ -133,19 +137,18 @@ public class MeetingSpeechController {
     return ResponseEntity.ok(payload);
   }
 
-  @Operation(summary = "회의 종료 후 회의록 생성", description = "지금까지 업로드된 음성 청크들을 바탕으로\n" +
-      "- 원본 transcript\n" +
-      "- 한국어 번역 transcript\n" +
-      "- 요약(summary)\n" +
-      "- segment 목록\n" +
-      "등을 생성하여 반환합니다.\n")
+  @Operation(summary = "스트리밍 회의 최종 회의록 생성", description = "지금까지 업로드된 청크를 기준으로 전체 transcript / 한국어 번역본 / 요약 / segment 목록을 생성합니다.\n"
+      + "선택적으로 bizCardId를 전달하면, 생성된 요약을 해당 명함의 메모에도 다음 형식으로 추가합니다.\n"
+      + "[yyyy.MM.dd.HH:mm:ss]\n- 요약 1줄\n- 요약 2줄 ...")
   @PostMapping("/{meetingId}/minutes")
   public ResponseEntity<Map<String, Object>> finalizeStreamingMeeting(
-      @Parameter(description = "회의 세션 ID", example = "1") @PathVariable Long meetingId) {
+      @Parameter(description = "회의 세션 ID", example = "1") @PathVariable Long meetingId,
+      @Parameter(description = "요약을 연결할 명함 ID", example = "1") @RequestParam(value = "bizCardId", required = false) Long bizCardId) {
     Long userIdx = SecurityUtil.getCurrentUserIdx();
 
     try {
-      MeetingMinutesService.StreamMeetingMinutes minutes = minutesService.finalizeStreamingMeeting(userIdx, meetingId);
+      MeetingMinutesService.StreamMeetingMinutes minutes = minutesService.finalizeStreamingMeeting(userIdx, meetingId,
+          bizCardId);
 
       Map<String, Object> payload = new LinkedHashMap<>();
       payload.put("userIdx", userIdx);
@@ -154,6 +157,7 @@ public class MeetingSpeechController {
       payload.put("koreanTranscript", minutes.getKoreanTranscript());
       payload.put("summary", minutes.getSummary());
       payload.put("segments", minutes.getSegments());
+
       return ResponseEntity.ok(payload);
 
     } catch (IllegalArgumentException ex) {

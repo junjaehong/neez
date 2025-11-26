@@ -159,8 +159,8 @@ public class BizCardController {
         Map<String, String> map = new HashMap<String, String>();
         if (body.getName() != null)
             map.put("name", body.getName());
-        if (body.getCompany() != null)
-            map.put("company", body.getCompany());
+        if (body.getCardCompanyName() != null)
+            map.put("company", body.getCardCompanyName());
         if (body.getCompany_idx() != null)
             map.put("company_idx", body.getCompany_idx().toString());
         if (body.getDepartment() != null)
@@ -169,12 +169,12 @@ public class BizCardController {
             map.put("position", body.getPosition());
         if (body.getEmail() != null)
             map.put("email", body.getEmail());
-        if (body.getMobile() != null)
-            map.put("mobile", body.getMobile());
-        if (body.getTel() != null)
-            map.put("tel", body.getTel());
-        if (body.getFax() != null)
-            map.put("fax", body.getFax());
+        if (body.getPhoneNumber() != null)
+            map.put("mobile", body.getPhoneNumber());
+        if (body.getLineNumber() != null)
+            map.put("tel", body.getLineNumber());
+        if (body.getFaxNumber() != null)
+            map.put("fax", body.getFaxNumber());
         if (body.getAddress() != null)
             map.put("address", body.getAddress());
 
