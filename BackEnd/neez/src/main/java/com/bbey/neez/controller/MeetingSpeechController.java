@@ -11,6 +11,7 @@ import com.bbey.neez.entity.Meet.Meeting;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -203,20 +204,30 @@ public class MeetingSpeechController {
             description = "음성을 여러 조각(chunk)으로 나누어 업로드하면서 실시간 STT/번역을 수행합니다.\n" +
                     "같은 회의 도중에는 항상 같은 meetingId를 사용합니다. (예: 1)\n"
     )
-    @PostMapping("/{meetingId}/chunks")
+    @PostMapping(
+            value = "/{meetingId}/chunks",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE    // 🔥 multipart/form-data 로 명시
+    )
     public ResponseEntity<Map<String, Object>> uploadChunk(
             @Parameter(description = "회의 세션 ID", example = "1")
             @PathVariable Long meetingId,
 
+            @Parameter(
+                    description = "업로드할 회의 음성 청크 파일",
+                    content = @Content(
+                            mediaType = "multipart/form-data",
+                            schema = @Schema(type = "string", format = "binary")
+                    )
+            )
             @RequestPart("file") MultipartFile file,
 
             @Parameter(description = "청크 순번", example = "1")
             @RequestParam(value = "index", required = false) Long index,
 
-            @Parameter(description = "타겟 번역 언어", example = "ko")
+            @Parameter(description = "타겟 번역 언어", example = "en")
             @RequestParam(value = "targetLang", required = false) String targetLang,
 
-            @Parameter(description = "원본 음성 언어", example = "ko")
+            @Parameter(description = "원본 음성 언어", example = "ko-KR")
             @RequestParam(value = "sourceLang", required = false) String sourceLang
     ) throws Exception {
 

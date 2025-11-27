@@ -74,7 +74,7 @@ public class MeetingMinutesService {
             c.getChunkType(),
             c.getLangCode(),
             c.getContent(),
-            "FINAL".equalsIgnoreCase(c.getChunkType()), // 🔥 여기 수정
+            c.isFinalChunk(),
             c.getCreatedAt()))
         .collect(Collectors.toList());
 

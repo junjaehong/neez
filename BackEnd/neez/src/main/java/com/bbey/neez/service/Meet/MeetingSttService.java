@@ -30,14 +30,13 @@ public class MeetingSttService {
             String content,
             boolean isFinal) {
 
-        MeetRTChunk chunk = MeetRTChunk.builder()
-                .meetIdx(meetIdx)
-                .seq(seq)
-                .langCode(langCode)
-                .content(content)
-                .chunkType("STT")
-                .finalChunk(isFinal)
-                .build();
+        MeetRTChunk chunk = new MeetRTChunk();
+        chunk.setMeetIdx(meetIdx);
+        chunk.setSeq(seq);
+        chunk.setChunkType("TRANSCRIPT"); // ★ 여기 중요: TRANSCRIPT 로 고정
+        chunk.setLangCode(langCode);
+        chunk.setContent(content);
+        chunk.setFinalChunk(isFinal); // 필드명이 finalChunk / isFinal 이면 거기에 맞게 수정
 
         return chunkRepository.save(chunk);
     }
