@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import Logo from '../components/Logo';
 import api from '../api/client';
 import { getAuthHeader } from '../api/auth';
-import FAB from '../components/FAB';
 import SearchBar from '../components/SearchBar';
 import './CardList.css';
 
@@ -188,6 +188,7 @@ const CardList = () => {
           <button className="back-btn" onClick={handleBack}>
             ←
           </button>
+          <Logo size="small" />
           {/* <div className="hashtag-icon" onClick={handleHashtagList}>#</div> */}
         </div>
 

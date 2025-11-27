@@ -224,7 +224,7 @@ button {
 }
 
 button:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 /* 프라이머리 버튼 */
@@ -282,7 +282,7 @@ button:hover {
 }
 
 /* 공통 인풋 스타일 */
-input[type="text"],
+/* input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="tel"],
@@ -295,9 +295,9 @@ textarea {
   transition: all 0.3s;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-}
+} */
 
-input:focus,
+/* input:focus, */
 textarea:focus {
   border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px rgba(115, 113, 100, 0.1);

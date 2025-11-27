@@ -21,8 +21,8 @@
 }
 
 .cardlist {
-  margin-top: 30px;
-  max-height: 480px;
+  /* margin-top: 30px; */
+  max-height: 510px;
   overflow-y: auto;
 }
 
@@ -37,8 +37,9 @@
 }
 
 .card-item:hover {
-  transform: translateX(10px);
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  /* transform: translateY(-2px); */
+  background: linear-gradient(135deg, rgba(171, 188, 87, 0.1), rgba(101, 132, 63, 0.1));
+  /* box-shadow: var(--shadow-sm) */
 }
 
 .card-item-head {
@@ -67,7 +68,7 @@
 
 .card-item-company {
   font-weight: 600;
-  color: #667eea;
+  color: #8f9085;
   margin-bottom: 5px;
 }
 
@@ -88,7 +89,7 @@
 }
 
 .card-tag {
-  background: #667eea;
+  background: #8f9085;
   color: white;
   padding: 4px 10px;
   border-radius: 15px;

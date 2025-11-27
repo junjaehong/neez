@@ -28,11 +28,10 @@ const CardDetail = () => {
   }, []);
 
   useEffect(() => {
-    reloadData();
+    if (baseURL) reloadData();
   }, [id, baseURL]);
   /////////////////////////////////////
-
-  // const baseURL = 'http://192.168.70.111:8083/api'; // 공통 prefix
+  
   // const { addMeetingNote } = useApp();
   
   const [card, setCard] = useState(null);
@@ -67,9 +66,12 @@ const CardDetail = () => {
     if (!baseURL) return; // config가 아직 로드되지 않았다면 호출하지 않음
  
     try {
-      const cardRes = await axios.get(`${baseURL}/api/bizcards/${id}`, {
-        headers: { ...getAuthHeader() }
-      });
+      const [cardRes, memoRes, tagRes] = await Promise.all([
+        axios.get(`${baseURL}/api/bizcards/${id}`, { headers: { ...getAuthHeader() } }),
+        axios.get(`${baseURL}/api/bizcards/${id}/memo`, { headers: { ...getAuthHeader() } }),
+        axios.get(`${baseURL}/api/bizcards/${id}/hashtags`, { headers: { ...getAuthHeader() } })
+      ]);
+
       /////////////////////////////////////
       const cardData = cardRes.data.data;
 
@@ -81,27 +83,27 @@ const CardDetail = () => {
       setCard(cardData);
       setFormData(cardData);
       setMemo(cardData.memoContent || '');
-      setHashtags(cardData.hashTags || []);
+      setHashtags(Array.isArray(tagRes.data) ? tagRes.data : []);
       /////////////////////////////////////
       console.log("명함 상세 데이터:", cardRes.data.data.content);
       // setCard(cardRes.data.data);
       // setFormData(cardRes.data.data);
 
-      // 메모
-      const memoRes = await axios.get(`${baseURL}/api/bizcards/${id}/memo`, {
-        headers: { ...getAuthHeader() }
-      });
-      console.log('memo API response:', memoRes.data.data.memoContent);
-      setMemo(memoRes.data.data?.memoContent || '');
+      // // 메모
+      // const memoRes = await axios.get(`${baseURL}/api/bizcards/${id}/memo`, {
+      //   headers: { ...getAuthHeader() }
+      // });
+      // console.log('memo API response:', memoRes.data.data.memoContent);
+      // setMemo(memoRes.data.data?.memoContent || '');
 
-      // 해시태그
-      const tagRes = await axios.get(`${baseURL}/api/bizcards/${id}/hashtags`, {
-        headers: { ...getAuthHeader() }
-      });
-      console.log('Tag API response:', tagRes.data);
+      // // 해시태그
+      // const tagRes = await axios.get(`${baseURL}/api/bizcards/${id}/hashtags`, {
+      //   headers: { ...getAuthHeader() }
+      // });
+      // console.log('Tag API response:', tagRes.data);
       
-      const tagData = tagRes.data;
-      setHashtags(Array.isArray(tagData) ? tagData : (tagData.hashTags || []));
+      // const tagData = tagRes.data;
+      // setHashtags(Array.isArray(tagData) ? tagData : (tagData.hashTags || []));
       
       // 기업 정보
       // const companyInfo = await axios.get(`${baseURL}/companies/${cardRes.data.data.companyIdx}`);
@@ -123,7 +125,7 @@ const CardDetail = () => {
 
         setCard({
           ...cardRes.data.data,            // API에서 받은 카드 데이터
-          meetingNotes: defaultMeetings   // 기존 회의록 유지
+          meetingNotes: cardRes.data.data.meetingNotes || defaultMeetings  // 기존 회의록 유지
         });
         // 회의록 리스트 API 입력 후 삭제 ▲
 
@@ -131,16 +133,6 @@ const CardDetail = () => {
       console.error("데이터 불러오기 실패:", err);
     }
   };
-
-//   fetchData();
-// }, [id]);
-
-
-  useEffect(() => {
-    reloadData();
-  }, [id]);
-
-
 
 
   // 입력 변경
@@ -162,14 +154,25 @@ const CardDetail = () => {
   
   // 메모 저장
   const handleSaveMemo = async () => {
+    const memoToSend = (memo || '').trim();
+    if (!memoToSend) {
+      // alert("메모가 비어 있습니다.");
+      return;
+    }
     try {
-      await axios.patch(`${baseURL}/bizcards/${id}/memo`,
-        { memo: memo },
-        { headers: { 'Content-Type': 'application/json' }
+      const payload = { memoContent: memoToSend };
+      console.log("PATCH 요청 body:", payload);
+
+      const res = await axios.patch(`${baseURL}/api/bizcards/${id}/memo`,
+        { memo: memoToSend},
+        { headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader() }
       });
-      console.log("메모 저장 성공");
+      console.log("메모 저장 성공", res.data);
+      setMemo(res.data.data?.memoContent || memoToSend); // 서버 반환값 반영
     } catch (err) {
-      console.error("메모 저장 실패:", err);
+      console.error("메모 저장 실패:", err.response?.data || err);
       alert("메모 저장 실패");
     }
   };
@@ -177,18 +180,19 @@ const CardDetail = () => {
   // 명함 수정
   const handleSave = async () => {
     try {
-      // 명함 정보 저장
-      await axios.put(`${baseURL}/bizcards/${id}`, {
-        ...formData,
-        // memo: memo   // 메모 함께 전송
+      // 1. 명함 기본 정보 저장 (memo, hashtags 제외)
+      await axios.put(`${baseURL}/api/bizcards/${id}`, formData, {
+        headers: { ...getAuthHeader() }
       });
-      await handleSaveMemo(); // 메모는 별도로 PATCH
-      
+
+      // 2. 메모 저장
+      await handleSaveMemo(); // memoContent는 PATCH로 별도 저장
+
+      // 3. 해시태그는 개별 추가/삭제로 관리 (UI에서 이미 반영되므로 필요시 서버 동기화)
+
       alert("수정이 모두 저장되었습니다.");
-      
       setEditMode(false);
       reloadData(); // 최신 상태 재조회  
-      
     } catch (err) {
       console.error(err);
       alert("저장 중 오류 발생");
@@ -197,29 +201,36 @@ const CardDetail = () => {
   
   // 명함 삭제
   const handleDelete = async () => {
-    if (window.confirm('정말 이 명함을 삭제하시겠습니까?')) {
+    if (!window.confirm('이 명함을 삭제하시겠습니까?')) return;
       try {
-        await axios.delete(`${baseURL}/bizcards/${id}`);
+        await axios.delete(`${baseURL}/api/bizcards/${id}`, {
+          headers: { ...getAuthHeader() }
+        });
         alert('명함이 삭제되었습니다.');
         navigate('/cardlist');
       } catch (err) {
         console.error('명함 삭제 실패:', err);
         alert('삭제 중 오류 발생');
       }
-    }
   };
   
   // 해시태그 삭제
   const handleDeleteHashtag = async (tag) => {
     try {
-      await axios.delete(`${baseURL}/api/bizcards/${id}/hashtags/${encodeURIComponent(tag)}`);
+      await axios.delete(`${baseURL}/api/bizcards/${id}/hashtags/${encodeURIComponent(tag)}`,
+      { headers: { ...getAuthHeader() } }
+    );
       
       // 화면에서도 즉시 삭제
       setHashtags(prev => prev.filter(t => t !== tag));
-      setCard(prevCard => ({
-      ...prevCard,
-      hashTags: prevCard.hashTags.filter(t => t !== tag)
+      setCard(prev => ({
+      ...prev,
+      hashTags: prev?.hashTags?.filter(t => t !== tag) ?? []
       }));
+
+      // // 서버 반영 후 재조회
+      // setHashtags(prev => prev.filter(t => t !== tag)); // 화면 반영
+      // reloadData();
 
     } catch (err) {
       console.error("해시태그 삭제 실패:", err);
@@ -232,10 +243,11 @@ const CardDetail = () => {
     if (!newHashtag.trim()) return;
     
     try {
-      const res = await axios.post(`${baseURL}/bizcards/${id}/hashtags`,
-        JSON.stringify([newHashtag]),
-       { headers: { "Content-Type": "application/json" } }
-    );
+      const res = await axios.post(`${baseURL}/api/bizcards/${id}/hashtags`,
+        // JSON.stringify([newHashtag]),
+        [newHashtag],   // JSON 배열
+        { headers: { ...getAuthHeader() } }
+      );    
 
       // 성공한 경우 화면에도 즉시 추가
       setHashtags(prev => [...prev, newHashtag]);
@@ -249,6 +261,9 @@ const CardDetail = () => {
 
   // 기업 정보 조회
   const handleCompanyInfoClick = async () => {
+    if (!card?.companyIdx) {
+      return alert("기업 정보가 존재하지 않습니다.");
+    }
     try {
       const companyInfo = await axios.get(`${baseURL}/api/companies/${card.companyIdx}`,
         { headers: { ...getAuthHeader() } }
@@ -447,7 +462,7 @@ const CardDetail = () => {
 
           {/* 해시태그 섹션 */}
           <div className="hashtag-section">
-            <div className="section-header">
+            <div className="hashtag-head">
               <h3>해시태그</h3>
               {editMode && (
                 <button 
@@ -462,7 +477,7 @@ const CardDetail = () => {
             {card.hashTags && card.hashTags.length > 0 && (
             <div className="card-tags">
               {card.hashTags.map((tag, index) => (
-                <span key={index} className="card-tag">#{tag}
+                <span key={index} className="card-tag hashtag-font">#{tag}
                 {editMode && (
                   <button 
                     className="hashtag-delete"
@@ -500,7 +515,7 @@ const CardDetail = () => {
                   onChange={(e) => setNewHashtag(e.target.value)}
                   placeholder="새 해시태그"
                 />
-                <button onClick={handleAddHashtag}>추가</button>
+                <button className="hashtag-plus" onClick={handleAddHashtag}>추가</button>
               </div>
             )}
           </div>
@@ -512,7 +527,7 @@ const CardDetail = () => {
               <textarea
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
-                placeholder="메모를 입력하세요"
+                placeholder="예) 12월 중으로 미팅 예정"
                 rows="4"
               />
             ) : (
@@ -523,7 +538,7 @@ const CardDetail = () => {
           {/* 회의록 섹션 */}
           {card.meetingNotes && (
           <div className="meeting-section">
-            <div className="section-header">
+            <div className="meeting-head">
               <h3>회의록</h3>
               {/* <button 
                 className="view-button"
@@ -575,16 +590,16 @@ const CardDetail = () => {
       {/* 회사 정보 팝업 */}
       {showCompanyInfo && companyInfo && (
         <div className="popup-overlay" onClick={() => setShowCompanyInfo(false)}>
-          <div className="popup-content" onClick={e => e.stopPropagation()}>
+          <div className="popup-content companyinfo-content" onClick={e => e.stopPropagation()}>
             <button className="popup-close" onClick={() => setShowCompanyInfo(false)}>×</button>
             <h3>기업정보</h3>
             <div className="company-info">
-              <p><strong>회사이름:</strong> {companyInfo.data.name}</p>
-              <p><strong>대표이사:</strong> {companyInfo.data.repName}</p>
-              <p><strong>주소:</strong> {companyInfo.data.address}</p>
-              <p><strong>사이트:</strong> {companyInfo.data.homepage}</p>
-              <p><strong>사업자번호:</strong> {companyInfo.data.bizNo}</p>
-              <p><strong>법인번호:</strong> {companyInfo.data.corpNo}</p>
+              <p><strong>회사이름 :</strong> {companyInfo.data.name}</p>
+              <p><strong>대표이사 :</strong> {companyInfo.data.repName}</p>
+              <p><strong>주소 :</strong> {companyInfo.data.address}</p>
+              <p><strong>사이트 :</strong> {companyInfo.data.homepage}</p>
+              <p><strong>사업자번호 :</strong> {companyInfo.data.bizNo}</p>
+              <p><strong>법인번호 :</strong> {companyInfo.data.corpNo}</p>
             </div>
           </div>
         </div>

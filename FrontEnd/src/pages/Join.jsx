@@ -306,7 +306,7 @@ const Join = () => {
             <div className="success-message">✓ 사용 가능한 이메일입니다</div>
           )}
           
-          <Button type="submit" variant="primary" fullWidth disabled={loading}>
+          <Button type="submit" variant="primary" className="join-btn" fullWidth disabled={loading}>
             회원가입
             {/* {loading ? '가입 중...' : '회원가입'} */}
           </Button>

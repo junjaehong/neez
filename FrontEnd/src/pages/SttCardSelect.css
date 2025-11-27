@@ -43,11 +43,11 @@
   transition: all 0.3s ease;
 }
 
-.search-input:focus {
+/* .search-input:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(115, 113, 100, 0.1);
-}
+} */
 
 .card-select-list {
   flex: 1;
