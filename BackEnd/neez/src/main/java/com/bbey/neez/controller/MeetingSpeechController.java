@@ -4,194 +4,347 @@ import com.bbey.neez.security.SecurityUtil;
 import com.bbey.neez.service.Meet.MeetingMinutesService;
 import com.bbey.neez.service.Meet.MeetingSpeechStreamService;
 import com.bbey.neez.service.Meet.MeetingSummaryService;
+import com.bbey.neez.service.Meet.MeetingService;
+import com.bbey.neez.service.Meet.MeetingParticipantService;
+import com.bbey.neez.entity.Meet.Meeting;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.http.MediaType;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/meetings/me")
-@Tag(name = "Meeting Speech / STT API", description = "회의 음성 업로드 · STT · 요약 · 회의록 API\n\n" +
-    "📌 meetingId란?\n" +
-    "- 하나의 '회의 세션'을 구분하기 위한 ID입니다.\n" +
-    "- Swagger에서는 임의의 숫자를 넣어 사용하면 됩니다. (예: 1)\n" +
-    "- 같은 회의 동안에는 항상 같은 meetingId를 사용하세요.\n")
+@Tag(
+        name = "Meeting Speech / STT API",
+        description = "회의 음성 업로드 · STT · 번역 · 요약 · 회의록 API\n\n" +
+                "📌 meetingId란?\n" +
+                "- 하나의 '회의 세션'을 구분하기 위한 ID입니다.\n" +
+                "- /meetings/me (POST) 로 회의를 생성하면 meetingId를 돌려줍니다.\n" +
+                "- 같은 회의 동안에는 항상 같은 meetingId를 사용하세요.\n"
+)
 @SecurityRequirement(name = "BearerAuth")
 public class MeetingSpeechController {
 
-  private final MeetingSummaryService summaryService;
-  private final MeetingMinutesService minutesService;
-  private final MeetingSpeechStreamService streamService;
+    private final MeetingService meetingService;
+    private final MeetingParticipantService meetingParticipantService;
+    private final MeetingSummaryService summaryService;
+    private final MeetingMinutesService minutesService;
+    private final MeetingSpeechStreamService streamService;
 
-  public MeetingSpeechController(MeetingSummaryService summaryService,
-      MeetingMinutesService minutesService,
-      MeetingSpeechStreamService streamService) {
-    this.summaryService = summaryService;
-    this.minutesService = minutesService;
-    this.streamService = streamService;
-  }
-
-  @Operation(summary = "단일 회의 음성 업로드 + STT + 요약", description = "하나의 전체 음성 파일을 업로드하여 STT와 요약을 수행합니다.\n"
-      + "meetingId는 회의를 구분하는 임의의 숫자입니다. (예: 1)\n")
-  @PostMapping(value = "/{meetingId}/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE // 🔥 이 줄 추가
-  )
-  public ResponseEntity<Map<String, Object>> upload(
-      @Parameter(description = "회의 세션 ID (예: 1)") @PathVariable Long meetingId,
-
-      @Parameter(description = "업로드할 회의 음성 파일") @RequestPart("file") MultipartFile file, // 🔥 그대로 사용해도 됨
-
-      @Parameter(description = "원본 언어 코드 (예: ko)", example = "ko") @RequestParam(value = "sourceLang", required = false) String sourceLang)
-      throws Exception {
-
-    Long userIdx = SecurityUtil.getCurrentUserIdx();
-
-    try {
-      MeetingSummaryService.MeetingSummary result = summaryService.summarize(userIdx, meetingId, file, sourceLang);
-
-      Map<String, Object> payload = new LinkedHashMap<>();
-      payload.put("userIdx", userIdx);
-      payload.put("meetingId", meetingId);
-      payload.put("filename", file.getOriginalFilename());
-      payload.put("bytes", file.getSize());
-      payload.put("text", result.transcript());
-      payload.put("summary", result.summary());
-      payload.put("speakers", result.speakerTurns());
-
-      return ResponseEntity.ok(payload);
-
-    } catch (IllegalArgumentException ex) {
-      return badRequest(meetingId, ex.getMessage());
-    } catch (IllegalStateException ex) {
-      return serviceUnavailable(meetingId, ex.getMessage());
-    } catch (RuntimeException ex) {
-      return internalError(meetingId, ex.getMessage());
+    public MeetingSpeechController(
+            MeetingService meetingService,
+            MeetingParticipantService meetingParticipantService,
+            MeetingSummaryService summaryService,
+            MeetingMinutesService minutesService,
+            MeetingSpeechStreamService streamService
+    ) {
+        this.meetingService = meetingService;
+        this.meetingParticipantService = meetingParticipantService;
+        this.summaryService = summaryService;
+        this.minutesService = minutesService;
+        this.streamService = streamService;
     }
-  }
 
-  @Operation(summary = "회의 음성 청크(STT Streaming) 업로드", description = "음성을 여러 조각(chunk)으로 나누어 업로드하면서 실시간 STT/번역을 수행합니다.\n"
-      +
-      "같은 회의 도중에는 항상 같은 meetingId를 사용합니다. (예: 1)\n")
-  @PostMapping("/{meetingId}/chunks")
-  public ResponseEntity<Map<String, Object>> uploadChunk(
-      @Parameter(description = "회의 세션 ID", example = "1") @PathVariable Long meetingId,
-      @RequestPart("file") MultipartFile file,
-      @Parameter(description = "청크 순번", example = "1") @RequestParam(value = "index", required = false) Long index,
-      @Parameter(description = "타겟 번역 언어", example = "ko") @RequestParam(value = "targetLang", required = false) String targetLang,
-      @Parameter(description = "원본 음성 언어", example = "ko") @RequestParam(value = "sourceLang", required = false) String sourceLang)
-      throws Exception {
+    // =========================================================
+    // 1. 회의 시작 (meeting 생성 + 참가자 연결)
+    // =========================================================
+    @Operation(
+            summary = "회의 시작 (meeting 생성)",
+            description = "회의를 생성하고 meetingId를 반환합니다.\n\n" +
+                    "- sourceLang: 회의 원본 언어 코드 (예: ko)\n" +
+                    "- targetLang: 번역 타겟 언어 코드 (예: en, 선택)\n" +
+                    "- participantBizCardIds: 회의 참석자 명함 ID 목록\n" +
+                    "\n" +
+                    "회의 제목(title)은 자동으로 `[ yyyy.MM.dd.THH:mm:ss ]` 형식으로 생성됩니다."
+    )
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> startMeeting(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    description = "회의 생성 요청",
+                    content = @io.swagger.v3.oas.annotations.media.Content(
+                            schema = @Schema(implementation = StartMeetingRequest.class)
+                    )
+            )
+            @RequestBody StartMeetingRequest request
+    ) {
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
 
-    Long userIdx = SecurityUtil.getCurrentUserIdx();
+        if (request.getSourceLang() == null || request.getSourceLang().isEmpty()) {
+            throw new IllegalArgumentException("sourceLang(원본 언어 코드는 필수입니다.");
+        }
 
-    try {
-      MeetingSpeechStreamService.Segment segment = streamService.processChunk(userIdx, meetingId, index, file,
-          targetLang, sourceLang);
+        // 회의 생성 (title 자동 생성)
+        Meeting meeting = meetingService.startMeeting(
+                userIdx,
+                request.getSourceLang()
+        );
 
-      Map<String, Object> payload = new LinkedHashMap<>();
-      payload.put("userIdx", userIdx);
-      payload.put("meetingId", meetingId);
-      payload.put("index", segment.getIndex());
-      payload.put("text", segment.getText());
-      payload.put("receivedAt", segment.getReceivedAt());
-      payload.put("bytes", segment.getBytes());
-      payload.put("sourceLanguage", segment.getSourceLanguage());
-      payload.put("targetLanguage", segment.getTargetLanguage());
-      payload.put("translation", segment.getTranslatedText());
-      payload.put("transcript", streamService.getTranscriptText(userIdx, meetingId));
-      payload.put("segments", streamService.getSegments(userIdx, meetingId));
+        Long meetingId = meeting.getIdx();
+        String title = meeting.getTitle();
 
-      return ResponseEntity.ok(payload);
+        // 참가자 명함 연결
+        if (request.getParticipantBizCardIds() != null && !request.getParticipantBizCardIds().isEmpty()) {
+            meetingParticipantService.setParticipants(meetingId, request.getParticipantBizCardIds());
+        }
 
-    } catch (IllegalArgumentException ex) {
-      return badRequest(meetingId, ex.getMessage());
-    } catch (IllegalStateException ex) {
-      return serviceUnavailable(meetingId, ex.getMessage());
-    } catch (RuntimeException ex) {
-      return internalError(meetingId, ex.getMessage());
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("userIdx", userIdx);
+        payload.put("meetingId", meetingId);
+        payload.put("title", title);
+        payload.put("sourceLang", request.getSourceLang());
+        payload.put("targetLang", request.getTargetLang());
+        payload.put("participantBizCardIds", request.getParticipantBizCardIds());
+
+        return ResponseEntity.ok(payload);
     }
-  }
 
-  @Operation(summary = "현재까지의 transcript 조회", description = "누적된 transcript(원본 텍스트)와 segments 목록을 조회합니다.\n" +
-      "meetingId는 동일 회의의 ID여야 합니다.\n")
-  @GetMapping("/{meetingId}/transcript")
-  public ResponseEntity<Map<String, Object>> getTranscript(
-      @Parameter(description = "회의 세션 ID", example = "1") @PathVariable Long meetingId) {
-    Long userIdx = SecurityUtil.getCurrentUserIdx();
+    // DTO: 회의 시작 요청
+    public static class StartMeetingRequest {
 
-    Map<String, Object> payload = new LinkedHashMap<>();
-    payload.put("userIdx", userIdx);
-    payload.put("meetingId", meetingId);
-    payload.put("transcript", streamService.getTranscriptText(userIdx, meetingId));
-    payload.put("segments", streamService.getSegments(userIdx, meetingId));
+        @Schema(description = "원본 언어 코드", example = "ko", required = true)
+        private String sourceLang;
 
-    return ResponseEntity.ok(payload);
-  }
+        @Schema(description = "번역 타겟 언어 코드", example = "en")
+        private String targetLang;
 
-  @Operation(summary = "스트리밍 회의 최종 회의록 생성", description = "지금까지 업로드된 청크를 기준으로 전체 transcript / 한국어 번역본 / 요약 / segment 목록을 생성합니다.\n"
-      + "선택적으로 bizCardId를 전달하면, 생성된 요약을 해당 명함의 메모에도 다음 형식으로 추가합니다.\n"
-      + "[yyyy.MM.dd.HH:mm:ss]\n- 요약 1줄\n- 요약 2줄 ...")
-  @PostMapping("/{meetingId}/minutes")
-  public ResponseEntity<Map<String, Object>> finalizeStreamingMeeting(
-      @Parameter(description = "회의 세션 ID", example = "1") @PathVariable Long meetingId,
-      @Parameter(description = "요약을 연결할 명함 ID", example = "1") @RequestParam(value = "bizCardId", required = false) Long bizCardId) {
-    Long userIdx = SecurityUtil.getCurrentUserIdx();
+        @Schema(description = "참석자 명함 ID 목록", example = "[1, 2, 3]")
+        private List<Long> participantBizCardIds;
 
-    try {
-      MeetingMinutesService.StreamMeetingMinutes minutes = minutesService.finalizeStreamingMeeting(userIdx, meetingId,
-          bizCardId);
+        public String getSourceLang() {
+            return sourceLang;
+        }
 
-      Map<String, Object> payload = new LinkedHashMap<>();
-      payload.put("userIdx", userIdx);
-      payload.put("meetingId", minutes.getMeetingId());
-      payload.put("originalTranscript", minutes.getOriginalTranscript());
-      payload.put("koreanTranscript", minutes.getKoreanTranscript());
-      payload.put("summary", minutes.getSummary());
-      payload.put("segments", minutes.getSegments());
+        public void setSourceLang(String sourceLang) {
+            this.sourceLang = sourceLang;
+        }
 
-      return ResponseEntity.ok(payload);
+        public String getTargetLang() {
+            return targetLang;
+        }
 
-    } catch (IllegalArgumentException ex) {
-      return badRequest(meetingId, ex.getMessage());
-    } catch (IllegalStateException ex) {
-      return serviceUnavailable(meetingId, ex.getMessage());
-    } catch (RuntimeException ex) {
-      return internalError(meetingId, ex.getMessage());
+        public void setTargetLang(String targetLang) {
+            this.targetLang = targetLang;
+        }
+
+        public List<Long> getParticipantBizCardIds() {
+            return participantBizCardIds;
+        }
+
+        public void setParticipantBizCardIds(List<Long> participantBizCardIds) {
+            this.participantBizCardIds = participantBizCardIds;
+        }
     }
-  }
 
-  /* ===== 공통 에러 처리 ===== */
+    // =========================================================
+    // 2. 단일 파일 업로드 → STT + 요약
+    // =========================================================
+    @Operation(
+            summary = "단일 회의 음성 업로드 + STT + 요약",
+            description = "하나의 전체 음성 파일을 업로드하여 STT와 요약을 수행합니다.\n" +
+                    "meetingId는 앞에서 생성한 회의 ID입니다.\n"
+    )
+    @PostMapping(
+            value = "/{meetingId}/audio",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<Map<String, Object>> upload(
+            @Parameter(description = "회의 세션 ID (예: 1)")
+            @PathVariable Long meetingId,
 
-  private ResponseEntity<Map<String, Object>> badRequest(Long meetingId, String msg) {
-    Map<String, Object> error = new LinkedHashMap<>();
-    error.put("meetingId", meetingId);
-    error.put("error", "BAD_REQUEST");
-    error.put("message", msg);
-    return ResponseEntity.badRequest().body(error);
-  }
+            @Parameter(description = "업로드할 회의 음성 파일")
+            @RequestPart("file") MultipartFile file,
 
-  private ResponseEntity<Map<String, Object>> serviceUnavailable(Long meetingId, String msg) {
-    Map<String, Object> error = new LinkedHashMap<>();
-    error.put("meetingId", meetingId);
-    error.put("error", "SERVICE_UNAVAILABLE");
-    error.put("message", msg);
-    return ResponseEntity.status(503).body(error);
-  }
+            @Parameter(description = "원본 언어 코드 (예: ko)", example = "ko")
+            @RequestParam(value = "sourceLang", required = false) String sourceLang
+    ) throws Exception {
 
-  private ResponseEntity<Map<String, Object>> internalError(Long meetingId, String msg) {
-    Map<String, Object> error = new LinkedHashMap<>();
-    error.put("meetingId", meetingId);
-    error.put("error", "INTERNAL_ERROR");
-    error.put("message", msg);
-    return ResponseEntity.status(500).body(error);
-  }
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
+
+        try {
+            MeetingSummaryService.MeetingSummary result =
+                    summaryService.summarize(userIdx, meetingId, file, sourceLang);
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("userIdx", userIdx);
+            payload.put("meetingId", meetingId);
+            payload.put("filename", file.getOriginalFilename());
+            payload.put("bytes", file.getSize());
+            payload.put("text", result.transcript());
+            payload.put("summary", result.summary());
+            payload.put("speakers", result.speakerTurns());
+
+            return ResponseEntity.ok(payload);
+
+        } catch (IllegalArgumentException ex) {
+            return badRequest(meetingId, ex.getMessage());
+        } catch (IllegalStateException ex) {
+            return serviceUnavailable(meetingId, ex.getMessage());
+        } catch (RuntimeException ex) {
+            return internalError(meetingId, ex.getMessage());
+        }
+    }
+
+    // =========================================================
+    // 3. 청크 업로드 (실시간 STT + 번역)
+    // =========================================================
+    @Operation(
+            summary = "회의 음성 청크(STT Streaming) 업로드",
+            description = "음성을 여러 조각(chunk)으로 나누어 업로드하면서 실시간 STT/번역을 수행합니다.\n" +
+                    "같은 회의 도중에는 항상 같은 meetingId를 사용합니다. (예: 1)\n"
+    )
+    @PostMapping("/{meetingId}/chunks")
+    public ResponseEntity<Map<String, Object>> uploadChunk(
+            @Parameter(description = "회의 세션 ID", example = "1")
+            @PathVariable Long meetingId,
+
+            @RequestPart("file") MultipartFile file,
+
+            @Parameter(description = "청크 순번", example = "1")
+            @RequestParam(value = "index", required = false) Long index,
+
+            @Parameter(description = "타겟 번역 언어", example = "ko")
+            @RequestParam(value = "targetLang", required = false) String targetLang,
+
+            @Parameter(description = "원본 음성 언어", example = "ko")
+            @RequestParam(value = "sourceLang", required = false) String sourceLang
+    ) throws Exception {
+
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
+
+        try {
+            MeetingSpeechStreamService.Segment segment =
+                    streamService.processChunk(userIdx, meetingId, index, file, targetLang, sourceLang);
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("userIdx", userIdx);
+            payload.put("meetingId", meetingId);
+            payload.put("index", segment.getIndex());
+            payload.put("text", segment.getText());
+            payload.put("receivedAt", segment.getReceivedAt());
+            payload.put("bytes", segment.getBytes());
+            payload.put("sourceLanguage", segment.getSourceLanguage());
+            payload.put("targetLanguage", segment.getTargetLanguage());
+            payload.put("translation", segment.getTranslatedText());
+            payload.put("transcript", streamService.getTranscriptText(userIdx, meetingId));
+            payload.put("segments", streamService.getSegments(userIdx, meetingId));
+
+            return ResponseEntity.ok(payload);
+
+        } catch (IllegalArgumentException ex) {
+            return badRequest(meetingId, ex.getMessage());
+        } catch (IllegalStateException ex) {
+            return serviceUnavailable(meetingId, ex.getMessage());
+        } catch (RuntimeException ex) {
+            return internalError(meetingId, ex.getMessage());
+        }
+    }
+
+    // =========================================================
+    // 4. 현재까지 transcript / segment 조회
+    // =========================================================
+    @Operation(
+            summary = "현재까지의 transcript 조회",
+            description = "누적된 transcript(원본 텍스트)와 segments 목록을 조회합니다.\n" +
+                    "meetingId는 동일 회의의 ID여야 합니다.\n"
+    )
+    @GetMapping("/{meetingId}/transcript")
+    public ResponseEntity<Map<String, Object>> getTranscript(
+            @Parameter(description = "회의 세션 ID", example = "1")
+            @PathVariable Long meetingId
+    ) {
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("userIdx", userIdx);
+        payload.put("meetingId", meetingId);
+        payload.put("transcript", streamService.getTranscriptText(userIdx, meetingId));
+        payload.put("segments", streamService.getSegments(userIdx, meetingId));
+
+        return ResponseEntity.ok(payload);
+    }
+
+    // =========================================================
+    // 5. 회의 종료 + 최종 회의록 생성 (요약 + 명함 메모 반영)
+    // =========================================================
+    @Operation(
+            summary = "스트리밍 회의 최종 회의록 생성 (회의 종료)",
+            description = "지금까지 업로드된 청크를 기준으로 전체 transcript / 한국어(or 원본) 텍스트 / 요약 / segment 목록을 생성합니다.\n" +
+                    "bizCardId를 지정하지 않으면, 이 회의에 연결된 모든 참석자 명함의 메모에 요약을 추가합니다.\n" +
+                    "bizCardId를 지정하면 해당 명함 한 개에만 요약을 추가합니다.\n" +
+                    "\n" +
+                    "메모 포맷:\n" +
+                    "[yyyy.MM.dd.THH:mm:ss]\n" +
+                    "(회의 제목)\n" +
+                    "요약 내용..."
+    )
+    @PostMapping("/{meetingId}/minutes")
+    public ResponseEntity<Map<String, Object>> finalizeStreamingMeeting(
+            @Parameter(description = "회의 세션 ID", example = "1")
+            @PathVariable Long meetingId,
+
+            @Parameter(description = "요약을 연결할 명함 ID (선택)", example = "1")
+            @RequestParam(value = "bizCardId", required = false) Long bizCardId
+    ) {
+        Long userIdx = SecurityUtil.getCurrentUserIdx();
+
+        try {
+            MeetingMinutesService.StreamMeetingMinutes minutes =
+                    minutesService.finalizeStreamingMeeting(userIdx, meetingId, bizCardId);
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("userIdx", userIdx);
+            payload.put("meetingId", minutes.getMeetingId());
+            payload.put("originalTranscript", minutes.getOriginalTranscript());
+            payload.put("koreanTranscript", minutes.getKoreanTranscript());
+            payload.put("summary", minutes.getSummary());
+            payload.put("segments", minutes.getSegments());
+
+            return ResponseEntity.ok(payload);
+
+        } catch (IllegalArgumentException ex) {
+            return badRequest(meetingId, ex.getMessage());
+        } catch (IllegalStateException ex) {
+            return serviceUnavailable(meetingId, ex.getMessage());
+        } catch (RuntimeException ex) {
+            return internalError(meetingId, ex.getMessage());
+        }
+    }
+
+    // =========================================================
+    // 공통 에러 응답
+    // =========================================================
+    private ResponseEntity<Map<String, Object>> badRequest(Long meetingId, String msg) {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("meetingId", meetingId);
+        error.put("error", "BAD_REQUEST");
+        error.put("message", msg);
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    private ResponseEntity<Map<String, Object>> serviceUnavailable(Long meetingId, String msg) {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("meetingId", meetingId);
+        error.put("error", "SERVICE_UNAVAILABLE");
+        error.put("message", msg);
+        return ResponseEntity.status(503).body(error);
+    }
+
+    private ResponseEntity<Map<String, Object>> internalError(Long meetingId, String msg) {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("meetingId", meetingId);
+        error.put("error", "INTERNAL_ERROR");
+        error.put("message", msg);
+        return ResponseEntity.status(500).body(error);
+    }
 }

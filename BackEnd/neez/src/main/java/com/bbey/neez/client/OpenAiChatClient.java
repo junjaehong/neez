@@ -9,6 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.Collections;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 @Slf4j
@@ -26,14 +27,13 @@ public class OpenAiChatClient {
             @Value("${gemini.api-key}") String apiKey,
             @Value("${gemini.model}") String model,
             @Value("${gemini.temperature:0.2}") double temperature,
-            @Value("${gemini.base-url}") String baseUrl
-    ) {
+            @Value("${gemini.base-url}") String baseUrl) {
         this.model = model;
         this.temperature = temperature;
         this.enabled = StringUtils.hasText(apiKey);
 
         this.webClient = WebClient.builder()
-                .baseUrl(baseUrl + "/v1beta")  // https://generativelanguage.googleapis.com/v1beta
+                .baseUrl(baseUrl + "/v1beta") // https://generativelanguage.googleapis.com/v1beta
                 .defaultHeader("x-goog-api-key", apiKey)
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .build();
@@ -43,8 +43,10 @@ public class OpenAiChatClient {
      * 회의 내용 요약
      */
     public String summarize(String transcript) {
-        if (!enabled) return FALLBACK_MESSAGE;
-        if (!StringUtils.hasText(transcript)) return "- 회의 내용이 비어 있습니다.";
+        if (!enabled)
+            return FALLBACK_MESSAGE;
+        if (!StringUtils.hasText(transcript))
+            return "- 회의 내용이 비어 있습니다.";
 
         try {
             GeminiRequest request = GeminiRequest.fromTranscript(transcript, temperature);
@@ -75,12 +77,13 @@ public class OpenAiChatClient {
     // Gemini 요청/응답 구조
     // -------------------------------------------------------
 
-    /**
-     * generateContent 요청 DTO
-     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static class GeminiRequest {
         public List<Content> contents;
         public GenerationConfig generationConfig;
+
+        public GeminiRequest() {
+        } // 🔹 Jackson용 기본 생성자
 
         public GeminiRequest(List<Content> contents, GenerationConfig generationConfig) {
             this.contents = contents;
@@ -89,8 +92,7 @@ public class OpenAiChatClient {
 
         public static GeminiRequest fromTranscript(String transcript, double temperature) {
 
-            String prompt =
-                    "너는 회의/통화 내용을 요약하는 전문가이다.\n" +
+            String prompt = "너는 회의/통화 내용을 요약하는 전문가이다.\n" +
                     "아래 규칙을 반드시 지켜서 요약을 작성하라.\n" +
                     "\n" +
                     "1. 반드시 한국어로 작성한다.\n" +
@@ -110,12 +112,13 @@ public class OpenAiChatClient {
         }
     }
 
-    /**
-     * Content(메시지)
-     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static class Content {
-        public String role; // user
-        public List<Part> parts; // [{text: "..."}]
+        public String role; // "user"
+        public List<Part> parts; // [{ text: "..." }]
+
+        public Content() {
+        } // 🔹 Jackson용 기본 생성자
 
         public Content(String role, List<Part> parts) {
             this.role = role;
@@ -127,33 +130,37 @@ public class OpenAiChatClient {
         }
 
         public String extractTextOnly() {
-            if (parts == null || parts.isEmpty()) return null;
+            if (parts == null || parts.isEmpty())
+                return null;
 
             StringBuilder sb = new StringBuilder();
             for (Part p : parts) {
-                if (p.text != null) sb.append(p.text);
+                if (p.text != null)
+                    sb.append(p.text);
             }
             return sb.toString().trim();
         }
     }
 
-    /**
-     * Part 구조
-     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static class Part {
         public String text;
+
+        public Part() {
+        } // 🔹 Jackson용 기본 생성자
 
         public Part(String text) {
             this.text = text;
         }
     }
 
-    /**
-     * Generation 설정
-     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static class GenerationConfig {
         public Double temperature;
         public Integer maxOutputTokens;
+
+        public GenerationConfig() {
+        } // 🔹 Jackson용 기본 생성자
 
         public GenerationConfig(Double temperature, Integer maxOutputTokens) {
             this.temperature = temperature;
@@ -161,14 +168,20 @@ public class OpenAiChatClient {
         }
     }
 
-    /**
-     * 응답 DTO
-     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static class GeminiResponse {
         public List<Candidate> candidates;
 
+        public GeminiResponse() {
+        } // 🔹 Jackson용 기본 생성자
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
         private static class Candidate {
             public Content content;
+
+            public Candidate() {
+            } // 🔹 Jackson용 기본 생성자
         }
     }
+
 }

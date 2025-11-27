@@ -1,159 +1,135 @@
 package com.bbey.neez.service.Meet;
 
-import com.bbey.neez.client.OpenAiChatClient;
-import com.bbey.neez.service.BizCard.BizCardMemoService;
-import lombok.extern.slf4j.Slf4j;
+import com.bbey.neez.entity.Meet.MeetRTChunk;
+import com.bbey.neez.entity.Meet.Meeting;
+import com.bbey.neez.entity.Meet.MeetingParticipant;
+import com.bbey.neez.repository.Meet.MeetRTChunkRepository;
+import com.bbey.neez.repository.Meet.MeetingParticipantRepository;
+import com.bbey.neez.service.BizCard.BizCardMemoServiceImpl;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
-@Slf4j
 @Service
+@RequiredArgsConstructor
+@Transactional
 public class MeetingMinutesService {
 
-  private final MeetingSpeechStreamService streamService;
-  private final OpenAiChatClient chatClient;
-  private final BizCardMemoService bizCardMemoService;
-
-  public MeetingMinutesService(MeetingSpeechStreamService streamService,
-                               OpenAiChatClient chatClient,
-                               BizCardMemoService bizCardMemoService) {
-    this.streamService = streamService;
-    this.chatClient = chatClient;
-    this.bizCardMemoService = bizCardMemoService;
-  }
+  private final MeetingService meetingService;
+  private final MeetingSummaryService meetingSummaryService;
+  private final MeetRTChunkRepository chunkRepository;
+  private final MeetingParticipantRepository meetingParticipantRepository;
+  private final BizCardMemoServiceImpl bizCardMemoService;
 
   /**
-   * /meetings/me/{meetingId}/minutes
-   * 스트리밍 회의에 대한 최종 회의록 생성
-   *  - 전체 원문 transcript
-   *  - 한국어 기준 transcript (번역 포함)
-   *  - 요약(summary)
-   *  - segment 목록
-   * 을 구성해서 반환하고,
-   * bizCardId가 넘어온 경우 해당 명함의 메모에도 요약을 append 한다.
+   * 스트리밍 회의 종료 + 최종 회의록 생성 + 명함 메모 업데이트
+   *
+   * @param userIdx   현재 유저
+   * @param meetIdx   회의 ID
+   * @param bizCardId 특정 명함 한 개에만 붙이고 싶을 때 사용(옵션). null이면 참석자 전원에 붙임.
    */
-  public StreamMeetingMinutes finalizeStreamingMeeting(Long userIdx, Long meetingId, Long bizCardId) {
-    String originalTranscript = streamService.getTranscriptText(userIdx, meetingId);
-    String koreanTranscript = streamService.getKoreanTranscript(userIdx, meetingId);
-    String summary = summarizeInKorean(koreanTranscript);
-    List<MeetingSpeechStreamService.Segment> segments = streamService.getSegments(userIdx, meetingId);
+  public StreamMeetingMinutes finalizeStreamingMeeting(Long userIdx,
+      Long meetIdx,
+      Long bizCardId) {
 
-    // 명함 메모에 회의 요약 추가 (선택)
-    if (bizCardId != null && StringUtils.hasText(summary)) {
-      appendSummaryToBizCardMemo(bizCardId, summary);
+    // 1) 회의 종료 처리 (endedAt, status=FINISHED)
+    Meeting meeting = meetingService.endMeeting(meetIdx);
+
+    // 2) STT 청크 기반 원본 transcript 구성
+    List<MeetRTChunk> chunks = chunkRepository.findByMeetIdxOrderBySeqAsc(meetIdx);
+
+    String originalTranscript = chunks.stream()
+        .map(MeetRTChunk::getContent)
+        .reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
+
+    // 3) 번역본 (지금은 별도 meetTranslations를 안 쓰고, 일단 원본과 동일하게)
+    String koreanTranscript = originalTranscript;
+    // TODO: meetTranslations에서 lang_code='ko'인 번역 결과를 읽어와서 대체 가능
+
+    // 4) 요약 생성 (MeetShort 저장까지 포함)
+    String summary = meetingSummaryService.summarize(meetIdx, userIdx);
+
+    // 5) 명함 메모 업데이트
+    if (bizCardId != null) {
+      // 지정된 명함 한 개만
+      bizCardMemoService.appendMeetingSummaryToBizCard(bizCardId, meeting.getTitle(), summary);
+    } else {
+      // 회의 참석자 전원
+      List<MeetingParticipant> participants = meetingParticipantRepository.findByMeetIdx(meetIdx);
+      for (MeetingParticipant p : participants) {
+        bizCardMemoService.appendMeetingSummaryToBizCard(p.getBizcardIdx(), meeting.getTitle(), summary);
+      }
     }
 
+    // 6) 프론트 응답용 segment 뷰 만들기
+    List<SegmentView> segmentViews = chunks.stream()
+        .map(c -> new SegmentView(
+            c.getSeq(),
+            c.getChunkType(),
+            c.getLangCode(),
+            c.getContent(),
+            "FINAL".equalsIgnoreCase(c.getChunkType()), // 🔥 여기 수정
+            c.getCreatedAt()))
+        .collect(Collectors.toList());
+
     return new StreamMeetingMinutes(
-        meetingId,
+        meetIdx,
         originalTranscript,
         koreanTranscript,
         summary,
-        segments);
+        segmentViews);
   }
 
-  private String summarizeInKorean(String transcript) {
-    if (!StringUtils.hasText(transcript)) {
-      return "요약할 대화 내용이 없습니다.";
-    }
+  // ======================= DTO =======================
 
-    try {
-      return chatClient.summarize(transcript);
-    } catch (WebClientResponseException.TooManyRequests e) {
-      log.warn("요약 API 호출이 너무 많습니다 (429): {}", e.getMessage());
-      return "요약 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
-    } catch (WebClientResponseException e) {
-      log.warn("요약 API 호출 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
-      return "요약 생성 중 오류가 발생했습니다. (상태 코드: " + e.getStatusCode().value() + ")";
-    } catch (Exception e) {
-      log.error("요약 생성 중 알 수 없는 오류", e);
-      return "요약 생성 중 알 수 없는 오류가 발생했습니다.";
-    }
-  }
-
-  /**
-   * 요약문을 지정된 명함 메모에 추가한다.
-   *
-   * 예시 포맷:
-   * [2025.11.26.15:00:00]
-   * - 사람들의 정보에 대해서 물어봄.
-   * - 다양한 사람들은 다양한 종류가 있다고 함.
-   */
-  private void appendSummaryToBizCardMemo(Long bizCardId, String summary) {
-    try {
-      String existing = bizCardMemoService.getBizCardMemoContent(bizCardId);
-      if (existing == null) {
-        existing = "";
-      }
-
-      String timestamp = LocalDateTime.now()
-          .format(DateTimeFormatter.ofPattern("yyyy.MM.dd.HH:mm:ss"));
-
-      StringBuilder sb = new StringBuilder(existing);
-      if (!existing.endsWith("\n") && existing.length() > 0) {
-        sb.append("\n");
-      }
-      sb.append("[")
-        .append(timestamp)
-        .append("]\n");
-
-      for (String line : summary.split("\\r?\\n")) {
-        if (StringUtils.hasText(line)) {
-          sb.append("- ").append(line.trim()).append("\n");
-        }
-      }
-      sb.append("\n");
-
-      bizCardMemoService.updateBizCardMemo(bizCardId, sb.toString());
-    } catch (IOException e) {
-      log.warn("명함 메모 읽기/쓰기 실패 (bizCardId={}): {}", bizCardId, e.getMessage());
-    } catch (RuntimeException e) {
-      log.warn("명함 메모 업데이트 중 오류 (bizCardId={})", bizCardId, e);
-    }
-  }
-
+  @Getter
   public static class StreamMeetingMinutes {
     private final Long meetingId;
     private final String originalTranscript;
     private final String koreanTranscript;
     private final String summary;
-    private final List<MeetingSpeechStreamService.Segment> segments;
+    private final List<SegmentView> segments;
 
     public StreamMeetingMinutes(Long meetingId,
-                                String originalTranscript,
-                                String koreanTranscript,
-                                String summary,
-                                List<MeetingSpeechStreamService.Segment> segments) {
+        String originalTranscript,
+        String koreanTranscript,
+        String summary,
+        List<SegmentView> segments) {
       this.meetingId = meetingId;
       this.originalTranscript = originalTranscript;
       this.koreanTranscript = koreanTranscript;
       this.summary = summary;
       this.segments = segments;
     }
+  }
 
-    public Long getMeetingId() {
-      return meetingId;
-    }
+  @Getter
+  public static class SegmentView {
+    private final Long index;
+    private final String chunkType;
+    private final String langCode;
+    private final String text;
+    private final boolean isFinal;
+    private final LocalDateTime createdAt;
 
-    public String getOriginalTranscript() {
-      return originalTranscript;
-    }
-
-    public String getKoreanTranscript() {
-      return koreanTranscript;
-    }
-
-    public String getSummary() {
-      return summary;
-    }
-
-    public List<MeetingSpeechStreamService.Segment> getSegments() {
-      return segments;
+    public SegmentView(Long index,
+        String chunkType,
+        String langCode,
+        String text,
+        boolean isFinal,
+        LocalDateTime createdAt) {
+      this.index = index;
+      this.chunkType = chunkType;
+      this.langCode = langCode;
+      this.text = text;
+      this.isFinal = isFinal;
+      this.createdAt = createdAt;
     }
   }
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class BizCardMemoServiceImpl implements BizCardMemoService {
@@ -67,5 +68,40 @@ public class BizCardMemoServiceImpl implements BizCardMemoService {
 
         card.setUpdatedAt(LocalDateTime.now());
         return bizCardRepository.save(card);
+    }
+
+    /**
+     * 명함 메모에 회의 요약 블록을 추가
+     * 포맷:
+     * [yyyy.MM.dd.THH:mm:ss]
+     * (회의 제목)
+     * 요약 내용...
+     */
+    public void appendMeetingSummaryToBizCard(Long bizCardId,
+            String meetingTitle,
+            String summaryText) {
+        BizCard card = bizCardRepository.findById(bizCardId)
+                .orElseThrow(() -> new IllegalArgumentException("명함을 찾을 수 없습니다. id=" + bizCardId));
+
+        String now = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyy.MM.dd.'T'HH:mm:ss"));
+
+        String header = "[" + now + "]\n" +
+                (meetingTitle != null ? meetingTitle + "\n" : "");
+
+        String block = header + summaryText + "\n\n";
+
+        String oldMemo = card.getMemo(); // ⚠️ BizCard 엔티티에 getMemo()/setMemo()가 있다고 가정
+        String newMemo;
+
+        if (oldMemo == null || oldMemo.isEmpty()) {
+            newMemo = block;
+        } else {
+            // 최신 메모가 위로 오게 prepend
+            newMemo = block + oldMemo;
+        }
+
+        card.setMemo(newMemo);
+        bizCardRepository.save(card);
     }
 }
