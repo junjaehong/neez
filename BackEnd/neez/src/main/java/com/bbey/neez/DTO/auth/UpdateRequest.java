@@ -16,6 +16,9 @@ public class UpdateRequest {
     @Schema(description = "변경할 전화번호", example = "010-1234-5678")
     private String phone;
 
+    @Schema(description = "변경할 이메일", example = "test123@text.com")
+    private String Email;
+
     @Schema(description = "명함용 회사명", example = "BBEY Labs")
     private String cardCompanyName;
 

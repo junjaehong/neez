@@ -12,7 +12,8 @@ import com.bbey.neez.repository.CompanyRepository;
 import com.bbey.neez.repository.Auth.UserRepository;
 import com.bbey.neez.repository.BizCard.BizCardRepository;
 import com.bbey.neez.security.SecurityUtil;
-import com.bbey.neez.service.Company.CompanyInfoExtractService;
+import com.bbey.neez.service.company.CompanyInfoExtractService;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;

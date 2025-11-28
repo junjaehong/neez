@@ -31,6 +31,7 @@ public class Users {
     private String email;
 
     private String phone;
+    private String address;
 
     @Column(nullable = false)
     private boolean verified;   // A안에서는 항상 true로 저장해도 됨

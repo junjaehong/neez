@@ -9,8 +9,8 @@ import com.bbey.neez.repository.CompanyRepository;
 import com.bbey.neez.repository.Auth.EmailVerificationTokenRepository;
 import com.bbey.neez.repository.Auth.UserRepository;
 import com.bbey.neez.security.UserPrincipal;
+import com.bbey.neez.service.company.CompanyInfoExtractService;
 import com.bbey.neez.entity.Company;
-import com.bbey.neez.service.Company.CompanyInfoExtractService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -246,92 +247,88 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(true, "조회 성공", userOpt.get());
     }
 
-    // ===============================
-    // 프로필 수정
-    // ===============================
+    /**
+     * 회원 정보 수정 (idx 기준)
+     * - 기본 프로필 정보 업데이트
+     * - 회사명/주소 변경 시: DB에 존재하는 회사만 자동 매칭
+     * (없으면 companyIdx = null 유지)
+     */
+    @Transactional
     @Override
     public AuthResponse updateByIdx(Long idx, UpdateRequest req) {
-        Optional<Users> userOpt = userRepository.findById(idx);
-        if (!userOpt.isPresent()) {
-            return new AuthResponse(false, "존재하지 않는 유저입니다.");
-        }
+        Users user = userRepository.findById(idx)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + idx));
 
-        Users user = userOpt.get();
-
-        // 기본 프로필 정보
+        // ===== 기본 프로필 필드 업데이트 =====
         if (req.getName() != null) {
             user.setName(req.getName());
         }
         if (req.getPhone() != null) {
             user.setPhone(req.getPhone());
         }
+        if (req.getEmail() != null) {
+            user.setEmail(req.getEmail());
+        }
 
-        // ============================
-        // 회사 관련 정보 업데이트
-        // ============================
-        String newCompanyName = req.getCardCompanyName();
+        // 주소는 회사 매칭에도 쓰이므로 따로 변수로 관리
         String newAddress = req.getAddress();
+        if (newAddress != null) {
+            String trimmed = newAddress.trim();
+            user.setAddress(trimmed.isEmpty() ? null : trimmed);
+        }
 
+        // ===== 회사 관련 필드 처리 =====
         boolean needCompanyMatch = false;
 
-        // 1) 회사명 변경 여부 체크
+        String newCompanyName = req.getCardCompanyName();
         if (newCompanyName != null) {
             String trimmed = newCompanyName.trim();
             String current = user.getCardCompanyName();
 
-            // 값이 바뀐 경우에만 매칭 다시 수행
-            if (!trimmed.isEmpty() && (current == null || !trimmed.equals(current))) {
-                user.setCardCompanyName(trimmed);
-                needCompanyMatch = true;
-            }
-            // 빈 문자열로 들어온 경우 → 회사 정보 초기화
             if (trimmed.isEmpty()) {
+                // 회사명 비우면 회사 연결도 끊는다
                 user.setCardCompanyName(null);
+                user.setCompanyIdx(null);
+            } else {
+                // 값이 바뀐 경우에만 매칭 시도
+                if (current == null || !trimmed.equals(current)) {
+                    user.setCardCompanyName(trimmed);
+                    needCompanyMatch = true;
+                }
+            }
+        }
+
+        // 주소가 새로 들어왔으면 매칭에도 활용
+        if (newAddress != null && !newAddress.trim().isEmpty()) {
+            needCompanyMatch = true;
+        }
+
+        // 회사 자동 매칭 (DB에 있는 회사만)
+        if (needCompanyMatch
+                && user.getCardCompanyName() != null
+                && !user.getCardCompanyName().trim().isEmpty()) {
+
+            String companyNameForMatch = user.getCardCompanyName();
+            String addressForMatch = (newAddress != null && !newAddress.trim().isEmpty())
+                    ? newAddress
+                    : user.getAddress(); // null 아니면 기존 주소 사용
+
+            Optional<Company> matched = companyInfoExtractService.findExistingCompany(companyNameForMatch,
+                    addressForMatch);
+
+            if (matched.isPresent()) {
+                user.setCompanyIdx(matched.get().getIdx());
+            } else {
+                // 매칭 실패 시에는 회사 연결을 비워둔다.
                 user.setCompanyIdx(null);
             }
         }
 
-        // 2) 주소가 새로 들어온 경우, 회사매칭 시 같이 사용
-        if (newAddress != null && !newAddress.trim().isEmpty()) {
-            // 주소는 Users에 굳이 저장 안 하고, 매칭용으로만 사용하고
-            // 회사 공식 주소는 companies.address에 들어가게 설계하는게 깔끔
-            // (원하면 Users 쪽에 companyAddress 필드 추가해서 같이 저장해도 됨)
-            needCompanyMatch = true;
-        }
-
-        // 3) 부서 / 직책 / 팩스는 그대로 Users에 저장
-        if (req.getDepartment() != null) {
-            user.setDepartment(req.getDepartment());
-        }
-        if (req.getPosition() != null) {
-            user.setPosition(req.getPosition());
-        }
-        if (req.getFax() != null) {
-            user.setFax(req.getFax());
-        }
-
-        // 4) 회사명 변경(or 주소 입력) 시 회사매칭 서비스 호출
-        if (needCompanyMatch && user.getCardCompanyName() != null && !user.getCardCompanyName().trim().isEmpty()) {
-
-            String companyNameForMatch = user.getCardCompanyName();
-            String addressForMatch = (newAddress != null ? newAddress : "");
-
-            // 1차: 외부 API까지 사용하는 무거운 매칭
-            Optional<Company> matched = companyInfoExtractService.extractAndSave(companyNameForMatch, addressForMatch);
-
-            // 2차: 실패 시 DB 기반 가벼운 매칭/생성
-            if (!matched.isPresent()) {
-                matched = companyInfoExtractService.matchOrCreateCompany(companyNameForMatch, addressForMatch);
-            }
-
-            // 매칭 성공 시 Users.companyIdx 갱신
-            matched.ifPresent(c -> user.setCompanyIdx(c.getIdx()));
-        }
-
         user.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(user);
+        Users saved = userRepository.save(user);
 
-        return new AuthResponse(true, "정보 수정 완료", user);
+        // ✅ 정적 팩토리 메서드 사용 (이미 AuthResponse에 추가해둔 버전)
+        return AuthResponse.success("프로필 수정 완료", saved);
     }
 
     // ===============================

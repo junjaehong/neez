@@ -1,32 +1,34 @@
 package com.bbey.neez.repository;
 
 import com.bbey.neez.entity.Company;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface CompanyRepository extends JpaRepository<Company, Long> {
 
-    Optional<Company> findByName(String name);
-
-    Optional<Company> findByBizNo(String bizNo);
-
-    Optional<Company> findByCorpNo(String corpNo);
-
+    // 이름 + 주소 완전 일치
     Optional<Company> findFirstByNameAndAddress(String name, String address);
 
-    // 이름 + 주소 + 도메인 + 홈페이지에 대해 부분검색
-    @Query(
-        "SELECT c " +
-        "FROM Company c " +
-        "WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-        "   OR LOWER(c.address) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-        "   OR LOWER(c.domain) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-        "   OR LOWER(c.homepage) LIKE LOWER(CONCAT('%', :keyword, '%'))"
-    )
-    List<Company> searchByKeyword(String keyword, Pageable pageable);
-    
+    // 이름만 일치
+    Optional<Company> findByName(String name);
+
+    // 사업자번호로 조회
+    Optional<Company> findByBizNo(String bizNo);
+
+    // 법인번호로 조회
+    Optional<Company> findByCorpNo(String corpNo);
+
+    // 키워드 검색 (Java 8/11 호환)
+    @Query("SELECT c " +
+            "FROM Company c " +
+            "WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "   OR LOWER(c.address) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "   OR LOWER(c.homepage) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "   OR LOWER(c.industry) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Company> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
 }
