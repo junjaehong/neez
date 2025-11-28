@@ -17,7 +17,14 @@ public class BizCardManualRequest {
 
     @NotBlank(message = "회사명은 필수입니다.")
     @Size(max = 200, message = "회사명은 200자를 넘을 수 없습니다.")
-    private String company;
+    private String company;        // 명함에 적힌 회사명(표기용)
+
+    /**
+     * companies.idx (선택)
+     * - 회사 검색/생성 후 선택된 회사 PK
+     * - 선택 안 했으면 null 허용
+     */
+    private Long companyIdx;
 
     @Size(max = 100, message = "부서는 100자를 넘을 수 없습니다.")
     private String department;

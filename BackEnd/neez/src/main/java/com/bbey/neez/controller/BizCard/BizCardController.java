@@ -69,6 +69,11 @@ public class BizCardController {
         map.put("address", data.getAddress());
         map.put("memo", data.getMemo());
 
+        // 🔹 회사 PK (companies.idx) 전달
+        if (data.getCompanyIdx() != null) {
+            map.put("company_idx", data.getCompanyIdx().toString());
+        }
+
         BizCardSaveResult result = bizCardService.saveManual(map);
         BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
 
@@ -180,7 +185,7 @@ public class BizCardController {
 
         boolean rematchCompany = Boolean.TRUE.equals(body.getRematchCompany());
 
-        BizCard updated = bizCardService.updateBizCard(idx, map, rematchCompany);
+        BizCard updated = bizCardService.updateBizCard(idx, map);
         BizCardDto dto = toBizCardDto(updated, null, null);
         return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "updated", dto));
     }

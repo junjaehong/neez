@@ -26,7 +26,7 @@ public interface BizCardService {
     BizCardDto getBizCardDetailDto(Long id);
 
     // 🔹 수정/삭제/복구
-    BizCard updateBizCard(Long idx, Map<String, String> data, boolean rematchCompany);
+    BizCard updateBizCard(Long idx, Map<String, String> data);
 
     void deleteBizCard(Long id);
 
