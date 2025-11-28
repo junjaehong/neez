@@ -2,8 +2,6 @@ package com.bbey.neez.entity.Auth;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -18,50 +16,58 @@ public class Users {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idx;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "userId", nullable = false, unique = true, length = 255)
     private String userId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String password;
 
     @Column(length = 100)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 255)
     private String email;
 
+    @Column(length = 255)
     private String phone;
+
+    @Column(length = 255)
     private String address;
 
     @Column(nullable = false)
-    private boolean verified;   // A안에서는 항상 true로 저장해도 됨
+    private boolean verified;
 
+    @Column(length = 500)
     private String refreshToken;
 
+    @Column(length = 50)
     private String resetCode;
+
     private LocalDateTime resetCodeExpire;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-        @Column(name = "card_company_name", length = 255)
-    private String cardCompanyName;    // 명함용 회사명
-
+    // 회사 연결
     @Column(name = "company_idx")
-    private Long companyIdx;           // companies.idx
+    private Long companyIdx;
+
+    @Column(name = "card_company_name", length = 255)
+    private String cardCompanyName;
 
     @Column(length = 100)
-    private String department;         // 부서
+    private String department;
 
     @Column(length = 100)
-    private String position;           // 직급
+    private String position;
 
     @Column(length = 50)
-    private String fax;                // 팩스번호
+    private String fax;
 
+    // 🔥 역할 컬럼
+    @Column(name = "role", nullable = false, length = 50)
+    private String role;   // "USER", "ADMIN" 등
 }

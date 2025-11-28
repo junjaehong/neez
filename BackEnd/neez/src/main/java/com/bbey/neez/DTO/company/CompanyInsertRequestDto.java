@@ -1,3 +1,4 @@
+// CompanyInsertRequestDto: 관리자/목록 응답용
 package com.bbey.neez.DTO.company;
 
 import lombok.Data;
@@ -8,7 +9,6 @@ import java.time.LocalDateTime;
 public class CompanyInsertRequestDto {
 
     private Long id;
-
     private Long requesterUserIdx;
 
     private String name;

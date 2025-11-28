@@ -10,7 +10,6 @@ import com.bbey.neez.repository.Auth.EmailVerificationTokenRepository;
 import com.bbey.neez.repository.Auth.UserRepository;
 import com.bbey.neez.security.UserPrincipal;
 import com.bbey.neez.service.company.CompanyInfoExtractService;
-import com.bbey.neez.entity.Company;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -256,10 +255,11 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public AuthResponse updateByIdx(Long idx, UpdateRequest req) {
+        // 1. 사용자 조회
         Users user = userRepository.findById(idx)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + idx));
 
-        // ===== 기본 프로필 필드 업데이트 =====
+        // 2. 기본 프로필 정보 업데이트
         if (req.getName() != null) {
             user.setName(req.getName());
         }
@@ -270,14 +270,13 @@ public class AuthServiceImpl implements AuthService {
             user.setEmail(req.getEmail());
         }
 
-        // 주소는 회사 매칭에도 쓰이므로 따로 변수로 관리
         String newAddress = req.getAddress();
         if (newAddress != null) {
             String trimmed = newAddress.trim();
             user.setAddress(trimmed.isEmpty() ? null : trimmed);
         }
 
-        // ===== 회사 관련 필드 처리 =====
+        // 3. 회사명 변경 여부 체크
         boolean needCompanyMatch = false;
 
         String newCompanyName = req.getCardCompanyName();
@@ -286,7 +285,7 @@ public class AuthServiceImpl implements AuthService {
             String current = user.getCardCompanyName();
 
             if (trimmed.isEmpty()) {
-                // 회사명 비우면 회사 연결도 끊는다
+                // 회사명 비우면 회사 연결도 해제
                 user.setCardCompanyName(null);
                 user.setCompanyIdx(null);
             } else {
@@ -298,12 +297,12 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        // 주소가 새로 들어왔으면 매칭에도 활용
+        // 주소가 새로 들어오면 매칭에 활용
         if (newAddress != null && !newAddress.trim().isEmpty()) {
             needCompanyMatch = true;
         }
 
-        // 회사 자동 매칭 (DB에 있는 회사만)
+        // 4. 회사 자동 매칭 (DB에 있는 회사만)
         if (needCompanyMatch
                 && user.getCardCompanyName() != null
                 && !user.getCardCompanyName().trim().isEmpty()) {
@@ -311,7 +310,7 @@ public class AuthServiceImpl implements AuthService {
             String companyNameForMatch = user.getCardCompanyName();
             String addressForMatch = (newAddress != null && !newAddress.trim().isEmpty())
                     ? newAddress
-                    : user.getAddress(); // null 아니면 기존 주소 사용
+                    : user.getAddress();
 
             Optional<Company> matched = companyInfoExtractService.findExistingCompany(companyNameForMatch,
                     addressForMatch);
@@ -319,16 +318,18 @@ public class AuthServiceImpl implements AuthService {
             if (matched.isPresent()) {
                 user.setCompanyIdx(matched.get().getIdx());
             } else {
-                // 매칭 실패 시에는 회사 연결을 비워둔다.
+                // 매칭 실패 시에는 회사 연결을 비워둠
                 user.setCompanyIdx(null);
             }
         }
 
+        // 5. 저장 및 응답
         user.setUpdatedAt(LocalDateTime.now());
         Users saved = userRepository.save(user);
 
-        // ✅ 정적 팩토리 메서드 사용 (이미 AuthResponse에 추가해둔 버전)
-        return AuthResponse.success("프로필 수정 완료", saved);
+        // AuthResponse 생성 방식은 프로젝트에 맞춰서 사용
+        // (정적 메서드 있으면 AuthResponse.success("프로필 수정 완료", saved) 써도 됨)
+        return new AuthResponse(true, "프로필 수정 완료", saved);
     }
 
     // ===============================

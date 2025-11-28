@@ -1,6 +1,7 @@
 package com.bbey.neez.entity;
 
 import lombok.*;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
@@ -17,14 +18,14 @@ public class CompanyInsertRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 신청한 사용자 idx (Users PK)
-    @Column(nullable = false)
+    // 신청한 사용자 (users.idx)
+    @Column(name = "requester_user_idx", nullable = false)
     private Long requesterUserIdx;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(length = 500)
+    @Column(length = 255)
     private String address;
 
     @Column(length = 100)
@@ -43,13 +44,16 @@ public class CompanyInsertRequest {
     @Column(nullable = false, length = 20)
     private RequestStatus status; // PENDING, APPROVED, REJECTED
 
-    @Column(length = 500)
+    @Column(name = "reject_reason", length = 500)
     private String rejectReason;
 
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
+    @Column(name = "processed_by_admin_idx")
     private Long processedByAdminIdx;
 
     public enum RequestStatus {

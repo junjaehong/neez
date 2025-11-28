@@ -11,16 +11,14 @@ import java.util.Optional;
 
 public interface CompanyRepository extends JpaRepository<Company, Long> {
 
-    // 이름 + 주소 완전 일치
+    // 회사 자동 매칭용
     Optional<Company> findFirstByNameAndAddress(String name, String address);
 
-    // 이름만 일치
     Optional<Company> findByName(String name);
 
-    // 사업자번호로 조회
+    // 검색 API용
     Optional<Company> findByBizNo(String bizNo);
 
-    // 법인번호로 조회
     Optional<Company> findByCorpNo(String corpNo);
 
     // 키워드 검색 (Java 8/11 호환)

@@ -1,42 +1,50 @@
 package com.bbey.neez.security;
 
+import com.bbey.neez.entity.Auth.Users;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.bbey.neez.entity.Auth.Users;
-
 import java.util.Collection;
 import java.util.Collections;
 
+@Getter
 public class UserPrincipal implements UserDetails {
 
+    // 🔥 전체 Users 엔티티를 들고 있게 만든다
     private final Users user;
 
     public UserPrincipal(Users user) {
         this.user = user;
     }
 
-    // ✅ 편의 메서드들 추가
+    // 편의 메서드들
     public Long getIdx() {
-        return user.getIdx();          // Users 엔티티에 idx 필드 있다고 가정
+        return user.getIdx();
     }
 
     public String getUserId() {
         return user.getUserId();
     }
 
-    public String getEmail() {
-        return user.getEmail();
-    }
-
-    public Users getUser() {
-        return user;
+    public String getRole() {
+        return user.getRole(); // role 컬럼 쓰는 경우
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        String role = user.getRole();
+        if (role == null || role.isEmpty()) {
+            role = "USER";
+        }
+        // hasRole("ADMIN")을 쓰므로 ROLE_ 접두어 붙여줌
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
+    }
+
+    @Override
+    public String getUsername() {
+        return user.getUserId();
     }
 
     @Override
@@ -45,14 +53,19 @@ public class UserPrincipal implements UserDetails {
     }
 
     @Override
-    public String getUsername() {
-        // 로그인 아이디는 email이 아니라 userId
-        return user.getUserId();
+    public boolean isAccountNonExpired() {
+        return true;
     }
 
-    @Override public boolean isAccountNonExpired() { return true; }
-    @Override public boolean isAccountNonLocked() { return true; }
-    @Override public boolean isCredentialsNonExpired() { return true; }
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
 
     @Override
     public boolean isEnabled() {

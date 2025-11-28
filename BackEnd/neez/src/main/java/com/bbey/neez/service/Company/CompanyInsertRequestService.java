@@ -54,32 +54,24 @@ public class CompanyInsertRequestService {
             throw new IllegalStateException("이미 처리된 요청입니다.");
         }
 
-        // 1. Company 중복 여부 한 번 더 체크 (이름 + 주소 기준)
+        // name/address 정리 (trim)
+        String name = req.getName() != null ? req.getName().trim() : null;
+        String address = req.getAddress() != null ? req.getAddress().trim() : null;
+
+        // 1. Company 중복 체크 (이름 + 주소 기준)
         Company company = companyRepository
-                .findFirstByNameAndAddress(req.getName(), req.getAddress())
+                .findFirstByNameAndAddress(name, address)
                 .orElseGet(() -> {
                     Company c = new Company();
-                    c.setName(req.getName());
-                    c.setAddress(req.getAddress());
-
-                    // rep_name / biz_no / corp_no / dart_corp_code / homepage 등은
-                    // 지금 단계에서는 모르는 값이므로 null 유지.
-                    // 필요해지면 나중에 관리자 화면에서 따로 수정 가능.
-
-                    // confidence: 수동 등록이니까 100% 같은 느낌으로 주고 싶으면:
-                    // c.setConfidence(new BigDecimal("100.00"));
-                    // 아니면 그냥 null
+                    c.setName(name);
+                    c.setAddress(address);
                     c.setSource("MANUAL_REQUEST");
-
-                    // created_at / updated_at 은
-                    // DB DEFAULT / ON UPDATE로 관리 중이면 굳이 안 세팅해도 됨.
                     c.setCreatedAt(LocalDateTime.now());
                     c.setUpdatedAt(LocalDateTime.now());
-
                     return companyRepository.save(c);
                 });
 
-        // 2. 요청 상태 업데이트
+        // 2. 신청 상태 업데이트
         req.setStatus(RequestStatus.APPROVED);
         req.setProcessedByAdminIdx(adminIdx);
         req.setProcessedAt(LocalDateTime.now());
