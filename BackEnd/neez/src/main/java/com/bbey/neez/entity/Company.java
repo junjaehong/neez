@@ -40,6 +40,18 @@ public class Company {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "domain")
+    private String domain;
+
+    @Column(name = "industry")
+    private String industry;
+
+    @Column(name = "last_refreshed_at")
+    private LocalDateTime LastRefreshedAt;
+
+    @Column(name = "source")
+    private String source;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

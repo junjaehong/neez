@@ -1,4 +1,4 @@
-package com.bbey.neez.controller;
+package com.bbey.neez.controller.Meet;
 
 import com.bbey.neez.security.SecurityUtil;
 import com.bbey.neez.service.Meet.MeetingMinutesService;

@@ -1,7 +1,7 @@
-package com.bbey.neez.controller;
+package com.bbey.neez.controller.company;
 
 import com.bbey.neez.DTO.ApiResponseDto;
-import com.bbey.neez.DTO.CompanyDto;
+import com.bbey.neez.DTO.company.CompanyDto;
 import com.bbey.neez.repository.CompanyRepository;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
