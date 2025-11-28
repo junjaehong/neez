@@ -1,58 +1,57 @@
-package com.bbey.neez.entity;
+package com.bbey.neez.entity.Auth;
 
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "email_verification_token")
 @Getter
 @Setter
-public class Users {
+public class EmailVerificationToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idx;
+    private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
+    private String token;          // 랜덤 토큰 (UUID 등)
+
+    @Column(nullable = false, length = 255)
     private String userId;
 
-    @Column(nullable = false)
-    private String password;
+    @Column(nullable = false, length = 255)
+    private String password;      // 이미 BCrypt로 인코딩된 상태
 
     @Column(length = 100)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, length = 255)
     private String email;
 
+    @Column(length = 255)
     private String phone;
 
     @Column(nullable = false)
-    private boolean verified;   // A안에서는 항상 true로 저장해도 됨
-
-    private String refreshToken;
-
-    private String resetCode;
-    private LocalDateTime resetCodeExpire;
+    private LocalDateTime expiresAt; // 만료 시간 (예: now + 30분)
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
 
-        @Column(name = "card_company_name", length = 255)
+    // ================================
+    // 회사 관련 필드
+    // ================================
+
+    @Column(name = "card_company_name", length = 255)
     private String cardCompanyName;    // 명함용 회사명
 
-    @Column(name = "company_idx")
-    private Long companyIdx;           // companies.idx
+    @Column(length = 255)
+    private String address;    // 회사 주소
 
     @Column(length = 100)
     private String department;         // 부서
@@ -62,5 +61,4 @@ public class Users {
 
     @Column(length = 50)
     private String fax;                // 팩스번호
-
 }

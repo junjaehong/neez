@@ -1,7 +1,8 @@
 package com.bbey.neez.service.Auth;
 
-import com.bbey.neez.entity.Users;
-import com.bbey.neez.repository.UserRepository;
+import com.bbey.neez.entity.Auth.Users;
+import com.bbey.neez.repository.Auth.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

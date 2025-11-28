@@ -1,7 +1,7 @@
 package com.bbey.neez.service.BizCard;
 
 import com.bbey.neez.DTO.BizCardDto;
-import com.bbey.neez.entity.HashTag;
+import com.bbey.neez.entity.BizCard.HashTag;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -2,9 +2,9 @@ package com.bbey.neez.controller.BizCard;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.MemoDto;
-import com.bbey.neez.entity.BizCard;
 import com.bbey.neez.service.BizCard.BizCardMemoService;
 import com.bbey.neez.DTO.cardRequest.*;
+import com.bbey.neez.entity.BizCard.BizCard;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.Operation;

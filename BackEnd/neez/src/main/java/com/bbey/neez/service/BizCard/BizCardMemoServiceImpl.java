@@ -1,10 +1,10 @@
 package com.bbey.neez.service.BizCard;
 
 import com.bbey.neez.component.MemoStorage;
-import com.bbey.neez.entity.BizCard;
+import com.bbey.neez.entity.BizCard.BizCard;
 import com.bbey.neez.exception.AccessDeniedBizException;
 import com.bbey.neez.exception.ResourceNotFoundException;
-import com.bbey.neez.repository.BizCardRepository;
+import com.bbey.neez.repository.BizCard.BizCardRepository;
 import com.bbey.neez.security.SecurityUtil;
 import org.springframework.stereotype.Service;
 

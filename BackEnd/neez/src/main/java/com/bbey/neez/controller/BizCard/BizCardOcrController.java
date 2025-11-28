@@ -3,8 +3,8 @@ package com.bbey.neez.controller.BizCard;
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.BizCardDto;
 import com.bbey.neez.DTO.cardRequest.BizCardOcrRequest;
-import com.bbey.neez.entity.BizCard;
-import com.bbey.neez.entity.BizCardSaveResult;
+import com.bbey.neez.entity.BizCard.BizCard;
+import com.bbey.neez.entity.BizCard.BizCardSaveResult;
 import com.bbey.neez.service.BizCard.BizCardOcrService;
 import com.bbey.neez.service.BizCard.BizCardService;
 

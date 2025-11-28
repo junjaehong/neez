@@ -1,7 +1,8 @@
 package com.bbey.neez.security;
 
-import com.bbey.neez.entity.Users;
-import com.bbey.neez.repository.UserRepository;
+import com.bbey.neez.entity.Auth.Users;
+import com.bbey.neez.repository.Auth.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

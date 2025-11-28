@@ -1,4 +1,4 @@
-package com.bbey.neez.entity;
+package com.bbey.neez.entity.BizCard;
 
 public class BizCardSaveResult {
     private final BizCard bizCard;

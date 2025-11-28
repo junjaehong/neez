@@ -1,8 +1,8 @@
-package com.bbey.neez.repository;
+package com.bbey.neez.repository.BizCard;
 
-import com.bbey.neez.entity.CardHashTag;
-import com.bbey.neez.entity.BizCard;
-import com.bbey.neez.entity.HashTag;
+import com.bbey.neez.entity.BizCard.BizCard;
+import com.bbey.neez.entity.BizCard.CardHashTag;
+import com.bbey.neez.entity.BizCard.HashTag;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

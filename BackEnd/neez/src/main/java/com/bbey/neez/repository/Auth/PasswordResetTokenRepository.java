@@ -1,7 +1,8 @@
-package com.bbey.neez.repository;
+package com.bbey.neez.repository.Auth;
 
-import com.bbey.neez.entity.PasswordResetToken;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.bbey.neez.entity.Auth.PasswordResetToken;
 
 import java.util.Optional;
 

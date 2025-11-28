@@ -1,4 +1,4 @@
-package com.bbey.neez.entity;
+package com.bbey.neez.entity.Auth;
 
 import lombok.Getter;
 import lombok.Setter;

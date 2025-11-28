@@ -2,12 +2,12 @@ package com.bbey.neez.service.Auth;
 
 import com.bbey.neez.DTO.auth.*;
 import com.bbey.neez.entity.Company;
-import com.bbey.neez.entity.EmailVerificationToken;
-import com.bbey.neez.entity.Users;
+import com.bbey.neez.entity.Auth.EmailVerificationToken;
+import com.bbey.neez.entity.Auth.Users;
 import com.bbey.neez.jwt.JwtUtil;
 import com.bbey.neez.repository.CompanyRepository;
-import com.bbey.neez.repository.EmailVerificationTokenRepository;
-import com.bbey.neez.repository.UserRepository;
+import com.bbey.neez.repository.Auth.EmailVerificationTokenRepository;
+import com.bbey.neez.repository.Auth.UserRepository;
 import com.bbey.neez.security.UserPrincipal;
 import com.bbey.neez.entity.Company;
 import com.bbey.neez.service.Company.CompanyInfoExtractService;

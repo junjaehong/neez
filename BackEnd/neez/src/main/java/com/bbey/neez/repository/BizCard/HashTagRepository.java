@@ -1,9 +1,10 @@
-package com.bbey.neez.repository;
+package com.bbey.neez.repository.BizCard;
 
-import com.bbey.neez.entity.HashTag;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+
+import com.bbey.neez.entity.BizCard.HashTag;
 
 import java.util.List;
 import java.util.Optional;

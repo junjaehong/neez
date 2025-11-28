@@ -1,7 +1,9 @@
-package com.bbey.neez.repository;
+package com.bbey.neez.repository.Auth;
 
-import com.bbey.neez.entity.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.bbey.neez.entity.Auth.Users;
+
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<Users, Long> {

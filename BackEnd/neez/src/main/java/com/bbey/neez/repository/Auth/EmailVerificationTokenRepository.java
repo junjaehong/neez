@@ -1,7 +1,8 @@
-package com.bbey.neez.repository;
+package com.bbey.neez.repository.Auth;
 
-import com.bbey.neez.entity.EmailVerificationToken;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.bbey.neez.entity.Auth.EmailVerificationToken;
 
 import java.util.Optional;
 

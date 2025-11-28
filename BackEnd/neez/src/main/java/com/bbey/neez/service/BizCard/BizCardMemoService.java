@@ -1,8 +1,8 @@
 package com.bbey.neez.service.BizCard;
 
-import com.bbey.neez.entity.BizCard;
-
 import java.io.IOException;
+
+import com.bbey.neez.entity.BizCard.BizCard;
 
 public interface BizCardMemoService {
 

@@ -1,6 +1,7 @@
-package com.bbey.neez.entity;
+package com.bbey.neez.entity.BizCard;
 
 import javax.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
