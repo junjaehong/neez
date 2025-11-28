@@ -260,7 +260,7 @@ const CameraCapture = () => {
               <div className="camera-frame"></div>
             </div>
             <button className="capture-button" onClick={capturePhoto}>
-              📷 촬영
+              📷
             </button>
           </div>
         ) : (

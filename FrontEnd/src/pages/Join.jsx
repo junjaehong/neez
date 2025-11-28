@@ -237,7 +237,9 @@ const Join = () => {
           <span className="back-btn" onClick={handleBack}>
             ←
           </span>
-          <Logo size="small" />
+          <div className="logo">
+            <img src=".\public\Neez-Logo-S.png" alt="logo" />
+          </div>
         </div>
         
         <form onSubmit={handleSubmit} className="join-form">

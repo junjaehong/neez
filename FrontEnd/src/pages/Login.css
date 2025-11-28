@@ -18,19 +18,12 @@
   justify-content: center;
 }
 
-/* .login-content {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  padding: 40px 30px;
-  min-height: 500px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-} */
-
+.logo {
+  margin: 0 auto;
+}
 
 .login-form {
+  margin-top: 10px;
   margin-bottom: 20px;
 }
 

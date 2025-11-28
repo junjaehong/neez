@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Logo from '../components/Logo';
 import './Start.css';
 
 const Start = () => {
@@ -18,7 +17,9 @@ const Start = () => {
   return (
     <div className="start-container">
       <div className="start-content">
-        <Logo size="large" />
+        <div className="logo">
+          <img src=".\public\Neez-Logo-L.png" alt="logo" />
+        </div>
       </div>
     </div>
   );

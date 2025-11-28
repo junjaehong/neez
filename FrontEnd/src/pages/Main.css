@@ -17,18 +17,25 @@
   justify-content: space-between;
 }
 
+.left-logo {
+  margin-left: 15px;
+}
+
 .header-right {
     display: flex;
     width: 40%;
     justify-content: space-evenly;
+    margin-right: 35px;
+}
+
+.header-right img {
+    width: 55px;
 }
 
 .icon {
-    display: inline-block;
-    margin-right: 10px;
-    font-size: 20px;
-    cursor: pointer;
+  margin-left: 5px;
 }
+
 
 /* .main-mycard {
   display: inline-block;

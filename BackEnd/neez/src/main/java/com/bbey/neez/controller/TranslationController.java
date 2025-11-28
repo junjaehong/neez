@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/translate")
+@Tag(name = "Translation API")  
+@SecurityRequirement(name = "BearerAuth")
 public class TranslationController {
 
   private final PapagoTranslationClient translationClient;

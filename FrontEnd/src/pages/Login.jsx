@@ -46,7 +46,9 @@ const Login = () => {
   return (
     <div className="login-container">
       <div className="login-content">
-        <Logo size="medium" />
+        <div className="logo">
+          <img src=".\public\Neez-Logo-M.png" alt="logo" />
+        </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <InputField

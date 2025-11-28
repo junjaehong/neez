@@ -49,14 +49,19 @@ const Main = () => {
         
         {/* 메인 헤더 */}
         <div className="main-header app-header">
-          {/* <div className="logo">
-            <img src=".\public\임의로고.png" alt="임의로고" />
-          </div> */}
-          <Logo size="medium_left" />
+          <div className="left-logo">
+            <img src=".\public\Neez-Logo-S.png" alt="logo" />
+          </div>      
           <div className="header-right">
-            <div className="icon" onClick={handleMic} title="녹음">Mic</div>
-            <div className="icon" onClick={handleCardlist} title="명함 목록">List</div>
-            <div className="icon" onClick={handleMypage} title="마이페이지">My</div>
+            <div className="icon" onClick={handleMic} title="녹음">
+              <img src=".\public\Neez-Mic.png" alt="mic" />
+            </div>
+            <div className="icon" onClick={handleCardlist} title="명함 목록">
+              <img src=".\public\Neez-List.png" alt="list" />
+            </div>
+            <div className="icon" onClick={handleMypage} title="마이페이지">
+              <img src=".\public\Neez-My.png" alt="mypage" />
+            </div>
           </div>
         </div>
 

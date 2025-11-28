@@ -40,7 +40,7 @@ function AppRoutes() {
   const { pathname } = useLocation();
 
   // 로그인/회원가입 경로에서는 FAB 숨김
-  const noFabPaths = ['/login', '/join'];
+  const noFabPaths = ['/', '/login', '/join', '/CameraCapture', '/CardInput'];
   const showFAB = isLoggedIn && !noFabPaths.includes(pathname);
 
   return (
@@ -68,7 +68,7 @@ function AppRoutes() {
         <Route path="/carddetail/:id" element={
           <ProtectedRoute><CardDetail /></ProtectedRoute>
         } />
-        <Route path="/cameracapture" element={
+        <Route path="/CameraCapture" element={
           <ProtectedRoute><CameraCapture /></ProtectedRoute>
         } />
         <Route path="/cardinput" element={
