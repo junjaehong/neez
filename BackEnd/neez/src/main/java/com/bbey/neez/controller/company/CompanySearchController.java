@@ -4,6 +4,7 @@ import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.entity.Company;
 import com.bbey.neez.repository.CompanyRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import java.util.Optional;
 @RequestMapping("/api/companies")
 @RequiredArgsConstructor
 @Tag(name = "Company Search API", description = "DB에 저장된 회사 정보를 검색하는 API")
+@SecurityRequirement(name = "BearerAuth")
 public class CompanySearchController {
 
         private final CompanyRepository companyRepository;
