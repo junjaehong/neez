@@ -25,15 +25,16 @@
     display: flex;
     width: 40%;
     justify-content: space-evenly;
-    margin-right: 35px;
+    margin-right: 12px;
 }
 
 .header-right img {
-    width: 55px;
+    width: 45px;
 }
 
 .icon {
-  margin-left: 5px;
+  margin-left: 3px;
+  cursor: pointer;
 }
 
 

@@ -10,13 +10,12 @@ const CardInput = () => {
     name: '',
     position: '',
     department: '',
-    company: '',
-    phone: '',
+    cardCompanyName: '',
+    phoneNumber: '',
     email: '',
     address: '',
-    fax: '',
-    website: '',
-    memo: ''
+    faxNumber: '',
+    website: ''
   });
 
   const handleBack = () => {
@@ -54,13 +53,12 @@ const CardInput = () => {
       name: '',
       position: '',
       department: '',
-      company: '',
-      phone: '',
+      cardCompanyName: '',
+      phoneNumber: '',
       email: '',
       address: '',
-      fax: '',
-      website: '',
-      memo: ''
+      faxNumber: '',
+      website: ''
     });
   };
 
@@ -119,8 +117,8 @@ const CardInput = () => {
               <label>회사 <span className="required">*</span></label>
               <input
                 type="text"
-                name="company"
-                value={formData.company}
+                name="cardCompanyName"
+                value={formData.cardCompanyName}
                 onChange={handleInputChange}
                 placeholder="NaverCloud"
                 required
@@ -135,8 +133,8 @@ const CardInput = () => {
               <label>휴대폰</label>
               <input
                 type="tel"
-                name="phone"
-                value={formData.phone}
+                name="phoneNumber"
+                value={formData.phoneNumber}
                 onChange={handleInputChange}
                 placeholder="010-1234-5678"
                 pattern="[0-9]{3}-[0-9]{3,4}-[0-9]{4}"
@@ -158,8 +156,8 @@ const CardInput = () => {
               <label>팩스</label>
               <input
                 type="tel"
-                name="fax"
-                value={formData.fax}
+                name="faxNumber"
+                value={formData.faxNumber}
                 onChange={handleInputChange}
                 placeholder="02-123-4567"
               />
@@ -191,7 +189,7 @@ const CardInput = () => {
               />
             </div>
 
-            <div className="form-field">
+            {/* <div className="form-field">
               <label>메모</label>
               <textarea
                 name="memo"
@@ -200,7 +198,7 @@ const CardInput = () => {
                 placeholder="추가 메모사항"
                 rows="3"
               />
-            </div>
+            </div> */}
           </div>
 
           <div className="form-actions">

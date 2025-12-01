@@ -26,6 +26,18 @@
   overflow-y: auto;
 }
 
+.icon-phon {
+  width: 13px;
+  margin-right: 4px;
+  margin-bottom: -3px;
+}
+
+.icon-email {
+  width: 16px;
+  margin-right: 4px;
+  margin-bottom: -2px;
+}
+
 .card-item {
   background: #f8f8f8;
   border-radius: 10px;

@@ -359,6 +359,31 @@ input:focus {
   background: var(--primary-dark);
 }
 
+.meeting-title {
+  cursor: pointer;
+}
+
+.meeting-popup {
+  text-align: center;
+  height: 300px;
+}
+
+.meeting-content h3 {
+  color: #333;
+  margin: 10px;
+}
+
+/* .meeting-navigation {
+  margin-top: 20px;
+} */
+
+.meeting-navigation > button {
+  border: none;
+  background: none;
+  color: #737164;
+  padding: 0 30px;
+}
+
 /* 팝업 스타일 */
 /* .popup-overlay {
   position: fixed;

@@ -125,7 +125,7 @@ const SttCardSelect = () => {
             placeholder="이름, 회사명으로 검색"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
+            className="search-input stt-serach"
           />
         </div>
 

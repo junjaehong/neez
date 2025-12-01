@@ -245,7 +245,7 @@ const SttIng = () => {
             {isRecording && (
               <div className="recording-indicator">
                 <span className="recording-dot" />
-                <span>녹음중 {formatTime(recordingTime)}</span>
+                <span>🔴 {formatTime(recordingTime)}</span>
               </div>
             )}
           </div>
@@ -254,7 +254,7 @@ const SttIng = () => {
             className={`record-button ${isRecording ? 'recording' : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
           >
-            {isRecording ? '중지' : '녹음'}
+            {isRecording ? '⚫' : '🔴'}
           </button>
         </div>
 
@@ -267,7 +267,7 @@ const SttIng = () => {
 
         {translatedText && (
           <div className="translation-section">
-            <div className="translation-header">
+            <div className="translation-head">
               <h3>{lastChunkIsKorean ? `한국어 → ${selectedLanguage.toUpperCase()}` : `${selectedLanguage.toUpperCase()} → 한국어`}</h3>
             </div>
             <div className="translation-box">
@@ -279,7 +279,7 @@ const SttIng = () => {
       </div>
 
       {transcriptText && (
-        <div className="meeting-end-container">
+        <div className="meeting-end">
           <button className="save-meeting-button" onClick={handleSave} disabled={isSaving}>
             {isSaving ? '저장 중...' : '회의 종료'}
           </button>

@@ -70,7 +70,7 @@ const Main = () => {
         <div className="main-card-content" onClick={handleCardClick}>
           {currentUser && currentUser.name ? (
           <div className="main-card-text">    
-            <h3 className="main-card-company">{currentUser.company || ''}</h3>
+            <h3 className="main-card-company">{currentUser.cardCompanyName || ''}</h3>
             <ul>
               <li className="main-card-rank">
                 <span className="main-card-name">{currentUser.name}</span> &nbsp;&nbsp;{currentUser.position || ''} | {currentUser.department || ''}

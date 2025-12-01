@@ -608,7 +608,7 @@ const CardDetail = () => {
       {/* 회의록 상세 팝업 */}
       {showMeetingDetail && selectedMeeting && (
         <div className="popup-overlay" onClick={() => setShowMeetingDetail(false)}>
-          <div className="popup-content" onClick={e => e.stopPropagation()}>
+          <div className="popup-content meeting-popup" onClick={e => e.stopPropagation()}>
             <button className="popup-close" onClick={() => setShowMeetingDetail(false)}>×</button>
             
             <div className="meeting-navigation">
@@ -616,7 +616,7 @@ const CardDetail = () => {
                 onClick={() => navigateMeeting(-1)}
                 disabled={currentMeetingIndex === 0}
               >
-                ←
+                〈
               </button>
               <span className="meeting-date">
                 {new Date(selectedMeeting.date).toLocaleDateString()}
@@ -625,7 +625,7 @@ const CardDetail = () => {
                 onClick={() => navigateMeeting(1)}
                 disabled={currentMeetingIndex === card.meetingNotes.length - 1}
               >
-                →
+                〉
               </button>
             </div>
             

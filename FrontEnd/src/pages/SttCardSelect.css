@@ -39,8 +39,11 @@
   border: 1px solid var(--border);
   border-radius: 25px;
   font-size: 14px;
-  /* background: #f5f5f5; */
   transition: all 0.3s ease;
+}
+
+.stt-serach {
+  background: #f5f5f5;
 }
 
 /* .search-input:focus {
@@ -60,14 +63,14 @@
   align-items: center;
   padding: 15px;
   margin-bottom: 10px;
-  background: var(--background);
+  background: #f5f5f5;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .card-select-item:hover {
-  background: rgba(115, 113, 100, 0.1);
+  background: rgba(97, 94, 81, 0.258);
 }
 
 .card-select-item.selected {
@@ -85,13 +88,13 @@
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: var(--primary-color);
+  color: #737164;
   font-weight: bold;
 }
 
 .card-select-item.selected .card-checkbox {
   background: var(--primary-color);
-  color: white;
+  color: #737164;
 }
 
 .card-info {
@@ -147,9 +150,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
+  padding: 12px 25px;
   margin-bottom: 10px;
-  background: var(--background);
+  background: #f5f5f5;
   border-radius: 8px;
 }
 
@@ -171,8 +174,10 @@
   color: var(--text-secondary);
 }
 
-.dark-mode .participant-company {
-  color: var(--dark-text-secondary);
+.popup-content h3 {
+  color: #333;
+  text-align: center;
+  margin: 10px;
 }
 
 .popup-actions {
