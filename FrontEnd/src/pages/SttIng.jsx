@@ -10,7 +10,7 @@ import './SttIng.css';
 
 const SttIng = () => {
   const navigate = useNavigate();
-  const { meetingParticipants = [], addMeetingNote } = useApp();
+  const { meetingParticipants = [] } = useApp();
 
   const [isRecording, setIsRecording] = useState(false);
   const [transcriptText, setTranscriptText] = useState('');
@@ -25,19 +25,23 @@ const SttIng = () => {
 
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  ///////////////////////////////////////////////////////
+  const chunkIndex = useRef(0);
+  const [meetingId, setMeetingId] = useState(null);
+  //////////////////////////////////////////////////////
 
   const handleBack = () => {
     navigate('/sttcardselect');
   };
 
-  ///////////////////////////////////////////////////////
   // config.xml 불러오기
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         const config = await loadConfig();
         setConfig({
-          baseURL: config.baseURL || 'http://localhost:8083/api'
+          baseURL: config.baseURL || 'http://localhost:8083'
         });
         setConfigLoaded(true);
         console.log('Loaded config:', config);
@@ -48,72 +52,125 @@ const SttIng = () => {
     };
     fetchConfig();
   }, []);
-  ///////////////////////////////////////////////////////
+
+  // SttIng 진입 시 "회의 시작 API" 호출
+  useEffect(() => {
+    if (!configLoaded) return;
+
+    const startMeeting = async () => {
+      const participantBizCardIds = meetingParticipants
+        .map(p => p.idx)
+        .filter(id => id != null);
+
+      if (participantBizCardIds.length === 0) {
+        alert("참석자를 최소 한 명 선택해야 합니다.");
+        navigate('/sttcardselect');
+        return;
+      }
+
+      const body = {
+        sourceLang: "ko-KR",
+        targetLang: selectedLanguage || "en",
+        participantBizCardIds
+      };
+
+      console.log("startMeeting body:", body);
+
+      try {
+        const response = await api.post("/meetings/me", body, { headers: getAuthHeader() });
+        console.log("회의 시작 성공", response.data);
+        setMeetingId(response.data.meetingId);
+      } catch (err) {
+        console.error("회의 시작 실패", err);
+        alert("회의를 시작할 수 없습니다.");
+        navigate('/sttcardselect');
+      }
+    };
+
+    startMeeting();
+  }, [configLoaded, meetingParticipants, selectedLanguage, navigate]);
 
   const isKorean = (text) => /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
 
-  const translateText = (text) => {
-    if (!text) return '';
-    const trimmed = text.trim();
-    // Fallback: show original text when translation API fails
-    return trimmed;
-  };
+  /////////////////////////////////////////////////////
+  // --- 수정: audio 기반 업로드만 사용 ---
+  const uploadAudioChunk = async (audioBlob) => {
+    if (!meetingId) return;
 
-  const translateAndAppend = async (text, targetLang) => {
-    if (!text.trim()) return;
-    if (!configLoaded) return;
-    // if (!config.baseURL) {
-    //   console.warn('API URL이 아직 준비되지 않았습니다.');
-    //   return;
-    // }
+    chunkIndex.current += 1;
+    const formData = new FormData();
+    formData.append('file', audioBlob, `chunk_${chunkIndex.current}.webm`);
 
     setIsTranslating(true);
+
     try {
-      const res = await fetch(`${config.baseURL}/translate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-        body: JSON.stringify({
-          text,
-          sourceLang: 'auto',
-          targetLang,
-        }),
-      });
-      if (!res.ok) {
-        throw new Error('translation failed');
+      const response = await api.post(
+        `/meetings/me/${meetingId}/chunks?index=${chunkIndex.current}&targetLang=${selectedLanguage}&sourceLang=ko-KR`,
+        formData,
+        { headers: getAuthHeader() }
+      );
+
+      // 서버 STT 결과 반영
+      if (response.data.text) {
+        setTranscriptText((prev) => prev ? prev + ' ' + response.data.text : response.data.text);
       }
-      const data = await res.json();
-      const translated = data.translatedText || translateText(text);
-      setTranslatedText((prev) => `${prev}${prev ? ' ' : ''}${translated}`);
+      if (response.data.translation) {
+        setTranslatedText((prev) => prev ? prev + ' ' + response.data.translation : response.data.translation);
+      }
+
+      setLastChunkIsKorean(isKorean(response.data.text || ''));
     } catch (err) {
-      console.error('번역 실패', err);
-      setTranslatedText((prev) => `${prev}${prev ? ' ' : ''}${translateText(text)}`);
+      console.error("오디오 업로드 실패:", err);
     } finally {
       setIsTranslating(false);
     }
   };
+  /////////////////////////////////////////////////////
 
-  const translateToKorean = async (text) => {
-    if (!text.trim()) return '';
-    if (!configLoaded) return;
+  ////////////////////////////////////
+  // 청크 업로드
+  const uploadChunk = async (text) => {
+    if (!meetingId) {
+      console.log("Meeting ID가 없어 청크 업로드 스킵");
+      return;
+    }
+    
+    chunkIndex.current += 1;
+    const blob = new Blob([audio], { type: 'audio/wav' });
+    const formData = new FormData();
+    formData.append('file', blob, `chunk_${chunkIndex.current}.wav`);
+
+    console.log("업로드 청크 번호:", chunkIndex.current);
+
     try {
-      const res = await fetch(`${config.baseURL}/translate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-        body: JSON.stringify({
-          text,
-          sourceLang: 'auto',
-          targetLang: 'ko',
-        }),
-      });
-      if (!res.ok) throw new Error('translation failed');
-      const data = await res.json();
-      return data.translatedText || translateText(text);
+      const response = await api.post(
+        `/meetings/me/${meetingId}/chunks?index=${chunkIndex.current}&targetLang=${selectedLanguage}&sourceLang=ko-KR`,
+        formData,
+        { headers: getAuthHeader() } // Content-Type 제거!
+      );
+      console.log("청크 업로드 성공", response.data);
+      
+      // 서버 응답에서 번역 결과 가져오기
+      const translated = response.data.translation || response.data.translatedText || '';
+    
+      if (translated) {
+        setTranslatedText((prev) => prev ? prev + ' ' + translated : translated);
+      }
+      
     } catch (err) {
-      console.error('요약용 번역 실패', err);
-      return translateText(text);
+      console.error("청크 업로드 실패:", err.response?.status, err.message);
+      // Clova Speech 오류 시 텍스트만 표시
+      if (err.response?.status === 503) {
+        // 번역 없이 원문만 표시
+        setTranslatedText((prev) => prev ? prev + ' ' + text : text);
+      }
+    } finally {
+      setIsTranslating(false); // 번역 완료
     }
   };
+  /////////////////////////////////////
 
+  // 음성 인식 설정
   useEffect(() => {
     if ('webkitSpeechRecognition' in window) {
       const recognition = new window.webkitSpeechRecognition();
@@ -121,7 +178,7 @@ const SttIng = () => {
       recognition.interimResults = true;
       recognition.lang = 'ko-KR';
 
-      recognition.onresult = (event) => {
+      recognition.onresult = async (event) => {
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
@@ -130,17 +187,14 @@ const SttIng = () => {
           }
         }
         if (!finalTranscript.trim()) return;
-        // Keep accumulating all recognized text so it can be summarized later
+
+        console.log('음성 인식 결과:', finalTranscript);
+
+        // ① 회의 진행 중 전체 텍스트 누적
         setTranscriptText((prev) => `${prev}${finalTranscript}`.trim() + ' ');
-        const chunkIsKorean = isKorean(finalTranscript);
-        setLastChunkIsKorean(chunkIsKorean);
-        translateAndAppend(finalTranscript, chunkIsKorean ? selectedLanguage : 'ko');
       };
 
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-      };
-
+      recognition.onerror = (event) => console.error('Speech recognition error:', event.error);
       recognitionRef.current = recognition;
     }
 
@@ -148,57 +202,64 @@ const SttIng = () => {
       if (recognitionRef.current) recognitionRef.current.stop();
       if (timerRef.current) clearInterval(timerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 녹음 시작
   const startRecording = () => {
-    if (!recognitionRef.current) return;
-    if (!configLoaded) {
-      alert('API 설정이 로드될 때까지 잠시 기다려주세요.');
-      return;
-    }
-    recognitionRef.current.start();
-    setIsRecording(true);
-    timerRef.current = setInterval(() => {
-      setRecordingTime((prev) => prev + 1);
-    }, 1000);
-  };
+  if (!recognitionRef.current || !configLoaded) return;
+  
+  // MediaRecorder로 실제 오디오 녹음
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      const mediaRecorder = new MediaRecorder(stream);
+      const audioChunks = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+      
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        // 이 audioBlob를 서버에 전송
+        await uploadAudioChunk(audioBlob);
+      };
+      
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+    });
+  
+  recognitionRef.current.start();
+  setIsRecording(true);
+  timerRef.current = setInterval(() => {
+    setRecordingTime((prev) => prev + 1);
+  }, 1000);
+};
+
 
   const stopRecording = () => {
-    if (!recognitionRef.current) return;
-    recognitionRef.current.stop();
+    if (recognitionRef.current) recognitionRef.current.stop();
+    if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
     setIsRecording(false);
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (!translatedText) {
-      setTranslatedText(translateText(transcriptText));
-    }
+    if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  const handleLanguageSelect = (lang) => {
-    if (isRecording) return;
-    setSelectedLanguage(lang);
-  };
+  const handleLanguageSelect = (lang) => { if (!isRecording) setSelectedLanguage(lang); };
 
   const handleSave = async () => {
-    if (isSaving) return;
+    if (!meetingId) return alert("회의 ID가 없습니다.");
     setIsSaving(true);
     try {
-      const koreanText = await translateToKorean(transcriptText);
-      const summarySource = koreanText || transcriptText;
-      const summary = `${summarySource.substring(0, 200)}...`;
-      meetingParticipants.forEach((p) => addMeetingNote(p.id, summary));
-      alert('회의록이 저장되었습니다.');
+      await api.post(`/meetings/me/${meetingId}/minutes`, {}, { headers: getAuthHeader() });
+      alert('회의록이 참석자 명함에 저장되었습니다.');
       navigate('/cardlist');
     } catch (err) {
-      console.error('회의록 저장 실패', err);
-      alert('회의록 저장에 실패했습니다.');
+      console.error('회의 종료 실패', err);
+      alert('회의 종료 실패');
     } finally {
       setIsSaving(false);
     }
   };
+
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -229,8 +290,8 @@ const SttIng = () => {
           <span className="participants-label">참석자</span>
           <div className="participants-chips">
             {meetingParticipants.length > 0 ? (
-              meetingParticipants.map((participant) => (
-                <span key={participant.id} className="participant-chip">
+              meetingParticipants.map((participant, index) => (
+                <span key={participant.id || index} className="participant-chip">
                   {participant.name}
                 </span>
               ))
@@ -245,7 +306,7 @@ const SttIng = () => {
             {isRecording && (
               <div className="recording-indicator">
                 <span className="recording-dot" />
-                <span>🔴 {formatTime(recordingTime)}</span>
+                <span>{formatTime(recordingTime)}</span>
               </div>
             )}
           </div>
@@ -254,7 +315,7 @@ const SttIng = () => {
             className={`record-button ${isRecording ? 'recording' : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
           >
-            {isRecording ? '⚫' : '🔴'}
+            <div className={`record-circle ${isRecording ? 'stop' : 'start'}`} />
           </button>
         </div>
 
@@ -265,13 +326,17 @@ const SttIng = () => {
           </div>
         </div>
 
-        {translatedText && (
+        { translatedText && (
           <div className="translation-section">
             <div className="translation-head">
-              <h3>{lastChunkIsKorean ? `한국어 → ${selectedLanguage.toUpperCase()}` : `${selectedLanguage.toUpperCase()} → 한국어`}</h3>
+              <h3>
+                {lastChunkIsKorean 
+                  ? `한국어 → ${selectedLanguage === 'en' ? 'English' : selectedLanguage === 'ja' ? '日本語' : '한국어'}` 
+                  : `입력 언어 → 한국어`}
+              </h3>
             </div>
             <div className="translation-box">
-              {translatedText}
+              {translatedText ||'번역 중...'}
               {isTranslating && <span className="translation-loading">번역 중...</span>}
             </div>
           </div>
@@ -288,5 +353,4 @@ const SttIng = () => {
     </div>
   );
 };
-
 export default SttIng;

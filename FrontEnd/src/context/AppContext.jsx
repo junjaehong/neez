@@ -52,6 +52,7 @@ export const AppProvider = ({ children }) => {
   const [meetingParticipants, setMeetingParticipants] = useState([]);
   const [currentMeeting, setCurrentMeeting] = useState(null);
   const [selectedNote, setSelectedNote] = useState(null);
+  const [showFAB, setShowFAB] = useState(true);
 
   // Config 로드
   useEffect(() => {
@@ -356,11 +357,13 @@ export const AppProvider = ({ children }) => {
     meetingParticipants,
     currentMeeting,
     selectedNote,
+    showFAB,
 
     // Setters
     setMeetingParticipants,
     setCurrentMeeting,
     setSelectedNote,
+    setShowFAB,
 
     // Functions
     fetchMyCard,

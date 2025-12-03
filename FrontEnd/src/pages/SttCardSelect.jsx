@@ -127,6 +127,12 @@ const SttCardSelect = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input stt-serach"
           />
+          <button type="submit" className="search-button">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+              <circle cx="9" cy="9" r="8" stroke="#737164" strokeWidth="2"/>
+              <path d="M14 14L18 18" stroke="#737164" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
 
         {/* 명함 목록 */}

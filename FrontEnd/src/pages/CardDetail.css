@@ -28,12 +28,12 @@
 }
 
 .card-detail-content {
-  margin-bottom: 25px;
+  margin-bottom: 20px;
   /* 추가된 부분: 내부 스크롤 허용 및 모바일 스무스 스크롤 */
   overflow-y: auto; /* 세로 스크롤 허용 */
   /* -webkit-overflow-scrolling: touch; iOS에서 스무스 스크롤 */
   /* 뷰포트에 맞춘 최대 높이 (헤더/여백에 따라 값 조정) */
-  max-height: 510px;
+  max-height: 525px;
 }
 
 /* 스크롤바 스타일 */
@@ -65,8 +65,18 @@
 
 .edit-btn {
   padding: 8px 16px;
-  /* background: var(--primary-color); */
-  color: #111;
+  background: #737164;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn {
+  padding: 8px 16px;
+  color: #333;
   border: none;
   border-radius: 20px;
   font-size: 14px;
@@ -75,13 +85,13 @@
 }
 
 .edit-btn:hover {
-  background: var(--primary-dark);
+  background: #5a5952;
 }
 
 .delete-btn {
   padding: 8px 16px;
-  color: #111;
-  background-color: #ff3b30;
+  color: white;
+  background-color: #db5b44;
   border: none;
   border-radius: 20px;
   font-size: 14px;
@@ -89,7 +99,7 @@
 }
 
 .delete-btn:hover {
-  background: #d62822;
+  background: #c8452f;
 }
 
 .card-info-table {
@@ -334,15 +344,20 @@ input:focus {
 .meeting-item {
   display: flex;
   justify-content: space-between;
+  padding: 0 5px;
 }
 
 .meeting-item span {
   font-size: 14px;
+  padding: 5px 0;
+  border-bottom: 1px solid #F5F5F5;
 }
 
 .delete-meeting-btn {
   border: none;
   background: none;
+  color: #737164;
+  font-weight: 600;
 }
 
 .view-notes-button {
@@ -359,8 +374,14 @@ input:focus {
   background: var(--primary-dark);
 }
 
+.meeting-date {
+  width: 35%;
+}
+
 .meeting-title {
   cursor: pointer;
+  width: 65%;
+  font-weight: 600;
 }
 
 .meeting-popup {

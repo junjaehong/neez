@@ -96,7 +96,7 @@
 
 .recording-status {
   height: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .recording-indicator {
@@ -107,12 +107,96 @@
   font-weight: 600;
 }
 
-.recording-dot {
+/* .recording-dot {
   width: 12px;
   height: 12px;
   background: #ff4444;
   border-radius: 50%;
   animation: pulse 1.5s infinite;
+} */
+ 
+/* 녹음 버튼 스타일 */
+.record-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.record-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.record-button:active {
+  transform: scale(0.95);
+}
+
+/* 녹음 중일 때 버튼 테두리 */
+.record-button.recording {
+  border-color: #ff4444;
+  animation: pulse 1.5s infinite;
+}
+
+/* 원 모양 스타일 */
+.record-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+/* 빨간 원 (녹음 시작) */
+.record-circle.start {
+  background-color: #ff4444;
+}
+
+/* 검정 원 (녹음 중지) */
+.record-circle.stop {
+  background-color: #333;
+  border-radius: 20%;  /* 정지 버튼처럼 사각형에 가깝게 */
+}
+
+/* 펄스 애니메이션 */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+  }
+}
+
+/* 녹음 인디케이터 */
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 68, 68, 0.1);
+  border-radius: 20px;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 @keyframes pulse {

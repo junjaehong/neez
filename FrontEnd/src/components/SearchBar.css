@@ -5,10 +5,11 @@
 
 .search-content {
   display: flex;
+  width: 100%;
   position: relative;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid #e7e7e3;
+  /* border: 1px solid #e7e7e3; */
 }
 
 .search-input {

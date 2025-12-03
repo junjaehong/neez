@@ -153,7 +153,7 @@
 }
 
 .logout h3:hover {
-  color: #ff4444;
+  color: #c8452f;
 }
 
 /* 팝업 스타일 */
@@ -175,7 +175,7 @@
 .popup-message p {
   margin-bottom: 10px;
   font-size: 16px;
-  color: #ff4444;
+  color: #c8452f;
   font-weight: 600;
 }
 
@@ -218,6 +218,6 @@
 }
 
 .delete-button:hover {
-  background: #cc0000;
+  background: #c8452f;
   color: white;
 }

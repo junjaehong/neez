@@ -10,6 +10,7 @@ import './CardDetail.css';
 const CardDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { setShowFAB } = useApp();
 
   /////////////////////////////////////
   const [baseURL, setBaseURL] = useState('');
@@ -55,6 +56,27 @@ const CardDetail = () => {
   const [showMeetingDetail, setShowMeetingDetail] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [currentMeetingIndex, setCurrentMeetingIndex] = useState(0);
+
+  // editMode 변경 시 FAB 표시/숨김
+  useEffect(() => {
+    if (editMode) {
+      setShowFAB(false); // 수정 모드에서 FAB 숨김
+    } else {
+      setShowFAB(true);  // 일반 모드에서 FAB 표시
+    }
+
+    // 컴포넌트 언마운트 시 FAB 다시 표시
+    return () => {
+      setShowFAB(true);
+    };
+  }, [editMode, setShowFAB]);
+
+  // 컴포넌트 언마운트 시 FAB 복원
+  useEffect(() => {
+    return () => {
+      setShowFAB(true);
+    };
+  }, [setShowFAB]);
 
   // 뒤로가기
   const handleBack = () => {
@@ -561,12 +583,14 @@ const CardDetail = () => {
                     >
                       {meeting.company}
                     </span>
-                    <button 
+                    {editMode && (
+                    <button
                       className="delete-meeting-btn"
                       onClick={() => handleDeleteMeeting(meeting.id)}
                     >
                       ×
                     </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -578,11 +602,16 @@ const CardDetail = () => {
         {/* 수정, 저장, 삭제 btn */}
           <div className="bottom-btn-group">
             {editMode ? (
-              <button className="edit-btn" onClick={handleSave}>저장</button>
+              <>
+                <button className="edit-btn" onClick={handleSave}>저장</button>
+                <button className="cancel-btn" onClick={() => setEditMode(false)}>취소</button>
+              </>
             ) : (
-              <button className="edit-btn" onClick={() => setEditMode(true)}>수정</button>
+              <>
+                <button className="edit-btn" onClick={() => setEditMode(true)}>수정</button>
+                <button className="delete-btn" onClick={handleDelete}>삭제</button>
+              </>
             )}
-              <button className="delete-btn" onClick={handleDelete}>삭제</button>
           </div>
 
       </div>
