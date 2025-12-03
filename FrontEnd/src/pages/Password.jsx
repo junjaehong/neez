@@ -39,8 +39,8 @@ const Password = () => {
     
     if (!formData.newPassword) {
       newErrors.newPassword = '새 비밀번호를 입력해주세요.';
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = '비밀번호는 8자 이상이어야 합니다.';
+    } else if (formData.newPassword.length < 4) {
+      newErrors.newPassword = '비밀번호는 4자 이상이어야 합니다.';
     }
     
     if (!formData.confirmPassword) {
@@ -96,7 +96,7 @@ const Password = () => {
               name="newPassword"
               value={formData.newPassword}
               onChange={handleInputChange}
-              placeholder="새 비밀번호 입력 (8자 이상)"
+              placeholder="새 비밀번호 입력 (4자 이상)"
             />
             {errors.newPassword && (
               <span className="error-message">{errors.newPassword}</span>

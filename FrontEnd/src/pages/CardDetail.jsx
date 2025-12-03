@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import { loadConfig } from '../api/configLoader';
 import { useApp } from '../context/AppContext';
 import api from '../api/client';
 import { getAuthHeader } from '../api/auth';
@@ -9,7 +10,29 @@ import './CardDetail.css';
 const CardDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const baseURL = 'http://192.168.70.111:8083/api'; // 공통 prefix
+
+  /////////////////////////////////////
+  const [baseURL, setBaseURL] = useState('');
+
+  // config.xml에서 baseURL 가져오기
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const config = await loadConfig();
+        setBaseURL(config.baseURL);
+      } catch (err) {
+        console.error('config 로드 실패:', err);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  useEffect(() => {
+    reloadData();
+  }, [id, baseURL]);
+  /////////////////////////////////////
+
+  // const baseURL = 'http://192.168.70.111:8083/api'; // 공통 prefix
   // const { addMeetingNote } = useApp();
   
   const [card, setCard] = useState(null);
@@ -41,20 +64,40 @@ const CardDetail = () => {
 
   // 카드 데이터 로드
   const reloadData = async () => {
+    if (!baseURL) return; // config가 아직 로드되지 않았다면 호출하지 않음
+ 
     try {
-      const cardRes = await axios.get(`${baseURL}/bizcards/${id}`);
-      console.log("명함 상세 데이터:", cardRes.data.data);
-      setCard(cardRes.data.data);
-      setFormData(cardRes.data.data);
+      const cardRes = await axios.get(`${baseURL}/api/bizcards/${id}`, {
+        headers: { ...getAuthHeader() }
+      });
+      /////////////////////////////////////
+      const cardData = cardRes.data.data;
+
+      if (!cardData) {
+        alert("명함을 찾을 수 없습니다.");
+        return;
+      }
+
+      setCard(cardData);
+      setFormData(cardData);
+      setMemo(cardData.memoContent || '');
+      setHashtags(cardData.hashTags || []);
+      /////////////////////////////////////
+      console.log("명함 상세 데이터:", cardRes.data.data.content);
+      // setCard(cardRes.data.data);
+      // setFormData(cardRes.data.data);
 
       // 메모
-      const memoRes = await axios.get(`${baseURL}/bizcards/${id}/memo`);
+      const memoRes = await axios.get(`${baseURL}/api/bizcards/${id}/memo`, {
+        headers: { ...getAuthHeader() }
+      });
       console.log('memo API response:', memoRes.data.data.memoContent);
-      setMemo(memoRes.data.data.memoContent || '');
+      setMemo(memoRes.data.data?.memoContent || '');
 
       // 해시태그
-      const tagRes = await axios.get(`${baseURL}/bizcards/${id}/hashtags`);
-      // console.log(id);
+      const tagRes = await axios.get(`${baseURL}/api/bizcards/${id}/hashtags`, {
+        headers: { ...getAuthHeader() }
+      });
       console.log('Tag API response:', tagRes.data);
       
       const tagData = tagRes.data;
@@ -169,7 +212,7 @@ const CardDetail = () => {
   // 해시태그 삭제
   const handleDeleteHashtag = async (tag) => {
     try {
-      await axios.delete(`${baseURL}/bizcards/${id}/hashtags/${encodeURIComponent(tag)}`);
+      await axios.delete(`${baseURL}/api/bizcards/${id}/hashtags/${encodeURIComponent(tag)}`);
       
       // 화면에서도 즉시 삭제
       setHashtags(prev => prev.filter(t => t !== tag));
@@ -274,8 +317,8 @@ const CardDetail = () => {
     <div className="card-detail-container">
       <div className="card-detail-box">
         <div className="card-detail-header app-header">
-          <button className="back-button" onClick={handleBack}>←</button>
-          <h2>명함 상세보기</h2>
+          <button className="back-btn" onClick={handleBack}>←</button>
+          <p>명함 상세보기</p>
           
         </div>
 
@@ -491,7 +534,7 @@ const CardDetail = () => {
             {/* {showMeetingList && ( */}
               <div className="meeting-list">
                 {card.meetingNotes.map((meeting, index) => (
-                  <div key={meeting.id} className="meeting-item">
+                  <div key={meeting.id || index} className="meeting-item">
                     <span className="meeting-date">
                       {new Date(meeting.date).toLocaleDateString()}
                     </span>
