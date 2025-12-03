@@ -160,6 +160,10 @@
 } */
 
 /* 해시태그 섹션 */
+.card-tags {
+  margin-bottom: 8px;
+}
+
 .hashtag-section {
   margin-bottom: 30px;
 }
