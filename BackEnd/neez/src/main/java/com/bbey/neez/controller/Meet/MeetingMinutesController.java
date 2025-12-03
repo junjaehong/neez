@@ -11,11 +11,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/meetings/me/minutes")
-@Tag(name = "Meeting Minutes API", description = "회의록 목록 조회 및 회의록 상세 조회 API")
+@Tag(name = "Meeting Minutes API", description = "회의록 목록 조회 / 상세 조회 / 삭제 API")
 @SecurityRequirement(name = "BearerAuth")
 public class MeetingMinutesController {
 
@@ -67,5 +69,25 @@ public class MeetingMinutesController {
                                 bizCardId);
 
                 return ResponseEntity.ok(response);
+        }
+
+        // =========================================================
+        // 4. 회의 ID 기준 회의록 삭제
+        // =========================================================
+        @Operation(summary = "회의 ID 기준 회의록 삭제", description = "meetingId를 기준으로 해당 회의에 연결된 회의록을 삭제합니다.\n" +
+                        "파일로 저장된 회의록이 있다면 파일도 함께 삭제를 시도합니다.")
+        @DeleteMapping("/{meetingId}")
+        public ResponseEntity<Map<String, Object>> deleteMinutesByMeeting(
+                        @Parameter(description = "회의 ID", example = "53") @PathVariable Long meetingId) {
+                Long userIdx = SecurityUtil.getCurrentUserIdx();
+
+                meetingMinutesService.deleteMinutesByMeeting(userIdx, meetingId);
+
+                Map<String, Object> body = new HashMap<>();
+                body.put("success", true);
+                body.put("meetingId", meetingId);
+                body.put("deleted", true);
+
+                return ResponseEntity.ok(body);
         }
 }

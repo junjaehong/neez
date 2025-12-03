@@ -35,10 +35,10 @@ public class MeetingMinutesService {
      */
     @Transactional
     public MeetingMinutes saveStreamingMinutes(Long userIdx,
-            Long meetingId,
-            Long bizCardId,
-            String summaryText,
-            String minutesText) {
+                                               Long meetingId,
+                                               Long bizCardId,
+                                               String summaryText,
+                                               String minutesText) {
 
         // 1. 회의 조회
         Meeting meeting = meetingService.getMeeting(meetingId);
@@ -52,7 +52,8 @@ public class MeetingMinutesService {
         BizCard bizCard = null;
         if (bizCardId != null) {
             bizCard = bizCardRepository.findById(bizCardId)
-                    .orElseThrow(() -> new IllegalArgumentException("명함을 찾을 수 없습니다. bizCardId=" + bizCardId));
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("명함을 찾을 수 없습니다. bizCardId=" + bizCardId));
         }
 
         // 3. 파일로도 저장 (선택) – Meet 폴더 하위로 저장
@@ -102,14 +103,14 @@ public class MeetingMinutesService {
     }
 
     /**
-     * 현재 로그인한 사용자 기준 회의별 회의록 단건 상세 (DTO)
-     * - meetingId 기준으로 탐색
+     * 현재 로그인한 사용자 기준 회의 ID로 회의록 상세 (DTO)
      */
     @Transactional(readOnly = true)
     public MeetingMinutesDetailResponse getMinutesDetailDtoByMeeting(Long userIdx, Long meetingId) {
         MeetingMinutes mm = meetingMinutesRepository
                 .findByUserIdxAndMeetingId(userIdx, meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 회의에 대한 회의록을 찾을 수 없습니다. meetingId=" + meetingId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 회의에 대한 회의록을 찾을 수 없습니다. meetingId=" + meetingId));
 
         return MeetingMinutesDetailResponse.fromEntity(mm);
     }
@@ -121,7 +122,8 @@ public class MeetingMinutesService {
     public List<MeetingMinutesListItem> getMinutesListDtoByBizCard(Long userIdx, Long bizCardId) {
         // 1) 명함 존재 + 소유자 검증 (BizCard.userIdx 도 primitive long 이라고 가정)
         BizCard card = bizCardRepository.findById(bizCardId)
-                .orElseThrow(() -> new IllegalArgumentException("명함을 찾을 수 없습니다. bizCardId=" + bizCardId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("명함을 찾을 수 없습니다. bizCardId=" + bizCardId));
 
         if (userIdx == null || !userIdx.equals(card.getUserIdx())) {
             throw new IllegalArgumentException("해당 명함에 대한 접근 권한이 없습니다. bizCardId=" + bizCardId);
@@ -148,6 +150,37 @@ public class MeetingMinutesService {
     @Transactional(readOnly = true)
     public MeetingMinutes getMinutesDetailByMeeting(Long userIdx, Long meetingId) {
         return meetingMinutesRepository.findByUserIdxAndMeetingId(userIdx, meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 회의에 대한 회의록을 찾을 수 없습니다. meetingId=" + meetingId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 회의에 대한 회의록을 찾을 수 없습니다. meetingId=" + meetingId));
+    }
+
+    // ===================== 삭제 =====================
+
+    /**
+     * meetingId 기준 회의록 삭제
+     * - 로그인 유저 소속 회의인지 확인
+     * - MeetingMinutes 레코드 삭제
+     * - fileName 이 있으면 실제 파일도 삭제 시도
+     */
+    @Transactional
+    public void deleteMinutesByMeeting(Long userIdx, Long meetingId) {
+        MeetingMinutes mm = meetingMinutesRepository
+                .findByUserIdxAndMeetingId(userIdx, meetingId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("삭제할 회의록을 찾을 수 없습니다. meetingId=" + meetingId));
+
+        // 파일 삭제 (있다면)
+        String fileName = mm.getFileName();
+        if (fileName != null && !fileName.isEmpty()) {
+            try {
+                memoStorage.delete(fileName);
+            } catch (IOException e) {
+                // 파일 삭제 실패는 치명적이지 않으면 로그만 남기고 넘겨도 됨
+                // log.warn("Failed to delete meeting minutes file: {}", fileName, e);
+            }
+        }
+
+        // DB 레코드 삭제
+        meetingMinutesRepository.delete(mm);
     }
 }
