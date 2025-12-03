@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.nio.file.Files;
-
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Component
 public class FileMemoStorage implements MemoStorage {
@@ -15,16 +15,21 @@ public class FileMemoStorage implements MemoStorage {
     private final Path memoDir;
 
     public FileMemoStorage(@Value("${app.memo-dir}") String memoDirStr) throws IOException {
-        // Java 8에서는 Path.of(...) 없음 → Paths.get(...)
         this.memoDir = Paths.get(memoDirStr);
         if (!Files.exists(this.memoDir)) {
             Files.createDirectories(this.memoDir);
         }
     }
 
+    @Override
     public void write(String fileName, String content) throws IOException {
         Path target = memoDir.resolve(fileName);
-        // Java 8에서는 writeString 없음 → Files.write(...)
+
+        // 폴더 자동 생성 (Memo/ 또는 Meet/)
+        if (target.getParent() != null && !Files.exists(target.getParent())) {
+            Files.createDirectories(target.getParent());
+        }
+
         Files.write(
                 target,
                 content.getBytes(StandardCharsets.UTF_8),
@@ -33,6 +38,7 @@ public class FileMemoStorage implements MemoStorage {
         );
     }
 
+    @Override
     public String read(String fileName) throws IOException {
         Path target = memoDir.resolve(fileName);
         if (Files.exists(target)) {
@@ -42,10 +48,31 @@ public class FileMemoStorage implements MemoStorage {
         return "";
     }
 
-    public void delete(String memo) throws IOException {
-        Path target = memoDir.resolve(memo);
+    @Override
+    public void delete(String fileName) throws IOException {
+        Path target = memoDir.resolve(fileName);
         if (Files.exists(target)) {
             Files.delete(target);
         }
+    }
+
+    /**
+     * prefix 에 따라 Memo 또는 Meet 디렉토리에 자동 저장
+     *
+     * 예)
+     * "Memo/memo-"   → Memo/memo-20251203T130501.txt
+     * "Meet/meeting-" → Meet/meeting-20251203T130501.txt
+     */
+    @Override
+    public String save(String prefix, String content) throws IOException {
+        String timestamp = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss"));
+
+        // prefix 에 디렉토리 포함되어 있음 (예: Memo/memo- / Meet/meeting-)
+        String fileName = prefix + timestamp + ".txt";
+
+        write(fileName, content);
+
+        return fileName;
     }
 }

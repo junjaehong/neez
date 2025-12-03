@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,40 +15,47 @@ public class Company {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idx;          // PK
+    private Long idx;
 
-    @Column(name = "name", nullable = false)
-    private String name;       // 회사명
+    @Column(nullable = false, length = 255)
+    private String name;
 
-    @Column(name = "rep_name")
-    private String repName;    // 대표이름
+    @Column(name = "rep_name", length = 100)
+    private String repName;
 
-    @Column(name = "biz_no", unique = true)
-    private String bizNo;      // 사업자등록번호
+    @Column(name = "biz_no", length = 20, unique = true)
+    private String bizNo;
 
-    @Column(name = "corp_no", unique = true)
-    private String corpNo;     // 법인등록번호
+    @Column(name = "corp_no", length = 20, unique = true)
+    private String corpNo;
 
-    @Column(name = "address")
-    private String address;    // 주소
+    @Column(name = "dart_corp_code", length = 20)
+    private String dartCorpCode;
 
-    @Column(name = "homepage")
-    private String homepage;   // 홈페이지
+    @Column(length = 255)
+    private String address;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(length = 255)
+    private String homepage;
+
+    @Column(precision = 19, scale = 2)
+    private BigDecimal confidence;
+
+    @Column(length = 255)
+    private String domain;
+
+    @Column(length = 255)
+    private String industry;
+
+    @Column(name = "last_refreshed_at")
+    private LocalDateTime lastRefreshedAt;
+
+    @Column(length = 255)
+    private String source;
+
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = this.createdAt;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 }

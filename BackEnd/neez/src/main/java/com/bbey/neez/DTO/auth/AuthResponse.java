@@ -33,21 +33,21 @@ public class AuthResponse {
         this.message = message;
     }
 
-    // extra 포함 버전
+    // extra 포함
     public AuthResponse(boolean success, String message, String extra) {
         this.success = success;
         this.message = message;
         this.extra = extra;
     }
 
-    // data 포함 버전
+    // data 포함
     public AuthResponse(boolean success, String message, Object data) {
         this.success = success;
         this.message = message;
         this.data = data;
     }
 
-    // 로그인 전용 토큰 반환용
+    // token 버전
     public AuthResponse(boolean success, String message, String accessToken, String refreshToken) {
         this.success = success;
         this.message = message;
@@ -55,4 +55,21 @@ public class AuthResponse {
         this.refreshToken = refreshToken;
     }
 
+    // ====== 정적 팩토리 메서드 ======
+
+    public static AuthResponse success(Object data) {
+        return new AuthResponse(true, "OK", data);
+    }
+
+    public static AuthResponse success(String message, Object data) {
+        return new AuthResponse(true, message, data);
+    }
+
+    public static AuthResponse fail(String message) {
+        return new AuthResponse(false, message);
+    }
+
+    public static AuthResponse token(String message, String accessToken, String refreshToken) {
+        return new AuthResponse(true, message, accessToken, refreshToken);
+    }
 }

@@ -1,8 +1,9 @@
 package com.bbey.neez.service.BizCard;
 
 import com.bbey.neez.DTO.BizCardDto;
-import com.bbey.neez.entity.BizCard;
-import com.bbey.neez.entity.BizCardSaveResult;
+import com.bbey.neez.entity.BizCard.BizCard;
+import com.bbey.neez.entity.BizCard.BizCardSaveResult;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -25,7 +26,7 @@ public interface BizCardService {
     BizCardDto getBizCardDetailDto(Long id);
 
     // 🔹 수정/삭제/복구
-    BizCard updateBizCard(Long idx, Map<String, String> data, boolean rematchCompany);
+    BizCard updateBizCard(Long idx, Map<String, String> data);
 
     void deleteBizCard(Long id);
 

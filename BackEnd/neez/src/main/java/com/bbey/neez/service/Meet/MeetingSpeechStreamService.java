@@ -23,10 +23,12 @@ public class MeetingSpeechStreamService {
 
   private final ClovaSpeechClient clovaClient;
   private final PapagoTranslationClient translationClient;
+  private final MeetingSttService meetingSttService;
   private final String defaultSourceLanguage;
 
   /** (userIdx, meetingId) 복합키 기준 세션 저장 */
-  private final ConcurrentMap<SessionKey, ConcurrentSkipListMap<Long, Segment>> sessions = new ConcurrentHashMap<>();
+  private final ConcurrentMap<SessionKey, ConcurrentSkipListMap<Long, Segment>> sessions =
+      new ConcurrentHashMap<>();
 
   /** 세션 식별자 */
   private static final class SessionKey {
@@ -44,10 +46,8 @@ public class MeetingSpeechStreamService {
 
     @Override
     public boolean equals(Object o) {
-      if (this == o)
-        return true;
-      if (!(o instanceof SessionKey))
-        return false;
+      if (this == o) return true;
+      if (!(o instanceof SessionKey)) return false;
       SessionKey that = (SessionKey) o;
       return Objects.equals(userIdx, that.userIdx)
           && Objects.equals(meetingId, that.meetingId);
@@ -59,53 +59,72 @@ public class MeetingSpeechStreamService {
     }
   }
 
-  public MeetingSpeechStreamService(ClovaSpeechClient clovaClient,
+  public MeetingSpeechStreamService(
+      ClovaSpeechClient clovaClient,
       PapagoTranslationClient translationClient,
+      MeetingSttService meetingSttService,
       @Value("${naver.clova.speech.language:ko-KR}") String sourceLanguage) {
+
     this.clovaClient = clovaClient;
     this.translationClient = translationClient;
+    this.meetingSttService = meetingSttService;
+    // 내부 표현용 기본 소스 언어(normalize)
     this.defaultSourceLanguage = normalizeLanguage(sourceLanguage);
   }
 
   /**
    * 회의 음성 조각(chunk) 처리
    */
-  public Segment processChunk(Long userIdx, Long meetingId,
-      Long chunkIndex, MultipartFile chunk,
-      String targetLang, String sourceLang) throws Exception {
+  public Segment processChunk(
+      Long userIdx,
+      Long meetingId,
+      Long index,
+      MultipartFile chunk,
+      String targetLang,
+      String sourceLang) throws Exception {
 
-    if (chunk == null || chunk.isEmpty()) {
-      throw new IllegalArgumentException("Audio chunk must not be empty.");
-    }
+    // 1) 소스/타깃 언어 정리
+    String normalizedSource =
+        normalizeLanguage(StringUtils.hasText(sourceLang) ? sourceLang : defaultSourceLanguage);
+    String normalizedTarget = normalizeLanguage(targetLang);
 
-    long index = (chunkIndex != null) ? chunkIndex : System.currentTimeMillis();
-    String normalizedSource = normalizeLanguage(
-        StringUtils.hasText(sourceLang) ? sourceLang : defaultSourceLanguage);
+    // 2) Clova STT 호출 언어 결정 (Clova가 요구하는 포맷으로 매핑)
     String clovaLanguage = resolveClovaLanguage(sourceLang);
-
     ClovaResult result = StringUtils.hasText(clovaLanguage)
         ? clovaClient.recognize(chunk.getBytes(), clovaLanguage)
         : clovaClient.recognize(chunk.getBytes());
 
+    // 3) 번역 (필요한 경우만)
     String translated = translate(result.getText(), targetLang, normalizedSource);
-    String normalizedTarget = StringUtils.hasText(targetLang)
-        ? normalizeLanguage(targetLang)
-        : "ko";
 
+    // 4) Segment 객체 생성
     Segment segment = new Segment(
         index,
         chunk.getSize(),
         result.getText(),
         Instant.now(),
         result.getSegments(),
-        normalizedSource,
-        normalizedTarget,
-        translated);
+        normalizedSource,   // 내부 표현용 sourceLanguage (ko/en/ja 등)
+        normalizedTarget,   // 내부 표현용 targetLanguage
+        translated          // 번역 텍스트(없으면 null)
+    );
 
+    // 5) 메모리 세션에 저장
     SessionKey key = SessionKey.of(userIdx, meetingId);
     sessions
         .computeIfAbsent(key, k -> new ConcurrentSkipListMap<>())
         .put(segment.getIndex(), segment);
+
+    // 6) DB(meetRTChunks)에 STT 청크 저장
+    if (segment.getText() != null && !segment.getText().isEmpty()) {
+      meetingSttService.saveChunk(
+          meetingId,              // meetIdx
+          segment.getIndex(),     // seq
+          normalizedSource,       // langCode (예: "ko")
+          segment.getText(),      // content (STT 텍스트)
+          true                    // finalChunk: 일단 전체 청크 단위로 true 처리
+      );
+    }
 
     return segment;
   }
@@ -176,14 +195,21 @@ public class MeetingSpeechStreamService {
 
   /* ===== 내부 유틸 ===== */
 
+  /**
+   * 번역 유틸
+   * @param text STT 원문
+   * @param targetLang 프론트에서 온 타깃 언어 (예: "ko", "en-US" 등)
+   * @param sourceLang 내부 normalized 소스 언어 (예: "ko", "en")
+   */
   private String translate(String text, String targetLang, String sourceLang) {
     if (!StringUtils.hasText(text)) {
       return null;
     }
+    // targetLang 명시 안 된 경우: 자동 한국어 번역
     if (!StringUtils.hasText(targetLang)) {
-      // targetLang 명시 안 된 경우: 자동 한국어 번역
       return translationClient.translateToKoreanAuto(text).orElse(null);
     }
+
     String normalizedTarget = normalizeLanguage(targetLang);
     return translationClient.translate(text, sourceLang, normalizedTarget).orElse(null);
   }
@@ -192,6 +218,7 @@ public class MeetingSpeechStreamService {
     if (segment == null) {
       return null;
     }
+    // 이미 한국어 번역 텍스트가 있고, 타깃 언어가 ko 계열이면 그대로 사용
     if (StringUtils.hasText(segment.getTranslatedText())
         && isKorean(segment.getTargetLanguage())) {
       return segment.getTranslatedText();
@@ -211,18 +238,43 @@ public class MeetingSpeechStreamService {
     return "ko".equals(normalizeLanguage(lang));
   }
 
+  /**
+   * Clova Speech API 가 요구하는 language 포맷으로 매핑
+   * 허용: ko-KR, en-US, ja, enko, zh-cn, zh-tw
+   */
   private String resolveClovaLanguage(String lang) {
     if (!StringUtils.hasText(lang)) {
-      return null;
+      return null;  // null이면 ClovaSpeechClient 에서 기본값 사용
     }
-    String trimmed = lang.trim();
-    if (trimmed.contains("-")) {
-      return trimmed;
+    String normalized = lang.trim().toLowerCase().replace('_', '-');
+
+    switch (normalized) {
+      case "ko":
+      case "ko-kr":
+        return "ko-KR";
+      case "en":
+      case "en-us":
+        return "en-US";
+      case "ja":
+        return "ja";
+      case "enko":
+        return "enko";
+      case "zh-cn":
+      case "zh-hans":
+        return "zh-cn";
+      case "zh-tw":
+      case "zh-hant":
+        return "zh-tw";
+      default:
+        // 잘못된 값이면 null 반환해서 기본 언어로 처리
+        return null;
     }
-    // 필요하면 언어코드 매핑 추가
-    return trimmed;
   }
 
+  /**
+   * 내부 표현용 언어 정규화
+   * "ko-KR" -> "ko", "en_US" -> "en" 이런 식으로 정리
+   */
   private String normalizeLanguage(String lang) {
     if (!StringUtils.hasText(lang)) {
       return "ko";
@@ -249,13 +301,13 @@ public class MeetingSpeechStreamService {
     private final String translatedText;
 
     public Segment(long index,
-        long bytes,
-        String text,
-        Instant receivedAt,
-        List<SpeakerSegment> speakerSegments,
-        String sourceLanguage,
-        String targetLanguage,
-        String translatedText) {
+                   long bytes,
+                   String text,
+                   Instant receivedAt,
+                   List<SpeakerSegment> speakerSegments,
+                   String sourceLanguage,
+                   String targetLanguage,
+                   String translatedText) {
       this.index = index;
       this.bytes = bytes;
       this.text = text;

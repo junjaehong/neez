@@ -2,7 +2,7 @@ package com.bbey.neez.controller.BizCard;
 
 import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.BizCardDto;
-import com.bbey.neez.entity.HashTag;
+import com.bbey.neez.entity.BizCard.HashTag;
 import com.bbey.neez.service.BizCard.HashtagService;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

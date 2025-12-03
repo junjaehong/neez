@@ -84,23 +84,40 @@ public class MeetingSpeechServiceImpl implements MeetingSpeechService {
 
   private String resolveClovaLanguage(String lang) {
     if (!StringUtils.hasText(lang)) {
+      // null 반환하면 ClovaSpeechClient 에서 this.language(default) 사용
       return null;
     }
-    String trimmed = lang.trim();
-    if (trimmed.contains("-")) {
-      return trimmed;
-    }
-    switch (trimmed.toLowerCase()) {
+
+    String normalized = lang.trim().toLowerCase().replace('_', '-');
+
+    switch (normalized) {
       case "ko":
+      case "ko-kr":
         return "ko-KR";
+
       case "en":
+      case "en-us":
         return "en-US";
+
       case "ja":
-        return "ja-JP";
-      case "zh":
-        return "zh-CN";
+        return "ja";
+
+      case "enko":
+        return "enko";
+
+      case "zh-cn":
+      case "zh-hans":
+        return "zh-cn";
+
+      case "zh-tw":
+      case "zh-hant":
+        return "zh-tw";
+
       default:
-        return trimmed;
+        // 알 수 없는 값이면 그냥 null로 돌려서 기본 언어(ko-KR) 쓰게 하거나,
+        // 예외를 던져서 클라이언트에게 잘못된 언어코드라고 알려도 됨.
+        return null;
     }
   }
+
 }

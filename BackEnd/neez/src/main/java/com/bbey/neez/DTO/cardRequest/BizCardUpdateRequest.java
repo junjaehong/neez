@@ -14,7 +14,7 @@ public class BizCardUpdateRequest {
     private String name;
 
     @Size(max = 200, message = "회사명은 200자를 넘을 수 없습니다.")
-    private String company;
+    private String cardCompanyName;
 
     // companies.idx
     private Long company_idx;
@@ -30,13 +30,13 @@ public class BizCardUpdateRequest {
     private String email;
 
     @Size(max = 50, message = "휴대폰 번호는 50자를 넘을 수 없습니다.")
-    private String mobile;
+    private String phoneNumber;
 
     @Size(max = 50, message = "대표 번호는 50자를 넘을 수 없습니다.")
-    private String tel;
+    private String lineNumber;
 
     @Size(max = 50, message = "팩스 번호는 50자를 넘을 수 없습니다.")
-    private String fax;
+    private String faxNumber;
 
     @Size(max = 500, message = "주소는 500자를 넘을 수 없습니다.")
     private String address;

@@ -4,8 +4,8 @@ import com.bbey.neez.DTO.ApiResponseDto;
 import com.bbey.neez.DTO.BizCardDto;
 import com.bbey.neez.DTO.cardRequest.BizCardManualRequest;
 import com.bbey.neez.DTO.cardRequest.BizCardUpdateRequest;
-import com.bbey.neez.entity.BizCard;
-import com.bbey.neez.entity.BizCardSaveResult;
+import com.bbey.neez.entity.BizCard.BizCard;
+import com.bbey.neez.entity.BizCard.BizCardSaveResult;
 import com.bbey.neez.security.SecurityUtil;
 import com.bbey.neez.service.BizCard.BizCardService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -68,6 +68,11 @@ public class BizCardController {
         map.put("fax", data.getFax());
         map.put("address", data.getAddress());
         map.put("memo", data.getMemo());
+
+        // 🔹 회사 PK (companies.idx) 전달
+        if (data.getCompanyIdx() != null) {
+            map.put("company_idx", data.getCompanyIdx().toString());
+        }
 
         BizCardSaveResult result = bizCardService.saveManual(map);
         BizCardDto dto = toBizCardDto(result.getBizCard(), null, null);
@@ -159,8 +164,8 @@ public class BizCardController {
         Map<String, String> map = new HashMap<String, String>();
         if (body.getName() != null)
             map.put("name", body.getName());
-        if (body.getCompany() != null)
-            map.put("company", body.getCompany());
+        if (body.getCardCompanyName() != null)
+            map.put("company", body.getCardCompanyName());
         if (body.getCompany_idx() != null)
             map.put("company_idx", body.getCompany_idx().toString());
         if (body.getDepartment() != null)
@@ -169,18 +174,18 @@ public class BizCardController {
             map.put("position", body.getPosition());
         if (body.getEmail() != null)
             map.put("email", body.getEmail());
-        if (body.getMobile() != null)
-            map.put("mobile", body.getMobile());
-        if (body.getTel() != null)
-            map.put("tel", body.getTel());
-        if (body.getFax() != null)
-            map.put("fax", body.getFax());
+        if (body.getPhoneNumber() != null)
+            map.put("mobile", body.getPhoneNumber());
+        if (body.getLineNumber() != null)
+            map.put("tel", body.getLineNumber());
+        if (body.getFaxNumber() != null)
+            map.put("fax", body.getFaxNumber());
         if (body.getAddress() != null)
             map.put("address", body.getAddress());
 
         boolean rematchCompany = Boolean.TRUE.equals(body.getRematchCompany());
 
-        BizCard updated = bizCardService.updateBizCard(idx, map, rematchCompany);
+        BizCard updated = bizCardService.updateBizCard(idx, map);
         BizCardDto dto = toBizCardDto(updated, null, null);
         return ResponseEntity.ok(new ApiResponseDto<BizCardDto>(true, "updated", dto));
     }
