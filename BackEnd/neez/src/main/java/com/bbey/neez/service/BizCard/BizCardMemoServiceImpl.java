@@ -63,7 +63,17 @@ public class BizCardMemoServiceImpl implements BizCardMemoService {
 
         verifyOwnership(card);
 
-        String fileName = "card-" + card.getIdx() + ".txt";
+        String existingRef = card.getMemo();
+        String fileName;
+
+        // 기존에 파일명을 정상적으로 갖고 있으면 그대로 사용
+        if (existingRef != null && !existingRef.isEmpty() && isFileName(existingRef)) {
+            fileName = existingRef;
+        } else {
+            // 새로 만드는 경우: Memo 폴더 하위로 저장
+            fileName = "Memo/card-" + card.getIdx() + ".txt";
+        }
+
         try {
             memoStorage.write(fileName, memo);
             card.setMemo(fileName); // DB에는 파일명만 저장
@@ -131,10 +141,13 @@ public class BizCardMemoServiceImpl implements BizCardMemoService {
                     + newBlock;
         }
 
-        // 3) 파일에 쓰기 (기존 파일명 재사용, 없으면 새로 생성)
-        String fileName = (memoRef != null && !memoRef.isEmpty())
-                ? memoRef
-                : ("card-" + card.getIdx() + ".txt");
+        // 3) 파일에 쓰기 (기존 파일명 재사용, 없으면 Memo/ 하위에 새로 생성)
+        String fileName;
+        if (memoRef != null && !memoRef.isEmpty() && isFileName(memoRef)) {
+            fileName = memoRef;
+        } else {
+            fileName = "Memo/card-" + card.getIdx() + ".txt";
+        }
 
         try {
             memoStorage.write(fileName, newContent);

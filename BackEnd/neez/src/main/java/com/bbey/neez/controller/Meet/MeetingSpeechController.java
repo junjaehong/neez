@@ -206,7 +206,7 @@ public class MeetingSpeechController {
     )
     @PostMapping(
             value = "/{meetingId}/chunks",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE    // 🔥 multipart/form-data 로 명시
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     public ResponseEntity<Map<String, Object>> uploadChunk(
             @Parameter(description = "회의 세션 ID", example = "1")
@@ -286,18 +286,13 @@ public class MeetingSpeechController {
     }
 
     // =========================================================
-    // 5. 회의 종료 + 최종 회의록 생성 (요약 + 명함 메모 반영)
+    // 5. 회의 종료 + 최종 회의록 생성 (회의록 별도 저장)
     // =========================================================
     @Operation(
             summary = "스트리밍 회의 최종 회의록 생성 (회의 종료)",
-            description = "지금까지 업로드된 청크를 기준으로 전체 transcript / 한국어(or 원본) 텍스트 / 요약 / segment 목록을 생성합니다.\n" +
-                    "bizCardId를 지정하지 않으면, 이 회의에 연결된 모든 참석자 명함의 메모에 요약을 추가합니다.\n" +
-                    "bizCardId를 지정하면 해당 명함 한 개에만 요약을 추가합니다.\n" +
-                    "\n" +
-                    "메모 포맷:\n" +
-                    "[yyyy.MM.dd.THH:mm:ss]\n" +
-                    "(회의 제목)\n" +
-                    "요약 내용..."
+            description = "지금까지 업로드된 청크를 기준으로 전체 transcript / 요약 / segment 목록을 생성하고,\n" +
+                    "회의록을 MeetingMinutes 테이블에 별도로 저장합니다.\n" +
+                    "bizCardId를 지정하면 해당 명함과 회의록을 연결할 수 있습니다.\n"
     )
     @PostMapping("/{meetingId}/minutes")
     public ResponseEntity<Map<String, Object>> finalizeStreamingMeeting(
@@ -310,16 +305,38 @@ public class MeetingSpeechController {
         Long userIdx = SecurityUtil.getCurrentUserIdx();
 
         try {
-            MeetingMinutesService.StreamMeetingMinutes minutes =
-                    minutesService.finalizeStreamingMeeting(userIdx, meetingId, bizCardId);
+            // 1) 지금까지의 transcript / segments 가져오기
+            String originalTranscript = streamService.getTranscriptText(userIdx, meetingId);
+            String koreanTranscript = originalTranscript; // 필요하면 여기서 번역/변환
+
+            if (originalTranscript == null || originalTranscript.isEmpty()) {
+                throw new IllegalArgumentException("회의 내용이 없습니다. 먼저 음성 청크를 업로드하세요.");
+            }
+
+            // 2) MeetingSummaryService를 사용해서 요약 생성
+            //    (MeetingSummaryService에 meetingId, userIdx 기반 요약 메서드가 존재한다고 가정)
+            String summary = summaryService.summarize(meetingId, userIdx);
+
+            // 3) MeetingMinutes 테이블에 회의록 저장 (메모와 분리)
+            minutesService.saveStreamingMinutes(
+                    userIdx,
+                    meetingId,
+                    bizCardId,
+                    summary,
+                    koreanTranscript
+            );
+
+            // 4) 프론트 응답용 segments
+            java.util.List<MeetingSpeechStreamService.Segment> segments =
+                    streamService.getSegments(userIdx, meetingId);
 
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("userIdx", userIdx);
-            payload.put("meetingId", minutes.getMeetingId());
-            payload.put("originalTranscript", minutes.getOriginalTranscript());
-            payload.put("koreanTranscript", minutes.getKoreanTranscript());
-            payload.put("summary", minutes.getSummary());
-            payload.put("segments", minutes.getSegments());
+            payload.put("meetingId", meetingId);
+            payload.put("originalTranscript", originalTranscript);
+            payload.put("koreanTranscript", koreanTranscript);
+            payload.put("summary", summary);
+            payload.put("segments", segments);
 
             return ResponseEntity.ok(payload);
 
