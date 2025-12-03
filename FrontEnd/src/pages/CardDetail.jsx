@@ -56,6 +56,7 @@ const CardDetail = () => {
   const [showMeetingDetail, setShowMeetingDetail] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [currentMeetingIndex, setCurrentMeetingIndex] = useState(0);
+  const [meetingNotes, setMeetingNotes] = useState([]);
 
   // editMode 변경 시 FAB 표시/숨김
   useEffect(() => {
@@ -83,6 +84,29 @@ const CardDetail = () => {
     navigate('/cardlist');
   };
 
+  // 회의록 데이터 로드
+  const fetchMeetingNotes = async (bizcardId) => {
+    if (!baseURL) return;
+    
+    try {
+      // 회의록 목록 API 호출 - config.xml의 baseURL 사용
+      const meetingRes = await axios.get(
+        `${baseURL}/meetings/me/minutes/bizcard/${bizcardId}`,
+        { headers: { ...getAuthHeader() } }
+      );
+      
+      const notes = meetingRes.data || [];
+      console.log("회의록 데이터:", notes);
+
+      setMeetingNotes(notes); // 기존 상태
+      setCard(prev => ({ ...prev, meetingNotes: notes })); // card에도 반영
+    } catch (err) {
+      console.error("회의록 데이터 불러오기 실패:", err);
+      setMeetingNotes([]);
+      setCard(prev => ({ ...prev, meetingNotes: [] })); // 오류 시 빈 배열
+    }
+  };
+
   // 카드 데이터 로드
   const reloadData = async () => {
     if (!baseURL) return; // config가 아직 로드되지 않았다면 호출하지 않음
@@ -107,49 +131,32 @@ const CardDetail = () => {
       setMemo(cardData.memoContent || '');
       setHashtags(Array.isArray(tagRes.data) ? tagRes.data : []);
       /////////////////////////////////////
-      console.log("명함 상세 데이터:", cardRes.data.data.content);
-      // setCard(cardRes.data.data);
-      // setFormData(cardRes.data.data);
 
-      // // 메모
-      // const memoRes = await axios.get(`${baseURL}/api/bizcards/${id}/memo`, {
-      //   headers: { ...getAuthHeader() }
-      // });
-      // console.log('memo API response:', memoRes.data.data.memoContent);
-      // setMemo(memoRes.data.data?.memoContent || '');
-
-      // // 해시태그
-      // const tagRes = await axios.get(`${baseURL}/api/bizcards/${id}/hashtags`, {
-      //   headers: { ...getAuthHeader() }
-      // });
-      // console.log('Tag API response:', tagRes.data);
-      
-      // const tagData = tagRes.data;
-      // setHashtags(Array.isArray(tagData) ? tagData : (tagData.hashTags || []));
-      
-      // 기업 정보
-      // const companyInfo = await axios.get(`${baseURL}/companies/${cardRes.data.data.companyIdx}`);
-      // console.log('companyInfo API response:', companyInfo.data);
-
+      // 회의록 데이터 별도 조회 - baseURL이 있을 때만
+      if (baseURL) {
+        await fetchMeetingNotes(id);
+      }
       // 회의록 리스트 API 입력 후 삭제 ▼
-        const defaultMeetings = [
-          {
-            date: "2025-11-04",
-            company: "NaverCloud",
-            content: "신규 프로젝트 일정 조율 및 역할 분담 논의...",
-          },
-          {
-            date: "2025-10-25",
-            company: "Naver",
-            content: "구 프로젝트 일정 조율 및 역할 분담 논의...",
-          }
-        ];
+        // const defaultMeetings = [
+        //   {
+        //     date: "2025-11-04",
+        //     company: "NaverCloud",
+        //     content: "신규 프로젝트 일정 조율 및 역할 분담 논의...",
+        //   },
+        //   {
+        //     date: "2025-10-25",
+        //     company: "Naver",
+        //     content: "구 프로젝트 일정 조율 및 역할 분담 논의...",
+        //   }
+        // ];
 
-        setCard({
-          ...cardRes.data.data,            // API에서 받은 카드 데이터
-          meetingNotes: cardRes.data.data.meetingNotes || defaultMeetings  // 기존 회의록 유지
-        });
+        // setCard({
+        //   ...cardRes.data.data,            // API에서 받은 카드 데이터
+        //   meetingNotes: cardRes.data.data.meetingNotes || defaultMeetings  // 기존 회의록 유지
+        // });
         // 회의록 리스트 API 입력 후 삭제 ▲
+
+      console.log("명함 상세 데이터:", cardRes.data.data.content);
 
     } catch (err) {
       console.error("데이터 불러오기 실패:", err);
@@ -301,12 +308,28 @@ const CardDetail = () => {
 
   // 회의록 삭제
   const handleDeleteMeeting = (meetingId) => {
-    const updatedMeetings = card.meetingNotes.filter(note => note.id !== meetingId);
-    updateCard(card.id, { ...card, meetingNotes: updatedMeetings });
-    setCard({ ...card, meetingNotes: updatedMeetings });
-    if (updatedMeetings.length === 0) {
-      setShowMeetingList(false);
+    try {
+      // 회의록 삭제 API가 있다면 여기에 추가
+      // await axios.delete(`http://192.168.70.52:8083/meetings/minutes/${minutesId}`, {
+      //   headers: { ...getAuthHeader() }
+      // });
+      
+      // 화면에서 즉시 제거
+      setMeetingNotes(prev => prev.filter(note => note.minutesId !== minutesId));
+      
+      if (meetingNotes.length === 1) {
+        setShowMeetingList(false);
+      }
+    } catch (err) {
+      console.error("회의록 삭제 실패:", err);
+      alert("회의록 삭제에 실패했습니다.");
     }
+    // const updatedMeetings = card.meetingNotes.filter(note => note.id !== meetingId);
+    // updateCard(card.id, { ...card, meetingNotes: updatedMeetings });
+    // setCard({ ...card, meetingNotes: updatedMeetings });
+    // if (updatedMeetings.length === 0) {
+    //   setShowMeetingList(false);
+    // }
   };
 
   // 회의록 상세 보기
@@ -326,30 +349,6 @@ const CardDetail = () => {
     }
   };
 
-  // // 번역 기능
-  // const handleTranslate = async (targetLang) => {
-  //   // 실제로는 번역 API 호출
-  //   const mockTranslations = {
-  //     ko: {
-  //       position: formData.position || card.position,
-  //       department: formData.department || card.department,
-  //       memo: memo
-  //     },
-  //     en: {
-  //       position: 'Manager',
-  //       department: 'Planning Team',
-  //       memo: 'Important client for the project'
-  //     },
-  //     ja: {
-  //       position: 'マネージャー',
-  //       department: '企画チーム',
-  //       memo: 'プロジェクトの重要なクライアント'
-  //     }
-  //   };
-  //   setTranslatedContent(mockTranslations[targetLang]);
-  //   setSelectedLanguage(targetLang);
-  // };
-
   if (!card) return <div>Loading...</div>;
 
   return (
@@ -360,28 +359,6 @@ const CardDetail = () => {
           <p>명함 상세보기</p>
           
         </div>
-
-        {/* 번역 버튼
-        <div className="translation-buttons">
-          <button 
-            className={selectedLanguage === 'ko' ? 'active' : ''}
-            onClick={() => handleTranslate('ko')}
-          >
-            한국어
-          </button>
-          <button 
-            className={selectedLanguage === 'en' ? 'active' : ''}
-            onClick={() => handleTranslate('en')}
-          >
-            English
-          </button>
-          <button 
-            className={selectedLanguage === 'ja' ? 'active' : ''}
-            onClick={() => handleTranslate('ja')}
-          >
-            日本語
-          </button>
-        </div> */}
 
         <div className="card-detail-content">
           <table className="card-info-table">
@@ -558,47 +535,41 @@ const CardDetail = () => {
           </div>
 
           {/* 회의록 섹션 */}
-          {card.meetingNotes && (
-          <div className="meeting-section">
-            <div className="meeting-head">
-              <h3>회의록</h3>
-              {/* <button 
-                className="view-button"
-                onClick={() => setShowMeetingList(!showMeetingList)}
-              >
-                {showMeetingList ? '닫기' : '보기'}
-              </button> */}
-            </div>
-            
-            {/* {showMeetingList && ( */}
+          {Array.isArray(card.meetingNotes) && (
+            <div className="meeting-section">
+              <div className="meeting-head">
+                <h3>회의록</h3>
+              </div>
+
               <div className="meeting-list">
-                {card.meetingNotes.map((meeting, index) => (
-                  <div key={meeting.id || index} className="meeting-item">
+                {card.meetingNotes.length > 0 ? (
+                  card.meetingNotes.map((meeting, index) => (
+                  <div key={meeting.minutesId} className="meeting-item">
                     <span className="meeting-date">
-                      {new Date(meeting.date).toLocaleDateString()}
+                      {new Date(meeting.createdAt).toLocaleDateString('ko-KR')}
                     </span>
                     <span 
                       className="meeting-title"
                       onClick={() => handleViewMeeting(meeting, index)}
                     >
-                      {meeting.company}
+                      {meeting.summaryText.substring(0, 20)}...
                     </span>
-                    {editMode && (
+                  {editMode && (
                     <button
                       className="delete-meeting-btn"
-                      onClick={() => handleDeleteMeeting(meeting.id)}
+                      onClick={() => handleDeleteMeeting(meeting.minutesId)}
                     >
                       ×
                     </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            {/* }) */}
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="no-meeting">등록된 회의록이 없습니다.</p>
+            )}
           </div>
-          )}
         </div>
-
+      )}
         {/* 수정, 저장, 삭제 btn */}
           <div className="bottom-btn-group">
             {editMode ? (
@@ -644,15 +615,19 @@ const CardDetail = () => {
               <button 
                 onClick={() => navigateMeeting(-1)}
                 disabled={currentMeetingIndex === 0}
+                style={{ cursor: currentMeetingIndex === 0 ? 'not-allowed' : 'pointer' }}
               >
                 〈
               </button>
+
               <span className="meeting-date">
-                {new Date(selectedMeeting.date).toLocaleDateString()}
+                {new Date(selectedMeeting.createdAt).toLocaleDateString('ko-KR')}
               </span>
+              
               <button 
                 onClick={() => navigateMeeting(1)}
                 disabled={currentMeetingIndex === card.meetingNotes.length - 1}
+                style={{ cursor: currentMeetingIndex === card.meetingNotes.length - 1 ? 'not-allowed' : 'pointer' }}
               >
                 〉
               </button>
@@ -660,13 +635,19 @@ const CardDetail = () => {
             
             <div className="meeting-content">
               {/* 클릭한 회의록 회사명 출력 */}
-              <h3>{selectedMeeting.company}</h3>
-              <p className="meeting-text">{selectedMeeting.content}</p>
+              {/* <h3>{selectedMeeting.meetingTitle}</h3> */}
+              
+              <p className="meeting-text">{selectedMeeting.summaryText}</p>
+
+              {/* {selectedMeeting.fileName && (
+                <p className="meeting-file">파일명: {selectedMeeting.fileName}</p>
+              )} */}
             </div>
           </div>
         </div>
       )}
     </div>
+  </div>
   );
 };
 

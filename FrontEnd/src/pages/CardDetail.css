@@ -375,14 +375,19 @@ input:focus {
 }
 
 .meeting-date {
-  width: 35%;
+  width: 30%;
 }
 
 .meeting-title {
   cursor: pointer;
-  width: 65%;
+  width: 70%;
   font-weight: 600;
 }
+
+.meeting-title:hover {
+  color: #737164;
+}
+
 
 .meeting-popup {
   text-align: center;
@@ -497,6 +502,10 @@ input:focus {
   cursor: pointer;
   color: var(--primary-color);
   padding: 5px 10px;
+}
+
+.meeting-navigation {
+  margin: 20px 0;
 }
 
 .meeting-note-navigation button:disabled {

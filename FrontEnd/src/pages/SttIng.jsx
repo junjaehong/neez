@@ -249,7 +249,21 @@ const SttIng = () => {
     if (!meetingId) return alert("회의 ID가 없습니다.");
     setIsSaving(true);
     try {
-      await api.post(`/meetings/me/${meetingId}/minutes`, {}, { headers: getAuthHeader() });
+      // 각 참석자의 명함에 회의록 연결
+      for (const participant of meetingParticipants) {
+        if (participant.idx) {
+          try {
+            await api.post(
+              `/meetings/me/${meetingId}/minutes?bizCardId=${participant.idx}`,
+              {},
+              { headers: getAuthHeader() }
+            );
+            console.log(`${participant.name} (ID: ${participant.idx}) 명함에 회의록 저장 완료`);
+          } catch (err) {
+            console.error(`${participant.name} 명함 저장 실패:`, err);
+          }
+        }
+      }
       alert('회의록이 참석자 명함에 저장되었습니다.');
       navigate('/cardlist');
     } catch (err) {
