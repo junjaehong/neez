@@ -225,7 +225,7 @@ const CardList = () => {
                   <div className="card-item-contact">
                     <img className="icon-phon" src=".\public\Neez-Phon.png" alt="phon" />
                     {card.phoneNumber && card.phoneNumber}
-                    {card.phoneNumber && card.email && ' | '}
+                    <br />
                     <img className="icon-email" src=".\public\Neez-Email.png" alt="email" />
                     {card.email && card.email}
                   </div>

@@ -37,11 +37,22 @@ const ProtectedRoute = ({ children }) => {
 
 function AppRoutes() {
   const { isLoggedIn, showFAB } = useApp();
+  const { settings } = useApp();
   const { pathname } = useLocation();
+
+  document.documentElement.style.setProperty(
+    "--app-text-size",
+    settings.fontSize === "small"
+      ? "14px"
+      : settings.fontSize === "large"
+      ? "18px"
+      : "16px"
+    );
 
   // 로그인/회원가입 경로에서는 FAB 숨김
   const noFabPaths = ['/', '/login', '/join', '/CameraCapture', '/CardInput', '/stting'];
   const shouldShowFAB = isLoggedIn && !noFabPaths.includes(pathname) && showFAB;
+
 
   return (
     <div className="App">

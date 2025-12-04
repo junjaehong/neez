@@ -9,17 +9,17 @@ const Main = () => {
   const { isLoggedIn, currentUser, updateCurrentUser, updateMyCard  } = useApp();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
-  const handleSubmit = async (e) => {
-  e.preventDefault();
-  const updatedData = { name, company, department, position, phone, email };
+//   const handleSubmit = async (e) => {
+//   e.preventDefault();
+//   const updatedData = { name, company, department, position, phone, email };
   
-  try {
-    await updateMyCard(updatedData); // 서버 반영
-    updateCurrentUser(updatedData);   // context 반영 → Main에서 바로 보임
-  } catch (err) {
-    console.error(err);
-  }
-};
+//   try {
+//     await updateMyCard(updatedData); // 서버 반영
+//     updateCurrentUser(updatedData);   // context 반영 → Main에서 바로 보임
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
 
   // 로그인 체크
   React.useEffect(() => {

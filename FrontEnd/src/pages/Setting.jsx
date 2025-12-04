@@ -48,12 +48,63 @@ const Setting = () => {
     }
   };
 
+  // 다국어 텍스트 테이블
+  const langText = {
+    ko: {
+      title: "환경설정",
+      language: "언어 설정",
+      theme: "화면 모드",
+      font: "글자 크기 설정",
+      service: "서비스 이용 방법",
+      about: "정보",
+      light: "라이트",
+      dark: "다크",
+      small: "작게",
+      medium: "보통",
+      large: "크게",
+    },
+    en: {
+      title: "Settings",
+      language: "Language",
+      theme: "Theme",
+      font: "Font Size",
+      service: "How to Use",
+      about: "About",
+      light: "Light",
+      dark: "Dark",
+      small: "Small",
+      medium: "Medium",
+      large: "Large",
+    },
+    ja: {
+      title: "設定",
+      language: "言語設定",
+      theme: "テーマ",
+      font: "文字サイズ",
+      service: "サービスの使い方",
+      about: "情報",
+      light: "ライト",
+      dark: "ダーク",
+      small: "小",
+      medium: "中",
+      large: "大",
+    },
+  };
+
+  // 폰트 크기 스타일
+  const fontStyle = {
+    small: { fontSize: "14px" },
+    medium: { fontSize: "16px" },
+    large: { fontSize: "18px" },
+  };
+
+
   return (
     <div className="setting-container">
       <div className="setting-box">
         <div className="setting-header app-header">
           <button className="back-btn" onClick={handleBack}>←</button>
-          <p>환경설정</p>
+          <p>{langText[settings.language].title}</p>
           <div></div>
         </div>
 
@@ -64,7 +115,7 @@ const Setting = () => {
               className={`setting-row ${openPanel === 'language' ? 'active' : ''}`}
               onClick={() => setOpenPanel(openPanel === 'language' ? null : 'language')}
             >
-              <span>언어 설정</span>
+              <span>{langText[settings.language].language}</span>
               <span className="setting-value">
                 {getLanguageDisplay()}
                 {/* {showFontToggle ? '▲' : '▼'} */}
@@ -101,7 +152,7 @@ const Setting = () => {
               className={`setting-row ${openPanel === 'theme' ? 'active' : ''}`}
               onClick={() => setOpenPanel(openPanel === 'theme' ? null : 'theme')}
             >
-              <span>화면 모드</span>
+              <span>{langText[settings.language].theme}</span>
               <span className="setting-value">
                 {settings.darkMode ? '다크' : '라이트'}
                 {/* {showThemeToggle ? '▲' : '▼'} */}
@@ -112,14 +163,14 @@ const Setting = () => {
                 className={`toggle-option ${!settings.darkMode ? 'selected' : ''}`}
                 onClick={() => handleThemeChange(false)}
               >
-                <span>☀️ 라이트 모드</span>
+                <span>☀️ {langText[settings.language].light}</span>
                 {!settings.darkMode && <span className="check">✓</span>}
               </div>
               <div 
                 className={`toggle-option ${settings.darkMode ? 'selected' : ''}`}
                 onClick={() => handleThemeChange(true)}
               >
-                <span>🌙 다크 모드</span>
+                <span>🌙 {langText[settings.language].dark}</span>
                 {settings.darkMode && <span className="check">✓</span>}
               </div>
             </div>
@@ -131,7 +182,7 @@ const Setting = () => {
               className={`setting-row ${openPanel === 'font' ? 'active' : ''}`}
               onClick={() => setOpenPanel(openPanel === 'font' ? null : 'font')}
             >
-              <span>글자 크기 설정</span>
+              <span>{langText[settings.language].font}</span>
               <span className="setting-value">
                 {getFontSizeDisplay()}
                 {/* {showFontToggle ? '▲' : '▼'} */}
@@ -142,21 +193,27 @@ const Setting = () => {
                 className={`toggle-option ${settings.fontSize === 'small' ? 'selected' : ''}`}
                 onClick={() => handleFontSizeChange('small')}
               >
-                <span style={{fontSize: '12px'}}>작게</span>
+                <span style={{fontSize: '14px'}}>
+                  {langText[settings.language].small}
+                </span>
                 {settings.fontSize === 'small' && <span className="check">✓</span>}
               </div>
               <div 
                 className={`toggle-option ${settings.fontSize === 'medium' ? 'selected' : ''}`}
                 onClick={() => handleFontSizeChange('medium')}
               >
-                <span style={{fontSize: '16px'}}>보통</span>
+                <span style={{fontSize: '16px'}}>
+                  {langText[settings.language].medium}
+                </span>
                 {settings.fontSize === 'medium' && <span className="check">✓</span>}
               </div>
               <div 
                 className={`toggle-option ${settings.fontSize === 'large' ? 'selected' : ''}`}
                 onClick={() => handleFontSizeChange('large')}
               >
-                <span style={{fontSize: '20px'}}>크게</span>
+                <span style={{fontSize: '18px'}}>
+                  {langText[settings.language].large}
+                </span>
                 {settings.fontSize === 'large' && <span className="check">✓</span>}
               </div>
             </div>
@@ -168,7 +225,7 @@ const Setting = () => {
               className={`setting-row ${openPanel === 'service' ? 'active' : ''}`}
               onClick={() => setOpenPanel('service')}
             >
-              <span>서비스 이용 방법</span>
+              <span>{langText[settings.language].service}</span>
             </div>
           </div>
 
@@ -178,7 +235,7 @@ const Setting = () => {
               className={`setting-row ${openPanel === 'about' ? 'active' : ''}`}
               onClick={() => setOpenPanel('about')}
             >
-              <span>정보</span>
+              <span>{langText[settings.language].about}</span>
             </div>
           </div>
         </div>

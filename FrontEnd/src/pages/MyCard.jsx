@@ -31,8 +31,11 @@ const MyCard = () => {
     try {
       // 먼저 서버에서 최신 데이터 가져오기
       const response = await fetchMyCard();
-      const userData = response.data;
-      // console.log(userData);
+      const userData = response.data?.data || response.data || response;
+
+      console.log('fetchMyCard 응답:', response);
+      console.log('userData:', userData);
+
       setFormData({
         name: userData.name || '',
         cardCompanyName: userData.cardCompanyName || '',
@@ -44,9 +47,25 @@ const MyCard = () => {
         fax: userData.fax || '',
         website: userData.website || ''
       });
+      
+      // Context도 최신 데이터로 업데이트
+      updateCurrentUser({
+        name: userData.name || '',
+        cardCompanyName: userData.cardCompanyName || '',
+        department: userData.department || '',
+        position: userData.position || '',
+        phone: userData.phone || '',
+        email: userData.email || '',
+        address: userData.address || '',
+        fax: userData.fax || '',
+        website: userData.website || ''
+      });
+
     } catch (err) {
+      console.error('서버 데이터 가져오기 실패:', err);
       // 서버 데이터 가져오기 실패 시 로컬 데이터 사용
       if (currentUser) {
+        console.log('로컬 currentUser 사용:', currentUser);
         setFormData({
           name: currentUser.name || '',
           cardCompanyName: currentUser.cardCompanyName || '',
@@ -114,13 +133,20 @@ const MyCard = () => {
     setError('');
     
     try {
+      console.log('전송할 데이터:', formData);
+      // const payload = {
+      //   ...formData,
+      //   cardCompanyName: formData.cardCompanyName
+      // };
+      
+      // await updateMyCard(formData);
+      // updateCurrentUser(formData);
+      
+      const response  = await updateMyCard(formData);
+      console.log('updateMyCard 응답:', response );
 
-      const payload = {
-        ...formData,
-        cardCompanyName: formData.cardCompanyName
-      };
+      updateCurrentUser(response);
 
-      await updateMyCard(formData);
       alert('내 명함이 수정되었습니다!');
       navigate('/main');
     } catch (err) {
