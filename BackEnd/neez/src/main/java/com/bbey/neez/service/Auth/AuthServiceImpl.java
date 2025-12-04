@@ -270,6 +270,14 @@ public class AuthServiceImpl implements AuthService {
             user.setEmail(req.getEmail());
         }
 
+        // ✅ department, position 추가
+        if (req.getDepartment() != null) {
+            user.setDepartment(req.getDepartment());
+        }
+        if (req.getPosition() != null) {
+            user.setPosition(req.getPosition());
+        }
+
         String newAddress = req.getAddress();
         if (newAddress != null) {
             String trimmed = newAddress.trim();

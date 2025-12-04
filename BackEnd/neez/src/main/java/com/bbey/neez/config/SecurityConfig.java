@@ -7,7 +7,6 @@ import com.bbey.neez.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -47,7 +46,7 @@ public class SecurityConfig {
                                 .csrf().disable()
                                 .cors().configurationSource(request -> {
                                         org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
-                                        config.setAllowedOrigins(Arrays.asList("http://localhost:5177"));
+                                        config.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:5177"));
                                         config.setAllowedMethods(Arrays.asList("*"));
                                         config.setAllowedHeaders(Arrays.asList("*"));
                                         config.setAllowCredentials(true);
