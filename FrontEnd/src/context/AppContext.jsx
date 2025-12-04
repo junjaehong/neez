@@ -300,7 +300,11 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateCurrentUser = (data) => {
-    setCurrentUser(prev => ({ ...prev, ...data }));
+    const filtered = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+
+    setCurrentUser(prev => ({ ...prev, ...filtered }));
     setAuth(prev => ({ 
       ...prev, 
       user: { ...prev.user, ...data } 

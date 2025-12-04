@@ -1,7 +1,12 @@
+:root {
+  --app-text-size: 16px;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-size: var(--app-text-size);
 }
 
 body {
@@ -111,7 +116,7 @@ body.dark {
 }
 
 /* 레이아웃 기준 고정 */
-html { font-size: 16px; }
+/* html { font-size: 16px; } */
 
 /* 다크모드 전환 애니메이션 */
 * {

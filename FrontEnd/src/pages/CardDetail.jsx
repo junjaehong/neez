@@ -570,21 +570,21 @@ const CardDetail = () => {
           </div>
         </div>
       )}
-        {/* 수정, 저장, 삭제 btn */}
-          <div className="bottom-btn-group">
-            {editMode ? (
-              <>
-                <button className="edit-btn" onClick={handleSave}>저장</button>
-                <button className="cancel-btn" onClick={() => setEditMode(false)}>취소</button>
-              </>
-            ) : (
-              <>
-                <button className="edit-btn" onClick={() => setEditMode(true)}>수정</button>
-                <button className="delete-btn" onClick={handleDelete}>삭제</button>
-              </>
-            )}
-          </div>
 
+      </div>
+    {/* 수정, 저장, 삭제 btn */}
+      <div className="bottom-btn-group">
+        {editMode ? (
+          <>
+            <button className="edit-btn" onClick={handleSave}>저장</button>
+            <button className="cancel-btn" onClick={() => setEditMode(false)}>취소</button>
+          </>
+        ) : (
+          <>
+            <button className="edit-btn" onClick={() => setEditMode(true)}>수정</button>
+            <button className="delete-btn" onClick={handleDelete}>삭제</button>
+          </>
+        )}
       </div>
 
       {/* 회사 정보 팝업 */}
@@ -636,7 +636,7 @@ const CardDetail = () => {
             <div className="meeting-content">
               {/* 클릭한 회의록 회사명 출력 */}
               {/* <h3>{selectedMeeting.meetingTitle}</h3> */}
-              
+
               <p className="meeting-text">{selectedMeeting.summaryText}</p>
 
               {/* {selectedMeeting.fileName && (

@@ -21,7 +21,7 @@
   margin-bottom: 20px;
 }
 
-.card-detail-header > p {
+.card-detail-header>p {
   font-size: 18px;
   color: #333;
   font-weight: bold;
@@ -30,10 +30,11 @@
 .card-detail-content {
   margin-bottom: 20px;
   /* 추가된 부분: 내부 스크롤 허용 및 모바일 스무스 스크롤 */
-  overflow-y: auto; /* 세로 스크롤 허용 */
+  overflow-y: auto;
+  /* 세로 스크롤 허용 */
   /* -webkit-overflow-scrolling: touch; iOS에서 스무스 스크롤 */
   /* 뷰포트에 맞춘 최대 높이 (헤더/여백에 따라 값 조정) */
-  max-height: 525px;
+  max-height: 530px;
 }
 
 /* 스크롤바 스타일 */
@@ -57,6 +58,7 @@
 
 
 .bottom-btn-group {
+  margin-top: 15px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -407,7 +409,7 @@ input:focus {
   margin-top: 20px;
 } */
 
-.meeting-navigation > button {
+.meeting-navigation>button {
   border: none;
   background: none;
   color: #737164;
@@ -465,6 +467,7 @@ input:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 14px;
 }
 
 .company-info p {
@@ -565,18 +568,24 @@ input:focus {
   color: #333;
 }
 
-.companyinfo-content h3{
+.companyinfo-content h3 {
   text-align: center;
-  margin-bottom: 15px;;
+  margin-bottom: 15px;
+  ;
 }
 
-.company-info p{
+.company-info p {
   font-size: 15px;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
@@ -584,6 +593,7 @@ input:focus {
     transform: translateY(30px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
