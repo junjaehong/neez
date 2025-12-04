@@ -237,7 +237,9 @@ const Join = () => {
           <span className="back-btn" onClick={handleBack}>
             ←
           </span>
-          <Logo size="small" />
+          <div className="logo">
+            <img src=".\public\Neez-Logo-S.png" alt="logo" />
+          </div>
         </div>
         
         <form onSubmit={handleSubmit} className="join-form">
@@ -306,7 +308,7 @@ const Join = () => {
             <div className="success-message">✓ 사용 가능한 이메일입니다</div>
           )}
           
-          <Button type="submit" variant="primary" fullWidth disabled={loading}>
+          <Button type="submit" variant="primary" className="join-btn" fullWidth disabled={loading}>
             회원가입
             {/* {loading ? '가입 중...' : '회원가입'} */}
           </Button>

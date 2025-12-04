@@ -10,6 +10,7 @@ import './CardDetail.css';
 const CardDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { setShowFAB } = useApp();
 
   /////////////////////////////////////
   const [baseURL, setBaseURL] = useState('');
@@ -28,11 +29,10 @@ const CardDetail = () => {
   }, []);
 
   useEffect(() => {
-    reloadData();
+    if (baseURL) reloadData();
   }, [id, baseURL]);
   /////////////////////////////////////
-
-  // const baseURL = 'http://192.168.70.111:8083/api'; // 공통 prefix
+  
   // const { addMeetingNote } = useApp();
   
   const [card, setCard] = useState(null);
@@ -56,10 +56,55 @@ const CardDetail = () => {
   const [showMeetingDetail, setShowMeetingDetail] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [currentMeetingIndex, setCurrentMeetingIndex] = useState(0);
+  const [meetingNotes, setMeetingNotes] = useState([]);
+
+  // editMode 변경 시 FAB 표시/숨김
+  useEffect(() => {
+    if (editMode) {
+      setShowFAB(false); // 수정 모드에서 FAB 숨김
+    } else {
+      setShowFAB(true);  // 일반 모드에서 FAB 표시
+    }
+
+    // 컴포넌트 언마운트 시 FAB 다시 표시
+    return () => {
+      setShowFAB(true);
+    };
+  }, [editMode, setShowFAB]);
+
+  // 컴포넌트 언마운트 시 FAB 복원
+  useEffect(() => {
+    return () => {
+      setShowFAB(true);
+    };
+  }, [setShowFAB]);
 
   // 뒤로가기
   const handleBack = () => {
     navigate('/cardlist');
+  };
+
+  // 회의록 데이터 로드
+  const fetchMeetingNotes = async (bizcardId) => {
+    if (!baseURL) return;
+    
+    try {
+      // 회의록 목록 API 호출 - config.xml의 baseURL 사용
+      const meetingRes = await axios.get(
+        `${baseURL}/meetings/me/minutes/bizcard/${bizcardId}`,
+        { headers: { ...getAuthHeader() } }
+      );
+      
+      const notes = meetingRes.data || [];
+      console.log("회의록 데이터:", notes);
+
+      setMeetingNotes(notes); // 기존 상태
+      setCard(prev => ({ ...prev, meetingNotes: notes })); // card에도 반영
+    } catch (err) {
+      console.error("회의록 데이터 불러오기 실패:", err);
+      setMeetingNotes([]);
+      setCard(prev => ({ ...prev, meetingNotes: [] })); // 오류 시 빈 배열
+    }
   };
 
   // 카드 데이터 로드
@@ -67,9 +112,12 @@ const CardDetail = () => {
     if (!baseURL) return; // config가 아직 로드되지 않았다면 호출하지 않음
  
     try {
-      const cardRes = await axios.get(`${baseURL}/api/bizcards/${id}`, {
-        headers: { ...getAuthHeader() }
-      });
+      const [cardRes, memoRes, tagRes] = await Promise.all([
+        axios.get(`${baseURL}/api/bizcards/${id}`, { headers: { ...getAuthHeader() } }),
+        axios.get(`${baseURL}/api/bizcards/${id}/memo`, { headers: { ...getAuthHeader() } }),
+        axios.get(`${baseURL}/api/bizcards/${id}/hashtags`, { headers: { ...getAuthHeader() } })
+      ]);
+
       /////////////////////////////////////
       const cardData = cardRes.data.data;
 
@@ -81,66 +129,39 @@ const CardDetail = () => {
       setCard(cardData);
       setFormData(cardData);
       setMemo(cardData.memoContent || '');
-      setHashtags(cardData.hashTags || []);
+      setHashtags(Array.isArray(tagRes.data) ? tagRes.data : []);
       /////////////////////////////////////
-      console.log("명함 상세 데이터:", cardRes.data.data.content);
-      // setCard(cardRes.data.data);
-      // setFormData(cardRes.data.data);
 
-      // 메모
-      const memoRes = await axios.get(`${baseURL}/api/bizcards/${id}/memo`, {
-        headers: { ...getAuthHeader() }
-      });
-      console.log('memo API response:', memoRes.data.data.memoContent);
-      setMemo(memoRes.data.data?.memoContent || '');
-
-      // 해시태그
-      const tagRes = await axios.get(`${baseURL}/api/bizcards/${id}/hashtags`, {
-        headers: { ...getAuthHeader() }
-      });
-      console.log('Tag API response:', tagRes.data);
-      
-      const tagData = tagRes.data;
-      setHashtags(Array.isArray(tagData) ? tagData : (tagData.hashTags || []));
-      
-      // 기업 정보
-      // const companyInfo = await axios.get(`${baseURL}/companies/${cardRes.data.data.companyIdx}`);
-      // console.log('companyInfo API response:', companyInfo.data);
-
+      // 회의록 데이터 별도 조회 - baseURL이 있을 때만
+      if (baseURL) {
+        await fetchMeetingNotes(id);
+      }
       // 회의록 리스트 API 입력 후 삭제 ▼
-        const defaultMeetings = [
-          {
-            date: "2025-11-04",
-            company: "NaverCloud",
-            content: "신규 프로젝트 일정 조율 및 역할 분담 논의...",
-          },
-          {
-            date: "2025-10-25",
-            company: "Naver",
-            content: "구 프로젝트 일정 조율 및 역할 분담 논의...",
-          }
-        ];
+        // const defaultMeetings = [
+        //   {
+        //     date: "2025-11-04",
+        //     company: "NaverCloud",
+        //     content: "신규 프로젝트 일정 조율 및 역할 분담 논의...",
+        //   },
+        //   {
+        //     date: "2025-10-25",
+        //     company: "Naver",
+        //     content: "구 프로젝트 일정 조율 및 역할 분담 논의...",
+        //   }
+        // ];
 
-        setCard({
-          ...cardRes.data.data,            // API에서 받은 카드 데이터
-          meetingNotes: defaultMeetings   // 기존 회의록 유지
-        });
+        // setCard({
+        //   ...cardRes.data.data,            // API에서 받은 카드 데이터
+        //   meetingNotes: cardRes.data.data.meetingNotes || defaultMeetings  // 기존 회의록 유지
+        // });
         // 회의록 리스트 API 입력 후 삭제 ▲
+
+      console.log("명함 상세 데이터:", cardRes.data.data.content);
 
     } catch (err) {
       console.error("데이터 불러오기 실패:", err);
     }
   };
-
-//   fetchData();
-// }, [id]);
-
-
-  useEffect(() => {
-    reloadData();
-  }, [id]);
-
-
 
 
   // 입력 변경
@@ -162,14 +183,25 @@ const CardDetail = () => {
   
   // 메모 저장
   const handleSaveMemo = async () => {
+    const memoToSend = (memo || '').trim();
+    if (!memoToSend) {
+      // alert("메모가 비어 있습니다.");
+      return;
+    }
     try {
-      await axios.patch(`${baseURL}/bizcards/${id}/memo`,
-        { memo: memo },
-        { headers: { 'Content-Type': 'application/json' }
+      const payload = { memoContent: memoToSend };
+      console.log("PATCH 요청 body:", payload);
+
+      const res = await axios.patch(`${baseURL}/api/bizcards/${id}/memo`,
+        { memo: memoToSend},
+        { headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader() }
       });
-      console.log("메모 저장 성공");
+      console.log("메모 저장 성공", res.data);
+      setMemo(res.data.data?.memoContent || memoToSend); // 서버 반환값 반영
     } catch (err) {
-      console.error("메모 저장 실패:", err);
+      console.error("메모 저장 실패:", err.response?.data || err);
       alert("메모 저장 실패");
     }
   };
@@ -177,18 +209,19 @@ const CardDetail = () => {
   // 명함 수정
   const handleSave = async () => {
     try {
-      // 명함 정보 저장
-      await axios.put(`${baseURL}/bizcards/${id}`, {
-        ...formData,
-        // memo: memo   // 메모 함께 전송
+      // 1. 명함 기본 정보 저장 (memo, hashtags 제외)
+      await axios.put(`${baseURL}/api/bizcards/${id}`, formData, {
+        headers: { ...getAuthHeader() }
       });
-      await handleSaveMemo(); // 메모는 별도로 PATCH
-      
+
+      // 2. 메모 저장
+      await handleSaveMemo(); // memoContent는 PATCH로 별도 저장
+
+      // 3. 해시태그는 개별 추가/삭제로 관리 (UI에서 이미 반영되므로 필요시 서버 동기화)
+
       alert("수정이 모두 저장되었습니다.");
-      
       setEditMode(false);
       reloadData(); // 최신 상태 재조회  
-      
     } catch (err) {
       console.error(err);
       alert("저장 중 오류 발생");
@@ -197,29 +230,36 @@ const CardDetail = () => {
   
   // 명함 삭제
   const handleDelete = async () => {
-    if (window.confirm('정말 이 명함을 삭제하시겠습니까?')) {
+    if (!window.confirm('이 명함을 삭제하시겠습니까?')) return;
       try {
-        await axios.delete(`${baseURL}/bizcards/${id}`);
+        await axios.delete(`${baseURL}/api/bizcards/${id}`, {
+          headers: { ...getAuthHeader() }
+        });
         alert('명함이 삭제되었습니다.');
         navigate('/cardlist');
       } catch (err) {
         console.error('명함 삭제 실패:', err);
         alert('삭제 중 오류 발생');
       }
-    }
   };
   
   // 해시태그 삭제
   const handleDeleteHashtag = async (tag) => {
     try {
-      await axios.delete(`${baseURL}/api/bizcards/${id}/hashtags/${encodeURIComponent(tag)}`);
+      await axios.delete(`${baseURL}/api/bizcards/${id}/hashtags/${encodeURIComponent(tag)}`,
+      { headers: { ...getAuthHeader() } }
+    );
       
       // 화면에서도 즉시 삭제
       setHashtags(prev => prev.filter(t => t !== tag));
-      setCard(prevCard => ({
-      ...prevCard,
-      hashTags: prevCard.hashTags.filter(t => t !== tag)
+      setCard(prev => ({
+      ...prev,
+      hashTags: prev?.hashTags?.filter(t => t !== tag) ?? []
       }));
+
+      // // 서버 반영 후 재조회
+      // setHashtags(prev => prev.filter(t => t !== tag)); // 화면 반영
+      // reloadData();
 
     } catch (err) {
       console.error("해시태그 삭제 실패:", err);
@@ -232,10 +272,11 @@ const CardDetail = () => {
     if (!newHashtag.trim()) return;
     
     try {
-      const res = await axios.post(`${baseURL}/bizcards/${id}/hashtags`,
-        JSON.stringify([newHashtag]),
-       { headers: { "Content-Type": "application/json" } }
-    );
+      const res = await axios.post(`${baseURL}/api/bizcards/${id}/hashtags`,
+        // JSON.stringify([newHashtag]),
+        [newHashtag],   // JSON 배열
+        { headers: { ...getAuthHeader() } }
+      );    
 
       // 성공한 경우 화면에도 즉시 추가
       setHashtags(prev => [...prev, newHashtag]);
@@ -249,8 +290,13 @@ const CardDetail = () => {
 
   // 기업 정보 조회
   const handleCompanyInfoClick = async () => {
+    if (!card?.companyIdx) {
+      return alert("기업 정보가 존재하지 않습니다.");
+    }
     try {
-      const companyInfo = await axios.get(`${baseURL}/companies/${card.companyIdx}`);
+      const companyInfo = await axios.get(`${baseURL}/api/companies/${card.companyIdx}`,
+        { headers: { ...getAuthHeader() } }
+      );
       setCompanyInfo(companyInfo.data);
       setShowCompanyInfo(true);
       console.log('companyInfo API response:', companyInfo.data);
@@ -262,12 +308,28 @@ const CardDetail = () => {
 
   // 회의록 삭제
   const handleDeleteMeeting = (meetingId) => {
-    const updatedMeetings = card.meetingNotes.filter(note => note.id !== meetingId);
-    updateCard(card.id, { ...card, meetingNotes: updatedMeetings });
-    setCard({ ...card, meetingNotes: updatedMeetings });
-    if (updatedMeetings.length === 0) {
-      setShowMeetingList(false);
+    try {
+      // 회의록 삭제 API가 있다면 여기에 추가
+      // await axios.delete(`http://192.168.70.52:8083/meetings/minutes/${minutesId}`, {
+      //   headers: { ...getAuthHeader() }
+      // });
+      
+      // 화면에서 즉시 제거
+      setMeetingNotes(prev => prev.filter(note => note.minutesId !== minutesId));
+      
+      if (meetingNotes.length === 1) {
+        setShowMeetingList(false);
+      }
+    } catch (err) {
+      console.error("회의록 삭제 실패:", err);
+      alert("회의록 삭제에 실패했습니다.");
     }
+    // const updatedMeetings = card.meetingNotes.filter(note => note.id !== meetingId);
+    // updateCard(card.id, { ...card, meetingNotes: updatedMeetings });
+    // setCard({ ...card, meetingNotes: updatedMeetings });
+    // if (updatedMeetings.length === 0) {
+    //   setShowMeetingList(false);
+    // }
   };
 
   // 회의록 상세 보기
@@ -287,30 +349,6 @@ const CardDetail = () => {
     }
   };
 
-  // // 번역 기능
-  // const handleTranslate = async (targetLang) => {
-  //   // 실제로는 번역 API 호출
-  //   const mockTranslations = {
-  //     ko: {
-  //       position: formData.position || card.position,
-  //       department: formData.department || card.department,
-  //       memo: memo
-  //     },
-  //     en: {
-  //       position: 'Manager',
-  //       department: 'Planning Team',
-  //       memo: 'Important client for the project'
-  //     },
-  //     ja: {
-  //       position: 'マネージャー',
-  //       department: '企画チーム',
-  //       memo: 'プロジェクトの重要なクライアント'
-  //     }
-  //   };
-  //   setTranslatedContent(mockTranslations[targetLang]);
-  //   setSelectedLanguage(targetLang);
-  // };
-
   if (!card) return <div>Loading...</div>;
 
   return (
@@ -321,28 +359,6 @@ const CardDetail = () => {
           <p>명함 상세보기</p>
           
         </div>
-
-        {/* 번역 버튼
-        <div className="translation-buttons">
-          <button 
-            className={selectedLanguage === 'ko' ? 'active' : ''}
-            onClick={() => handleTranslate('ko')}
-          >
-            한국어
-          </button>
-          <button 
-            className={selectedLanguage === 'en' ? 'active' : ''}
-            onClick={() => handleTranslate('en')}
-          >
-            English
-          </button>
-          <button 
-            className={selectedLanguage === 'ja' ? 'active' : ''}
-            onClick={() => handleTranslate('ja')}
-          >
-            日本語
-          </button>
-        </div> */}
 
         <div className="card-detail-content">
           <table className="card-info-table">
@@ -445,7 +461,7 @@ const CardDetail = () => {
 
           {/* 해시태그 섹션 */}
           <div className="hashtag-section">
-            <div className="section-header">
+            <div className="hashtag-head">
               <h3>해시태그</h3>
               {editMode && (
                 <button 
@@ -460,7 +476,7 @@ const CardDetail = () => {
             {card.hashTags && card.hashTags.length > 0 && (
             <div className="card-tags">
               {card.hashTags.map((tag, index) => (
-                <span key={index} className="card-tag">#{tag}
+                <span key={index} className="card-tag hashtag-font">#{tag}
                 {editMode && (
                   <button 
                     className="hashtag-delete"
@@ -498,7 +514,7 @@ const CardDetail = () => {
                   onChange={(e) => setNewHashtag(e.target.value)}
                   placeholder="새 해시태그"
                 />
-                <button onClick={handleAddHashtag}>추가</button>
+                <button className="hashtag-plus" onClick={handleAddHashtag}>추가</button>
               </div>
             )}
           </div>
@@ -510,7 +526,7 @@ const CardDetail = () => {
               <textarea
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
-                placeholder="메모를 입력하세요"
+                placeholder="예) 12월 중으로 미팅 예정"
                 rows="4"
               />
             ) : (
@@ -519,53 +535,54 @@ const CardDetail = () => {
           </div>
 
           {/* 회의록 섹션 */}
-          {card.meetingNotes && (
-          <div className="meeting-section">
-            <div className="section-header">
-              <h3>회의록</h3>
-              {/* <button 
-                className="view-button"
-                onClick={() => setShowMeetingList(!showMeetingList)}
-              >
-                {showMeetingList ? '닫기' : '보기'}
-              </button> */}
-            </div>
-            
-            {/* {showMeetingList && ( */}
+          {Array.isArray(card.meetingNotes) && (
+            <div className="meeting-section">
+              <div className="meeting-head">
+                <h3>회의록</h3>
+              </div>
+
               <div className="meeting-list">
-                {card.meetingNotes.map((meeting, index) => (
-                  <div key={meeting.id || index} className="meeting-item">
+                {card.meetingNotes.length > 0 ? (
+                  card.meetingNotes.map((meeting, index) => (
+                  <div key={meeting.minutesId} className="meeting-item">
                     <span className="meeting-date">
-                      {new Date(meeting.date).toLocaleDateString()}
+                      {new Date(meeting.createdAt).toLocaleDateString('ko-KR')}
                     </span>
                     <span 
                       className="meeting-title"
                       onClick={() => handleViewMeeting(meeting, index)}
                     >
-                      {meeting.company}
+                      {meeting.summaryText.substring(0, 20)}...
                     </span>
-                    <button 
+                  {editMode && (
+                    <button
                       className="delete-meeting-btn"
-                      onClick={() => handleDeleteMeeting(meeting.id)}
+                      onClick={() => handleDeleteMeeting(meeting.minutesId)}
                     >
                       ×
                     </button>
-                  </div>
-                ))}
-              </div>
-            {/* }) */}
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="no-meeting">등록된 회의록이 없습니다.</p>
+            )}
           </div>
-          )}
         </div>
-
+      )}
         {/* 수정, 저장, 삭제 btn */}
           <div className="bottom-btn-group">
             {editMode ? (
-              <button className="edit-btn" onClick={handleSave}>저장</button>
+              <>
+                <button className="edit-btn" onClick={handleSave}>저장</button>
+                <button className="cancel-btn" onClick={() => setEditMode(false)}>취소</button>
+              </>
             ) : (
-              <button className="edit-btn" onClick={() => setEditMode(true)}>수정</button>
+              <>
+                <button className="edit-btn" onClick={() => setEditMode(true)}>수정</button>
+                <button className="delete-btn" onClick={handleDelete}>삭제</button>
+              </>
             )}
-              <button className="delete-btn" onClick={handleDelete}>삭제</button>
           </div>
 
       </div>
@@ -573,16 +590,16 @@ const CardDetail = () => {
       {/* 회사 정보 팝업 */}
       {showCompanyInfo && companyInfo && (
         <div className="popup-overlay" onClick={() => setShowCompanyInfo(false)}>
-          <div className="popup-content" onClick={e => e.stopPropagation()}>
+          <div className="popup-content companyinfo-content" onClick={e => e.stopPropagation()}>
             <button className="popup-close" onClick={() => setShowCompanyInfo(false)}>×</button>
             <h3>기업정보</h3>
             <div className="company-info">
-              <p><strong>회사이름:</strong> {companyInfo.name}</p>
-              <p><strong>대표이사:</strong> {companyInfo.repName}</p>
-              <p><strong>주소:</strong> {companyInfo.address}</p>
-              <p><strong>사이트:</strong> {companyInfo.homepage}</p>
-              <p><strong>사업자번호:</strong> {companyInfo.bizNo}</p>
-              <p><strong>법인번호:</strong> {companyInfo.corpNo}</p>
+              <p><strong>회사이름 :</strong> {companyInfo.data.name}</p>
+              <p><strong>대표이사 :</strong> {companyInfo.data.repName}</p>
+              <p><strong>주소 :</strong> {companyInfo.data.address}</p>
+              <p><strong>사이트 :</strong> {companyInfo.data.homepage}</p>
+              <p><strong>사업자번호 :</strong> {companyInfo.data.bizNo}</p>
+              <p><strong>법인번호 :</strong> {companyInfo.data.corpNo}</p>
             </div>
           </div>
         </div>
@@ -591,36 +608,46 @@ const CardDetail = () => {
       {/* 회의록 상세 팝업 */}
       {showMeetingDetail && selectedMeeting && (
         <div className="popup-overlay" onClick={() => setShowMeetingDetail(false)}>
-          <div className="popup-content" onClick={e => e.stopPropagation()}>
+          <div className="popup-content meeting-popup" onClick={e => e.stopPropagation()}>
             <button className="popup-close" onClick={() => setShowMeetingDetail(false)}>×</button>
             
             <div className="meeting-navigation">
               <button 
                 onClick={() => navigateMeeting(-1)}
                 disabled={currentMeetingIndex === 0}
+                style={{ cursor: currentMeetingIndex === 0 ? 'not-allowed' : 'pointer' }}
               >
-                ←
+                〈
               </button>
+
               <span className="meeting-date">
-                {new Date(selectedMeeting.date).toLocaleDateString()}
+                {new Date(selectedMeeting.createdAt).toLocaleDateString('ko-KR')}
               </span>
+              
               <button 
                 onClick={() => navigateMeeting(1)}
                 disabled={currentMeetingIndex === card.meetingNotes.length - 1}
+                style={{ cursor: currentMeetingIndex === card.meetingNotes.length - 1 ? 'not-allowed' : 'pointer' }}
               >
-                →
+                〉
               </button>
             </div>
             
             <div className="meeting-content">
               {/* 클릭한 회의록 회사명 출력 */}
-              <h3>{selectedMeeting.company}</h3>
-              <p className="meeting-text">{selectedMeeting.content}</p>
+              {/* <h3>{selectedMeeting.meetingTitle}</h3> */}
+              
+              <p className="meeting-text">{selectedMeeting.summaryText}</p>
+
+              {/* {selectedMeeting.fileName && (
+                <p className="meeting-file">파일명: {selectedMeeting.fileName}</p>
+              )} */}
             </div>
           </div>
         </div>
       )}
     </div>
+  </div>
   );
 };
 

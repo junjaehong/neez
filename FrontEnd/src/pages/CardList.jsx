@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import Logo from '../components/Logo';
 import api from '../api/client';
 import { getAuthHeader } from '../api/auth';
-import FAB from '../components/FAB';
 import SearchBar from '../components/SearchBar';
 import './CardList.css';
 
@@ -188,6 +188,9 @@ const CardList = () => {
           <button className="back-btn" onClick={handleBack}>
             ←
           </button>
+          <div className="logo">
+            <img src=".\public\Neez-Logo-S.png" alt="logo" />
+          </div>
           {/* <div className="hashtag-icon" onClick={handleHashtagList}>#</div> */}
         </div>
 
@@ -220,9 +223,11 @@ const CardList = () => {
                     {card.department && `${card.department}`}
                   </div>
                   <div className="card-item-contact">
-                    {card.phoneNumber && `📞 ${card.phoneNumber}`}
+                    <img className="icon-phon" src=".\public\Neez-Phon.png" alt="phon" />
+                    {card.phoneNumber && card.phoneNumber}
                     {card.phoneNumber && card.email && ' | '}
-                    {card.email && `✉️ ${card.email}`}
+                    <img className="icon-email" src=".\public\Neez-Email.png" alt="email" />
+                    {card.email && card.email}
                   </div>
                 </div>
                 {card.hashTags && card.hashTags.length > 0 && (
@@ -241,9 +246,6 @@ const CardList = () => {
             </div>
           )}
         </div>
-
-        {/* 카메라 버튼 */}
-        <FAB />
         
       </div>
     </div>

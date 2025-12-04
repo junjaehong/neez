@@ -207,8 +207,8 @@ const CameraCapture = () => {
       name: '',
       position: '',
       department: '',
-      company: '',
-      phone: '',
+      cardCompanyName: '',
+      phoneNumber: '',
       email: ''
     });
     
@@ -260,7 +260,7 @@ const CameraCapture = () => {
               <div className="camera-frame"></div>
             </div>
             <button className="capture-button" onClick={capturePhoto}>
-              📷 촬영
+              📷
             </button>
           </div>
         ) : (
@@ -310,7 +310,7 @@ const CameraCapture = () => {
                   <input
                     type="text"
                     name="company"
-                    value={extractedData.company}
+                    value={extractedData.cardCompanyName}
                     onChange={handleInputChange}
                     placeholder="회사명 입력"
                   />
@@ -321,7 +321,7 @@ const CameraCapture = () => {
                   <input
                     type="tel"
                     name="phone"
-                    value={extractedData.phone}
+                    value={extractedData.phoneNumber}
                     onChange={handleInputChange}
                     placeholder="010-0000-0000"
                   />

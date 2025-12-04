@@ -1,10 +1,10 @@
-.stt-select-container {
+/* .stt-select-container {
   width: 100%;
   max-width: 390px;
   margin: 0 auto;
-}
+} */
 
-.stt-select-box {
+/* .stt-select-box {
   background: var(--white);
   border-radius: 20px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -13,53 +13,60 @@
   position: relative;
   display: flex;
   flex-direction: column;
-}
-
-.dark-mode .stt-select-box {
-  background: var(--dark-surface);
-}
+} */
 
 .stt-select-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  position: relative;
   margin-bottom: 20px;
 }
 
-.stt-select-header h2 {
-  font-size: 20px;
-  color: var(--text-primary);
+.stt-select-header > p {
+  font-size: 18px;
+  color: #333;
+  font-weight: bold;
 }
 
-.dark-mode .stt-select-header h2 {
-  color: var(--dark-text-primary);
-}
-
-.search-container {
+/* .search-container {
   margin-bottom: 20px;
+} */
+
+.search-area {
+  display: flex;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e7e7e3;
 }
 
 .search-input {
-  width: 100%;
+  flex: 1;
+  /* width: 100%; */
   padding: 12px 20px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 25px;
-  font-size: 14px;
-  background: var(--background);
+  font-size: 16px;
   transition: all 0.3s ease;
+  background: none;
+
 }
 
-.dark-mode .search-input {
-  background: var(--dark-background);
-  color: var(--dark-text-primary);
-  border: 1px solid var(--dark-border);
-}
+/* .stt-serach {
+  background: #f5f5f5;
+} */
 
-.search-input:focus {
+/* .search-button:hover {
+  background-color: #e7e7e3;
+} */
+
+
+/* .search-input:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(115, 113, 100, 0.1);
-}
+} */
 
 .card-select-list {
   flex: 1;
@@ -72,18 +79,14 @@
   align-items: center;
   padding: 15px;
   margin-bottom: 10px;
-  background: var(--background);
+  background: #f5f5f5;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.dark-mode .card-select-item {
-  background: var(--dark-background);
-}
-
 .card-select-item:hover {
-  background: rgba(115, 113, 100, 0.1);
+  background: rgba(97, 94, 81, 0.258);
 }
 
 .card-select-item.selected {
@@ -101,13 +104,13 @@
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: var(--primary-color);
+  color: #737164;
   font-weight: bold;
 }
 
 .card-select-item.selected .card-checkbox {
   background: var(--primary-color);
-  color: white;
+  color: #737164;
 }
 
 .card-info {
@@ -121,23 +124,15 @@
   margin-bottom: 4px;
 }
 
-.dark-mode .card-name {
-  color: var(--dark-text-primary);
-}
-
 .card-company {
   font-size: 13px;
   color: var(--text-secondary);
 }
 
-.dark-mode .card-company {
-  color: var(--dark-text-secondary);
-}
-
 .confirm-button {
   width: 100%;
-  padding: 15px;
-  background: var(--primary-color);
+  padding: 10px;
+  background: #737164;
   color: white;
   border: none;
   border-radius: 10px;
@@ -145,12 +140,19 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-top: 20px;
 }
 
 .confirm-button:hover {
-  background: var(--primary-dark);
+  background: #5a5952;
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(115, 113, 100, 0.4);
+}
+
+.confirm-button {
+  width: calc(100% - 40px);
+  position: absolute;
+  bottom: 20px;
 }
 
 /* 참석자 확인 팝업 */
@@ -164,9 +166,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
+  padding: 12px 25px;
   margin-bottom: 10px;
-  background: var(--background);
+  background: #f5f5f5;
   border-radius: 8px;
 }
 
@@ -188,8 +190,10 @@
   color: var(--text-secondary);
 }
 
-.dark-mode .participant-company {
-  color: var(--dark-text-secondary);
+.popup-content h3 {
+  color: #333;
+  text-align: center;
+  margin: 10px;
 }
 
 .popup-actions {
@@ -210,25 +214,20 @@
   transition: all 0.3s ease;
 }
 
-.cancel-button {
+.start-button {
   background: #737164;
   color: white;
 }
 
-.dark-mode .cancel-button {
-  background: var(--dark-background);
-  color: var(--dark-text-primary);
-}
-
-.start-button {
-  background: var(--primary-color);
-  color: white;
-}
-
-.cancel-button:hover {
-  background: #5a5952;
+.cancel-button {
+  background: #BDBEB6;
+  color: #333;
 }
 
 .start-button:hover {
+  background: #5a5952;
+}
+
+.cancel-button:hover {
   background: var(--primary-dark);
 }

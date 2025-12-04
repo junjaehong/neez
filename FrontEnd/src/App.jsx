@@ -18,7 +18,7 @@ import Setting from './pages/Setting';
 import Password from './pages/Password';
 import Email from './pages/Email';
 import FAB from './components/FAB';
-///////////
+////////////////////////
 import { loadConfig } from './api/configLoader';
 import api from './api/client';
 
@@ -36,16 +36,16 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function AppRoutes() {
-  const { isLoggedIn } = useApp();
+  const { isLoggedIn, showFAB } = useApp();
   const { pathname } = useLocation();
 
   // 로그인/회원가입 경로에서는 FAB 숨김
-  const noFabPaths = ['/login', '/join'];
-  const showFAB = isLoggedIn && !noFabPaths.includes(pathname);
+  const noFabPaths = ['/', '/login', '/join', '/CameraCapture', '/CardInput', '/stting'];
+  const shouldShowFAB = isLoggedIn && !noFabPaths.includes(pathname) && showFAB;
 
   return (
     <div className="App">
-      {showFAB && <FAB />}
+      {shouldShowFAB && <FAB />}
 
       <Routes>
         <Route path="/" element={<Start />} />
@@ -68,7 +68,7 @@ function AppRoutes() {
         <Route path="/carddetail/:id" element={
           <ProtectedRoute><CardDetail /></ProtectedRoute>
         } />
-        <Route path="/cameracapture" element={
+        <Route path="/CameraCapture" element={
           <ProtectedRoute><CameraCapture /></ProtectedRoute>
         } />
         <Route path="/cardinput" element={
@@ -98,11 +98,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    // <AppProvider>
-    <Router>
-      <AppRoutes />
-    </Router>
-    // </AppProvider>
+    <AppProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AppProvider>
   );
 }
 

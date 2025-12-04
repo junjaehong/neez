@@ -52,6 +52,7 @@ export const AppProvider = ({ children }) => {
   const [meetingParticipants, setMeetingParticipants] = useState([]);
   const [currentMeeting, setCurrentMeeting] = useState(null);
   const [selectedNote, setSelectedNote] = useState(null);
+  const [showFAB, setShowFAB] = useState(true);
 
   // Config 로드
   useEffect(() => {
@@ -163,17 +164,7 @@ export const AppProvider = ({ children }) => {
       console.warn("⚠️ config.xml이 아직 로드되지 않았습니다. 잠시 대기 후 재시도합니다.");
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    // if (!configReady) {
-    //   await new Promise(resolve => {
-    //     const interval = setInterval(() => {
-    //       if (configReady) {
-    //         clearInterval(interval);
-    //         resolve();
-    //       }
-    //     }, 50);
-    //   });
-    // }
-  ////////////////////////////
+
     try {
       ////////////////////////////
       await api.ensureConfig?.();
@@ -193,17 +184,7 @@ export const AppProvider = ({ children }) => {
       throw error;
     }
   }
-    // setAuth({ accessToken, refreshToken, user });
-    
-    // try {
-    //   await fetchMyCard();
-    // } catch (err) {
-    //   // 내 명함 불러오기 실패해도 로그인은 성공
-    //   console.error('Failed to fetch user card:', err);
-    // }
-    
-  //   return { accessToken, refreshToken, user };
-  // };
+
 
   // 내 명함 불러오기
   const fetchMyCard = async () => {
@@ -376,11 +357,13 @@ export const AppProvider = ({ children }) => {
     meetingParticipants,
     currentMeeting,
     selectedNote,
+    showFAB,
 
     // Setters
     setMeetingParticipants,
     setCurrentMeeting,
     setSelectedNote,
+    setShowFAB,
 
     // Functions
     fetchMyCard,

@@ -55,7 +55,9 @@ const Mypage = () => {
           <button className="back-btn" onClick={handleBack}>
             ←
           </button>
-          <Logo size="small" />
+          <div className="logo">
+            <img src=".\public\Neez-Logo-S.png" alt="logo" />
+          </div>
         </div>
 
         {/* 반갑습니다 */}

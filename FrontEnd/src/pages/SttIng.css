@@ -2,35 +2,33 @@
   width: 100%;
   max-width: 390px;
   margin: 0 auto;
-}
-
-.stt-ing-box {
-  background: var(--white);
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  min-height: 600px;
   position: relative;
 }
 
-.dark-mode .stt-ing-box {
-  background: var(--dark-surface);
-}
+/* .stt-ing-box {
+} */
 
+.meeting-end {
+  position: absolute;
+  height: 20%;
+  width: 98%;
+  /* margin: 0 auto; */
+  text-align: center;
+  bottom: -65px;
+}
+ 
 .stt-ing-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: flex-end;
+  position: relative;
   margin-bottom: 20px;
 }
 
-.stt-ing-header h2 {
-  font-size: 20px;
-  color: var(--text-primary);
-}
-
-.dark-mode .stt-ing-header h2 {
-  color: var(--dark-text-primary);
+.stt-ing-header > p {
+  font-size: 18px;
+  color: #333;
+  font-weight: bold;
 }
 
 .language-button {
@@ -53,7 +51,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 30px;
+  /* margin-bottom: 10px; */
   padding: 10px;
   background: var(--background);
   border-radius: 10px;
@@ -65,7 +63,8 @@
 
 .participants-label {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: #333;
+  /* color: #737164; */
   font-weight: 600;
 }
 
@@ -81,8 +80,8 @@
 
 .participant-chip {
   padding: 4px 10px;
-  background: var(--primary-color);
-  color: white;
+  background: #737164;
+  color: #f5f5f5;
   border-radius: 15px;
   font-size: 12px;
 }
@@ -92,12 +91,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 40px 0;
+  margin: 10px 0 20px 0;
 }
 
 .recording-status {
-  height: 30px;
-  margin-bottom: 20px;
+  height: 20px;
+  margin-bottom: 30px;
 }
 
 .recording-indicator {
@@ -108,12 +107,96 @@
   font-weight: 600;
 }
 
-.recording-dot {
+/* .recording-dot {
   width: 12px;
   height: 12px;
   background: #ff4444;
   border-radius: 50%;
   animation: pulse 1.5s infinite;
+} */
+ 
+/* 녹음 버튼 스타일 */
+.record-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.record-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.record-button:active {
+  transform: scale(0.95);
+}
+
+/* 녹음 중일 때 버튼 테두리 */
+.record-button.recording {
+  border-color: #ff4444;
+  animation: pulse 1.5s infinite;
+}
+
+/* 원 모양 스타일 */
+.record-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+/* 빨간 원 (녹음 시작) */
+.record-circle.start {
+  background-color: #ff4444;
+}
+
+/* 검정 원 (녹음 중지) */
+.record-circle.stop {
+  background-color: #333;
+  border-radius: 20%;  /* 정지 버튼처럼 사각형에 가깝게 */
+}
+
+/* 펄스 애니메이션 */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+  }
+}
+
+/* 녹음 인디케이터 */
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 68, 68, 0.1);
+  border-radius: 20px;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 @keyframes pulse {
@@ -155,7 +238,7 @@
 /* 음성 인식 섹션 */
 .transcript-section,
 .translation-section {
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 .transcript-section h3,
@@ -181,17 +264,11 @@
   color: var(--text-primary);
 }
 
-.dark-mode .transcript-box,
-.dark-mode .translation-box {
-  background: var(--dark-background);
-  color: var(--dark-text-primary);
-}
-
 /* 저장 버튼 */
 .save-meeting-button {
-  width: 100%;
-  padding: 15px;
-  background: var(--primary-color);
+  /* width: 90%; */
+  padding: 10px;
+  background: #737164;
   color: white;
   border: none;
   border-radius: 10px;
@@ -199,15 +276,29 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: calc(100% - 40px);
 }
 
 .save-meeting-button:hover {
-  background: var(--primary-dark);
+  background: #5a5952;
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(115, 113, 100, 0.4);
 }
 
+
+/* .save-meeting-button {
+  width: calc(100% - 40px);
+  position: absolute;
+  bottom: 20px;
+} */
+
 /* 언어 선택 팝업 */
+.language-select {
+  margin-left: 62px;
+  border: none;
+  color: #737164;
+}
+
 .language-options {
   display: flex;
   flex-direction: column;

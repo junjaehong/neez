@@ -44,7 +44,9 @@ const FAB = () => {
         zIndex: 900,
       }}
     >
-      <button className="camera-btn" onClick={handleClick} title="명함 촬영">📷</button>
+      <button className="camera-btn" onClick={handleClick} title="명함 촬영">
+        <img className="icon-camera" src=".\public\Neez-camera.png" alt="camera" />
+      </button>
     </div>
   );
 };

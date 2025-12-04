@@ -1,116 +1,279 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import api from '../api/client';
+import { getAuthHeader } from '../api/auth'; // 인증 토큰 함수
+import { loadConfig } from '../api/configLoader';
 import './SttIng.css';
+
+// const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8083/api';
 
 const SttIng = () => {
   const navigate = useNavigate();
-  const { meetingParticipants, currentMeeting, settings, addMeetingNote } = useApp();
+  const { meetingParticipants = [] } = useApp();
+
   const [isRecording, setIsRecording] = useState(false);
   const [transcriptText, setTranscriptText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
-  const [showLanguagePopup, setShowLanguagePopup] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastChunkIsKorean, setLastChunkIsKorean] = useState(true);
+  const [config, setConfig] = useState({ baseURL: '' });
+  const [configLoaded, setConfigLoaded] = useState(false);
+
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  ///////////////////////////////////////////////////////
+  const chunkIndex = useRef(0);
+  const [meetingId, setMeetingId] = useState(null);
+  //////////////////////////////////////////////////////
 
+  const handleBack = () => {
+    navigate('/sttcardselect');
+  };
+
+  // config.xml 불러오기
   useEffect(() => {
-    // Web Speech API 초기화
+    const fetchConfig = async () => {
+      try {
+        const config = await loadConfig();
+        setConfig({
+          baseURL: config.baseURL || 'http://localhost:8083'
+        });
+        setConfigLoaded(true);
+        console.log('Loaded config:', config);
+
+      } catch (err) {
+        console.error('config.xml 로드 실패', err);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  // SttIng 진입 시 "회의 시작 API" 호출
+  useEffect(() => {
+    if (!configLoaded) return;
+
+    const startMeeting = async () => {
+      const participantBizCardIds = meetingParticipants
+        .map(p => p.idx)
+        .filter(id => id != null);
+
+      if (participantBizCardIds.length === 0) {
+        alert("참석자를 최소 한 명 선택해야 합니다.");
+        navigate('/sttcardselect');
+        return;
+      }
+
+      const body = {
+        sourceLang: "ko-KR",
+        targetLang: selectedLanguage || "en",
+        participantBizCardIds
+      };
+
+      console.log("startMeeting body:", body);
+
+      try {
+        const response = await api.post("/meetings/me", body, { headers: getAuthHeader() });
+        console.log("회의 시작 성공", response.data);
+        setMeetingId(response.data.meetingId);
+      } catch (err) {
+        console.error("회의 시작 실패", err);
+        alert("회의를 시작할 수 없습니다.");
+        navigate('/sttcardselect');
+      }
+    };
+
+    startMeeting();
+  }, [configLoaded, meetingParticipants, selectedLanguage, navigate]);
+
+  const isKorean = (text) => /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
+
+  /////////////////////////////////////////////////////
+  // --- 수정: audio 기반 업로드만 사용 ---
+  const uploadAudioChunk = async (audioBlob) => {
+    if (!meetingId) return;
+
+    chunkIndex.current += 1;
+    const formData = new FormData();
+    formData.append('file', audioBlob, `chunk_${chunkIndex.current}.webm`);
+
+    setIsTranslating(true);
+
+    try {
+      const response = await api.post(
+        `/meetings/me/${meetingId}/chunks?index=${chunkIndex.current}&targetLang=${selectedLanguage}&sourceLang=ko-KR`,
+        formData,
+        { headers: getAuthHeader() }
+      );
+
+      // 서버 STT 결과 반영
+      if (response.data.text) {
+        setTranscriptText((prev) => prev ? prev + ' ' + response.data.text : response.data.text);
+      }
+      if (response.data.translation) {
+        setTranslatedText((prev) => prev ? prev + ' ' + response.data.translation : response.data.translation);
+      }
+
+      setLastChunkIsKorean(isKorean(response.data.text || ''));
+    } catch (err) {
+      console.error("오디오 업로드 실패:", err);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+  /////////////////////////////////////////////////////
+
+  ////////////////////////////////////
+  // 청크 업로드
+  const uploadChunk = async (text) => {
+    if (!meetingId) {
+      console.log("Meeting ID가 없어 청크 업로드 스킵");
+      return;
+    }
+    
+    chunkIndex.current += 1;
+    const blob = new Blob([audio], { type: 'audio/wav' });
+    const formData = new FormData();
+    formData.append('file', blob, `chunk_${chunkIndex.current}.wav`);
+
+    console.log("업로드 청크 번호:", chunkIndex.current);
+
+    try {
+      const response = await api.post(
+        `/meetings/me/${meetingId}/chunks?index=${chunkIndex.current}&targetLang=${selectedLanguage}&sourceLang=ko-KR`,
+        formData,
+        { headers: getAuthHeader() } // Content-Type 제거!
+      );
+      console.log("청크 업로드 성공", response.data);
+      
+      // 서버 응답에서 번역 결과 가져오기
+      const translated = response.data.translation || response.data.translatedText || '';
+    
+      if (translated) {
+        setTranslatedText((prev) => prev ? prev + ' ' + translated : translated);
+      }
+      
+    } catch (err) {
+      console.error("청크 업로드 실패:", err.response?.status, err.message);
+      // Clova Speech 오류 시 텍스트만 표시
+      if (err.response?.status === 503) {
+        // 번역 없이 원문만 표시
+        setTranslatedText((prev) => prev ? prev + ' ' + text : text);
+      }
+    } finally {
+      setIsTranslating(false); // 번역 완료
+    }
+  };
+  /////////////////////////////////////
+
+  // 음성 인식 설정
+  useEffect(() => {
     if ('webkitSpeechRecognition' in window) {
       const recognition = new window.webkitSpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'ko-KR';
 
-      recognition.onresult = (event) => {
+      recognition.onresult = async (event) => {
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
+            finalTranscript += `${transcript} `;
           }
         }
-        setTranscriptText(prev => prev + finalTranscript);
+        if (!finalTranscript.trim()) return;
+
+        console.log('음성 인식 결과:', finalTranscript);
+
+        // ① 회의 진행 중 전체 텍스트 누적
+        setTranscriptText((prev) => `${prev}${finalTranscript}`.trim() + ' ');
       };
 
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        if (event.error === 'no-speech') {
-          // 음성이 감지되지 않음
-        }
-      };
-
+      recognition.onerror = (event) => console.error('Speech recognition error:', event.error);
       recognitionRef.current = recognition;
     }
 
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (recognitionRef.current) recognitionRef.current.stop();
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
+  // 녹음 시작
   const startRecording = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.start();
-      setIsRecording(true);
+  if (!recognitionRef.current || !configLoaded) return;
+  
+  // MediaRecorder로 실제 오디오 녹음
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      const mediaRecorder = new MediaRecorder(stream);
+      const audioChunks = [];
       
-      // 녹음 시간 타이머 시작
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-    }
-  };
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+      
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        // 이 audioBlob를 서버에 전송
+        await uploadAudioChunk(audioBlob);
+      };
+      
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+    });
+  
+  recognitionRef.current.start();
+  setIsRecording(true);
+  timerRef.current = setInterval(() => {
+    setRecordingTime((prev) => prev + 1);
+  }, 1000);
+};
+
 
   const stopRecording = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      
-      // 타이머 정지
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
+    if (recognitionRef.current) recognitionRef.current.stop();
+    if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const handleLanguageSelect = (lang) => { if (!isRecording) setSelectedLanguage(lang); };
+
+  const handleSave = async () => {
+    if (!meetingId) return alert("회의 ID가 없습니다.");
+    setIsSaving(true);
+    try {
+      // 각 참석자의 명함에 회의록 연결
+      for (const participant of meetingParticipants) {
+        if (participant.idx) {
+          try {
+            await api.post(
+              `/meetings/me/${meetingId}/minutes?bizCardId=${participant.idx}`,
+              {},
+              { headers: getAuthHeader() }
+            );
+            console.log(`${participant.name} (ID: ${participant.idx}) 명함에 회의록 저장 완료`);
+          } catch (err) {
+            console.error(`${participant.name} 명함 저장 실패:`, err);
+          }
+        }
       }
-      
-      // 자동 번역 시뮬레이션
-      simulateTranslation();
+      alert('회의록이 참석자 명함에 저장되었습니다.');
+      navigate('/cardlist');
+    } catch (err) {
+      console.error('회의 종료 실패', err);
+      alert('회의 종료 실패');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const simulateTranslation = () => {
-    // 실제로는 번역 API 호출
-    setTimeout(() => {
-      const mockTranslations = {
-        en: "Alright, let's start with the new project schedule and role assignments. As I mentioned before, we've split this week and share it next week. Sounds good. How about the budget? The budget has been reviewed, and we're planning to start the approval process early next week.",
-        ja: "それでは、新しいプロジェクトのスケジュールと役割分担から始めましょう。前に述べたように、今週を分割して来週に共有します。いいですね。予算はどうですか？予算は検討済みで、来週初めに承認プロセスを開始する予定です。",
-        ko: transcriptText || "좋습니다. 새로운 프로젝트의 일정과 역할 분담부터 시작하겠습니다. 앞서 말씀드린 대로 이번 주를 나누어서 다음 주에 공유하겠습니다. 좋습니다. 예산은 어떻게 되나요? 예산은 검토했고, 다음 주 초에 승인 절차를 시작할 예정입니다."
-      };
-      setTranslatedText(mockTranslations[selectedLanguage]);
-    }, 1000);
-  };
-
-  const handleLanguageSelect = (lang) => {
-    setSelectedLanguage(lang);
-    setShowLanguagePopup(false);
-    simulateTranslation();
-  };
-
-  const handleSave = () => {
-    // 회의록 요약본 생성
-    const summary = transcriptText.substring(0, 200) + '...';
-    
-    // 참석자들의 카드에 회의록 추가
-    meetingParticipants.forEach(participant => {
-      addMeetingNote(participant.id, summary);
-    });
-    
-    alert('회의록이 저장되었습니다.');
-    navigate('/cardlist');
-  };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -122,45 +285,54 @@ const SttIng = () => {
     <div className="stt-ing-container">
       <div className="stt-ing-box">
         <div className="stt-ing-header">
-          <button className="back-button" onClick={() => navigate('/stt-select')}>←</button>
-          <h2>회의 진행중</h2>
-          <button className="language-button" onClick={() => setShowLanguagePopup(true)}>
-            {selectedLanguage === 'ko' ? '한국어' : selectedLanguage === 'en' ? 'English' : '日本語'}
-          </button>
+          <button className="back-btn" onClick={handleBack}>←</button>
+          <p>회의 진행중</p>
+          <select
+            className="language-select"
+            value={selectedLanguage}
+            disabled={isRecording}
+            onChange={(e) => handleLanguageSelect(e.target.value)}
+            title={isRecording ? '회의 중에는 변경할 수 없습니다' : '한국어 입력 시 이 언어로 번역됩니다'}
+          >
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+          </select>
         </div>
 
-        {/* 참석자 표시 */}
         <div className="participants-bar">
-          <span className="participants-label">참석자:</span>
+          <span className="participants-label">참석자</span>
           <div className="participants-chips">
-            {meetingParticipants?.map(participant => (
-              <span key={participant.id} className="participant-chip">
-                {participant.name}
-              </span>
-            ))}
+            {meetingParticipants.length > 0 ? (
+              meetingParticipants.map((participant, index) => (
+                <span key={participant.id || index} className="participant-chip">
+                  {participant.name}
+                </span>
+              ))
+            ) : (
+              <span className="participant-chip empty">참석자를 선택하지 않았어요</span>
+            )}
           </div>
         </div>
 
-        {/* 녹음 컨트롤 */}
         <div className="recording-control">
           <div className="recording-status">
             {isRecording && (
               <div className="recording-indicator">
-                <span className="recording-dot"></span>
-                <span>녹음중 {formatTime(recordingTime)}</span>
+                <span className="recording-dot" />
+                <span>{formatTime(recordingTime)}</span>
               </div>
             )}
           </div>
-          
-          <button 
+
+          <button
             className={`record-button ${isRecording ? 'recording' : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
           >
-            {isRecording ? '⬜' : '🔴'}
+            <div className={`record-circle ${isRecording ? 'stop' : 'start'}`} />
           </button>
         </div>
 
-        {/* 음성 인식 결과 */}
         <div className="transcript-section">
           <h3>음성 인식</h3>
           <div className="transcript-box">
@@ -168,58 +340,31 @@ const SttIng = () => {
           </div>
         </div>
 
-        {/* 번역 결과 */}
-        {translatedText && (
+        { translatedText && (
           <div className="translation-section">
-            <h3>번역 ({selectedLanguage === 'en' ? 'English' : selectedLanguage === 'ja' ? '日本語' : '한국어'})</h3>
+            <div className="translation-head">
+              <h3>
+                {lastChunkIsKorean 
+                  ? `한국어 → ${selectedLanguage === 'en' ? 'English' : selectedLanguage === 'ja' ? '日本語' : '한국어'}` 
+                  : `입력 언어 → 한국어`}
+              </h3>
+            </div>
             <div className="translation-box">
-              {translatedText}
+              {translatedText ||'번역 중...'}
+              {isTranslating && <span className="translation-loading">번역 중...</span>}
             </div>
           </div>
-        )}
-
-        {/* 저장 버튼 */}
-        {transcriptText && (
-          <button className="save-meeting-button" onClick={handleSave}>
-            회의록 저장
-          </button>
         )}
       </div>
 
-      {/* 언어 선택 팝업 */}
-      {showLanguagePopup && (
-        <div className="popup-overlay" onClick={() => setShowLanguagePopup(false)}>
-          <div className="popup-content" onClick={e => e.stopPropagation()}>
-            <button className="popup-close" onClick={() => setShowLanguagePopup(false)}>×</button>
-            <h3>번역 언어 선택</h3>
-            <div className="language-options">
-              <button 
-                className={`language-option ${selectedLanguage === 'ko' ? 'selected' : ''}`}
-                onClick={() => handleLanguageSelect('ko')}
-              >
-                <span className="language-flag">🇰🇷</span>
-                <span>한국어</span>
-              </button>
-              <button 
-                className={`language-option ${selectedLanguage === 'en' ? 'selected' : ''}`}
-                onClick={() => handleLanguageSelect('en')}
-              >
-                <span className="language-flag">🇺🇸</span>
-                <span>English</span>
-              </button>
-              <button 
-                className={`language-option ${selectedLanguage === 'ja' ? 'selected' : ''}`}
-                onClick={() => handleLanguageSelect('ja')}
-              >
-                <span className="language-flag">🇯🇵</span>
-                <span>日本語</span>
-              </button>
-            </div>
-          </div>
+      {transcriptText && (
+        <div className="meeting-end">
+          <button className="save-meeting-button" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? '저장 중...' : '회의 종료'}
+          </button>
         </div>
       )}
     </div>
   );
 };
-
 export default SttIng;
