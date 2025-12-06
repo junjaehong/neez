@@ -47,9 +47,10 @@ public class PapagoTranslationClient {
       return Optional.empty();
     }
 
-    return translateInternal(text,
-        normalizeLanguage(sourceLang, "auto"),
-        normalizeLanguage(targetLang, "en"));
+    String src = normalizeForPapago(sourceLang, "auto");
+    // 인지할 수 없는 코드라도 무조건 영어로 떨어지지 않도록 기본값을 auto로 변경
+    String tgt = normalizeForPapago(targetLang, "auto");
+    return translateInternal(text, src, tgt);
   }
 
   public Optional<String> translateToKoreanAuto(String text) {
@@ -57,7 +58,7 @@ public class PapagoTranslationClient {
       return Optional.empty();
     }
 
-    String detected = detectLanguage(text).orElse("auto");
+    String detected = normalizeForPapago(detectLanguage(text).orElse("auto"), "auto");
     return translateInternal(text, detected, "ko");
   }
 
@@ -115,16 +116,53 @@ public class PapagoTranslationClient {
     return Optional.empty();
   }
 
-  private String normalizeLanguage(String lang, String defaultValue) {
+  /**
+   * Papago가 지원하는 언어코드로 매핑 (ko,en,ja,zh-CN,zh-TW,vi,th,id,fr,es,ru,de,it,pt,auto)
+   */
+  private String normalizeForPapago(String lang, String defaultValue) {
     if (!StringUtils.hasText(lang)) {
       return defaultValue;
     }
-    String normalized = lang.trim().toLowerCase().replace('_', '-');
-    int dash = normalized.indexOf('-');
-    if (dash > 0) {
-      normalized = normalized.substring(0, dash);
+    String val = lang.trim().toLowerCase().replace('_', '-');
+    switch (val) {
+      case "ko":
+      case "ko-kr":
+        return "ko";
+      case "en":
+      case "en-us":
+      case "en-gb":
+        return "en";
+      case "ja":
+      case "ja-jp":
+        return "ja";
+      case "zh-cn":
+      case "zh-hans":
+      case "cn":
+        return "zh-CN";
+      case "zh-tw":
+      case "zh-hant":
+      case "tw":
+        return "zh-TW";
+      case "es":
+      case "es-es":
+      case "es-mx":
+        return "es";
+      case "fr":
+      case "fr-fr":
+        return "fr";
+      case "vi":
+      case "vi-vn":
+        return "vi";
+      case "th":
+        return "th";
+      case "id":
+      case "id-id":
+        return "id";
+      case "auto":
+        return "auto";
+      default:
+        return defaultValue;
     }
-    return normalized;
   }
 
   // --- DTOs for Papago response ---

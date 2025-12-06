@@ -30,6 +30,8 @@ const SttIng = () => {
   const chunkIndex = useRef(0);
   const [meetingId, setMeetingId] = useState(null);
   //////////////////////////////////////////////////////
+  // 번역 API 호출 중복 방지 플래그
+  const translatingRef = useRef(false);
 
   const handleBack = () => {
     navigate('/sttcardselect');
@@ -110,12 +112,15 @@ const SttIng = () => {
         { headers: getAuthHeader() }
       );
 
-      // 서버 STT 결과 반영
-      if (response.data.text) {
-        setTranscriptText((prev) => prev ? prev + ' ' + response.data.text : response.data.text);
+      // 서버 누적본을 그대로 반영해 순서/중복 문제 방지
+      const serverTranscript = response.data.transcript || response.data.text || '';
+      const serverTranslated = response.data.translatedTranscript || response.data.translation || '';
+
+      if (serverTranscript) {
+        setTranscriptText(serverTranscript);
       }
-      if (response.data.translation) {
-        setTranslatedText((prev) => prev ? prev + ' ' + response.data.translation : response.data.translation);
+      if (serverTranslated) {
+        setTranslatedText(serverTranslated);
       }
 
       setLastChunkIsKorean(isKorean(response.data.text || ''));
@@ -126,49 +131,6 @@ const SttIng = () => {
     }
   };
   /////////////////////////////////////////////////////
-
-  ////////////////////////////////////
-  // 청크 업로드
-  const uploadChunk = async (text) => {
-    if (!meetingId) {
-      console.log("Meeting ID가 없어 청크 업로드 스킵");
-      return;
-    }
-    
-    chunkIndex.current += 1;
-    const blob = new Blob([audio], { type: 'audio/wav' });
-    const formData = new FormData();
-    formData.append('file', blob, `chunk_${chunkIndex.current}.wav`);
-
-    console.log("업로드 청크 번호:", chunkIndex.current);
-
-    try {
-      const response = await api.post(
-        `/meetings/me/${meetingId}/chunks?index=${chunkIndex.current}&targetLang=${selectedLanguage}&sourceLang=ko-KR`,
-        formData,
-        { headers: getAuthHeader() } // Content-Type 제거!
-      );
-      console.log("청크 업로드 성공", response.data);
-      
-      // 서버 응답에서 번역 결과 가져오기
-      const translated = response.data.translation || response.data.translatedText || '';
-    
-      if (translated) {
-        setTranslatedText((prev) => prev ? prev + ' ' + translated : translated);
-      }
-      
-    } catch (err) {
-      console.error("청크 업로드 실패:", err.response?.status, err.message);
-      // Clova Speech 오류 시 텍스트만 표시
-      if (err.response?.status === 503) {
-        // 번역 없이 원문만 표시
-        setTranslatedText((prev) => prev ? prev + ' ' + text : text);
-      }
-    } finally {
-      setIsTranslating(false); // 번역 완료
-    }
-  };
-  /////////////////////////////////////
 
   // 음성 인식 설정
   useEffect(() => {
@@ -192,6 +154,30 @@ const SttIng = () => {
 
         // ① 회의 진행 중 전체 텍스트 누적
         setTranscriptText((prev) => `${prev}${finalTranscript}`.trim() + ' ');
+
+        // ② 서버 STT가 비거나 느린 경우를 대비해 Web Speech 결과를 바로 번역 요청
+        if (selectedLanguage && selectedLanguage !== 'ko' && !translatingRef.current) {
+          translatingRef.current = true;
+          try {
+            const res = await api.post(
+              '/api/translate',
+              {
+                text: finalTranscript.trim(),
+                sourceLang: 'ko',
+                targetLang: selectedLanguage
+              },
+              { headers: getAuthHeader() }
+            );
+            const translated = res.data?.translatedText || '';
+            if (translated) {
+              setTranslatedText((prev) => (prev ? `${prev} ${translated}` : translated));
+            }
+          } catch (err) {
+            console.error('로컬 번역 호출 실패', err);
+          } finally {
+            translatingRef.current = false;
+          }
+        }
       };
 
       recognition.onerror = (event) => console.error('Speech recognition error:', event.error);
@@ -212,20 +198,17 @@ const SttIng = () => {
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(stream => {
       const mediaRecorder = new MediaRecorder(stream);
-      const audioChunks = [];
       
       mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-      
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        // 이 audioBlob를 서버에 전송
-        await uploadAudioChunk(audioBlob);
+        // 매 청크를 실시간으로 서버에 전송
+        if (event.data && event.data.size > 0) {
+          uploadAudioChunk(event.data);
+        }
       };
       
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
+      // 1초 단위로 dataavailable 발생시켜 스트리밍 업로드
+      mediaRecorder.start(1000);
     });
   
   recognitionRef.current.start();
@@ -238,7 +221,11 @@ const SttIng = () => {
 
   const stopRecording = () => {
     if (recognitionRef.current) recognitionRef.current.stop();
-    if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      // 마이크 스트림 정리
+      mediaRecorderRef.current.stream?.getTracks()?.forEach(t => t.stop());
+    }
     setIsRecording(false);
     if (timerRef.current) clearInterval(timerRef.current);
   };
@@ -340,21 +327,19 @@ const SttIng = () => {
           </div>
         </div>
 
-        { translatedText && (
-          <div className="translation-section">
-            <div className="translation-head">
-              <h3>
-                {lastChunkIsKorean 
-                  ? `한국어 → ${selectedLanguage === 'en' ? 'English' : selectedLanguage === 'ja' ? '日本語' : '한국어'}` 
-                  : `입력 언어 → 한국어`}
-              </h3>
-            </div>
-            <div className="translation-box">
-              {translatedText ||'번역 중...'}
-              {isTranslating && <span className="translation-loading">번역 중...</span>}
-            </div>
+        <div className="translation-section">
+          <div className="translation-head">
+            <h3>
+              {lastChunkIsKorean 
+                ? `한국어 → ${selectedLanguage === 'en' ? 'English' : selectedLanguage === 'ja' ? '日本語' : '한국어'}` 
+                : `입력 언어 → 한국어`}
+            </h3>
           </div>
-        )}
+          <div className="translation-box">
+            {translatedText || '번역 대기 중...'}
+            {isTranslating && <span className="translation-loading">번역 중...</span>}
+          </div>
+        </div>
       </div>
 
       {transcriptText && (

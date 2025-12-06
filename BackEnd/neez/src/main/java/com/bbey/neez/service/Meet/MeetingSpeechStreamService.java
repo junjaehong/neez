@@ -94,8 +94,9 @@ public class MeetingSpeechStreamService {
         ? clovaClient.recognize(chunk.getBytes(), clovaLanguage)
         : clovaClient.recognize(chunk.getBytes());
 
-    // 3) 번역 (필요한 경우만)
-    String translated = translate(result.getText(), targetLang, normalizedSource);
+    // 3) 번역 (한국어/설정 언어 동시 처리)
+    // targetLang은 Papago가 인식할 수 있도록 원본 값을 그대로 전달
+    TranslationPair translations = translateDual(result.getText(), targetLang, normalizedSource);
 
     // 4) Segment 객체 생성
     Segment segment = new Segment(
@@ -106,7 +107,9 @@ public class MeetingSpeechStreamService {
         result.getSegments(),
         normalizedSource,   // 내부 표현용 sourceLanguage (ko/en/ja 등)
         normalizedTarget,   // 내부 표현용 targetLanguage
-        translated          // 번역 텍스트(없으면 null)
+        translations.displayText(),          // 기본 노출 번역
+        translations.toKorean(),             // 한국어 번역
+        translations.toTarget()              // 타깃 언어 번역
     );
 
     // 5) 메모리 세션에 저장
@@ -146,6 +149,40 @@ public class MeetingSpeechStreamService {
           sb.append(' ');
         }
         sb.append(segment.getText().trim());
+      }
+    }
+    return sb.toString();
+  }
+
+  /**
+   * 지금까지 모은 번역 텍스트(target 언어 기준)를 하나로 이어붙임
+   */
+  public String getTranslatedTranscript(Long userIdx, Long meetingId) {
+    SessionKey key = SessionKey.of(userIdx, meetingId);
+    ConcurrentSkipListMap<Long, Segment> map = sessions.get(key);
+    if (map == null || map.isEmpty()) {
+      return "";
+    }
+
+    StringBuilder sb = new StringBuilder();
+    for (Segment segment : map.values()) {
+      String text = segment.getTranslatedText();
+      if (!StringUtils.hasText(text)) {
+        // 타깃 번역이 비어 있으면 다른 변환본을 우선 활용
+        text = segment.getTranslatedToTarget();
+      }
+      if (!StringUtils.hasText(text)) {
+        text = segment.getTranslatedToKorean();
+      }
+      if (!StringUtils.hasText(text) && StringUtils.hasText(segment.getText())) {
+        // 그래도 없으면 한국어 자동 번역 시도
+        text = translationClient.translateToKoreanAuto(segment.getText()).orElse(null);
+      }
+      if (StringUtils.hasText(text)) {
+        if (sb.length() > 0) {
+          sb.append(' ');
+        }
+        sb.append(text.trim());
       }
     }
     return sb.toString();
@@ -201,17 +238,34 @@ public class MeetingSpeechStreamService {
    * @param targetLang 프론트에서 온 타깃 언어 (예: "ko", "en-US" 등)
    * @param sourceLang 내부 normalized 소스 언어 (예: "ko", "en")
    */
-  private String translate(String text, String targetLang, String sourceLang) {
+  /**
+   * 한국어/타깃 언어 동시 번역 처리
+   */
+  private TranslationPair translateDual(String text, String targetLang, String sourceLang) {
     if (!StringUtils.hasText(text)) {
-      return null;
-    }
-    // targetLang 명시 안 된 경우: 자동 한국어 번역
-    if (!StringUtils.hasText(targetLang)) {
-      return translationClient.translateToKoreanAuto(text).orElse(null);
+      return TranslationPair.empty();
     }
 
-    String normalizedTarget = normalizeLanguage(targetLang);
-    return translationClient.translate(text, sourceLang, normalizedTarget).orElse(null);
+    String normalizedSource = normalizeLanguage(sourceLang);
+    boolean hasHangul = containsHangul(text);
+    boolean hasEnglish = containsEnglish(text);
+
+    // 한국어 번역은 항상 시도 (영어/기타 언어 포함 대비)
+    String toKorean = translationClient.translateToKoreanAuto(text).orElse(null);
+
+    // 타깃 번역: 한국어가 포함되어 있고 타깃 언어가 있을 때만
+    String toTarget = null;
+    if (hasHangul && StringUtils.hasText(targetLang)) {
+      // Papago 클라이언트에서 언어코드 매핑 처리
+      toTarget = translationClient.translate(text, normalizedSource, targetLang).orElse(null);
+    }
+
+    // 기본 표시 텍스트: 영어가 섞여 있으면 toKorean, 아니면 타깃/한국어 우선순위
+    String display = hasEnglish
+        ? toKorean
+        : (toTarget != null ? toTarget : toKorean);
+
+    return new TranslationPair(display, toKorean, toTarget);
   }
 
   private String ensureKoreanText(Segment segment) {
@@ -236,6 +290,52 @@ public class MeetingSpeechStreamService {
       return false;
     }
     return "ko".equals(normalizeLanguage(lang));
+  }
+
+  private boolean containsHangul(String text) {
+    if (!StringUtils.hasText(text)) {
+      return false;
+    }
+    return text.chars().anyMatch(ch -> (ch >= 0xAC00 && ch <= 0xD7AF) || (ch >= 0x3130 && ch <= 0x318F));
+  }
+
+  private boolean containsEnglish(String text) {
+    if (!StringUtils.hasText(text)) {
+      return false;
+    }
+    return text.chars().anyMatch(ch ->
+        (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z'));
+  }
+
+  /**
+   * 한국어/타깃 번역 쌍
+   */
+  private static class TranslationPair {
+    private final String displayText;
+    private final String toKorean;
+    private final String toTarget;
+
+    private TranslationPair(String displayText, String toKorean, String toTarget) {
+      this.displayText = displayText;
+      this.toKorean = toKorean;
+      this.toTarget = toTarget;
+    }
+
+    public static TranslationPair empty() {
+      return new TranslationPair(null, null, null);
+    }
+
+    public String displayText() {
+      return displayText;
+    }
+
+    public String toKorean() {
+      return toKorean;
+    }
+
+    public String toTarget() {
+      return toTarget;
+    }
   }
 
   /**
@@ -299,6 +399,8 @@ public class MeetingSpeechStreamService {
     private final String sourceLanguage;
     private final String targetLanguage;
     private final String translatedText;
+    private final String translatedToKorean;
+    private final String translatedToTarget;
 
     public Segment(long index,
                    long bytes,
@@ -307,7 +409,9 @@ public class MeetingSpeechStreamService {
                    List<SpeakerSegment> speakerSegments,
                    String sourceLanguage,
                    String targetLanguage,
-                   String translatedText) {
+                   String translatedText,
+                   String translatedToKorean,
+                   String translatedToTarget) {
       this.index = index;
       this.bytes = bytes;
       this.text = text;
@@ -318,6 +422,8 @@ public class MeetingSpeechStreamService {
       this.sourceLanguage = sourceLanguage;
       this.targetLanguage = targetLanguage;
       this.translatedText = translatedText;
+      this.translatedToKorean = translatedToKorean;
+      this.translatedToTarget = translatedToTarget;
     }
 
     public long getIndex() {
@@ -350,6 +456,14 @@ public class MeetingSpeechStreamService {
 
     public String getTranslatedText() {
       return translatedText;
+    }
+
+    public String getTranslatedToKorean() {
+      return translatedToKorean;
+    }
+
+    public String getTranslatedToTarget() {
+      return translatedToTarget;
     }
   }
 }

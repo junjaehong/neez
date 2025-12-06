@@ -247,7 +247,11 @@ public class MeetingSpeechController {
             payload.put("sourceLanguage", segment.getSourceLanguage());
             payload.put("targetLanguage", segment.getTargetLanguage());
             payload.put("translation", segment.getTranslatedText());
+            payload.put("translationToKorean", segment.getTranslatedToKorean());
+            payload.put("translationToTarget", segment.getTranslatedToTarget());
+            // 실시간 번역 누적본을 내려줘서 프론트에서 바로 표시 가능
             payload.put("transcript", streamService.getTranscriptText(userIdx, meetingId));
+            payload.put("translatedTranscript", streamService.getTranslatedTranscript(userIdx, meetingId));
             payload.put("segments", streamService.getSegments(userIdx, meetingId));
 
             return ResponseEntity.ok(payload);
@@ -280,6 +284,8 @@ public class MeetingSpeechController {
         payload.put("userIdx", userIdx);
         payload.put("meetingId", meetingId);
         payload.put("transcript", streamService.getTranscriptText(userIdx, meetingId));
+        // 현재까지 모인 번역 누적본 추가
+        payload.put("translatedTranscript", streamService.getTranslatedTranscript(userIdx, meetingId));
         payload.put("segments", streamService.getSegments(userIdx, meetingId));
 
         return ResponseEntity.ok(payload);
