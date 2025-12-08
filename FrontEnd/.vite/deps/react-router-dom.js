@@ -14,19 +14,12 @@ var require_dist = __commonJS({
   "node_modules/cookie/dist/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.parseCookie = parseCookie;
-    exports.parse = parseCookie;
-    exports.stringifyCookie = stringifyCookie;
-    exports.stringifySetCookie = stringifySetCookie;
-    exports.serialize = stringifySetCookie;
-    exports.parseSetCookie = parseSetCookie;
-    exports.stringifySetCookie = stringifySetCookie;
-    exports.serialize = stringifySetCookie;
+    exports.parse = parse2;
+    exports.serialize = serialize2;
     var cookieNameRegExp = /^[\u0021-\u003A\u003C\u003E-\u007E]+$/;
     var cookieValueRegExp = /^[\u0021-\u003A\u003C-\u007E]*$/;
     var domainValueRegExp = /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
     var pathValueRegExp = /^[\u0020-\u003A\u003D-\u007E]*$/;
-    var maxAgeRegExp = /^-?\d+$/;
     var __toString = Object.prototype.toString;
     var NullObject = (() => {
       const C = function() {
@@ -34,7 +27,7 @@ var require_dist = __commonJS({
       C.prototype = /* @__PURE__ */ Object.create(null);
       return C;
     })();
-    function parseCookie(str, options) {
+    function parse2(str, options) {
       const obj = new NullObject();
       const len = str.length;
       if (len < 2)
@@ -42,87 +35,91 @@ var require_dist = __commonJS({
       const dec = options?.decode || decode2;
       let index = 0;
       do {
-        const eqIdx = eqIndex(str, index, len);
+        const eqIdx = str.indexOf("=", index);
         if (eqIdx === -1)
           break;
-        const endIdx = endIndex(str, index, len);
+        const colonIdx = str.indexOf(";", index);
+        const endIdx = colonIdx === -1 ? len : colonIdx;
         if (eqIdx > endIdx) {
           index = str.lastIndexOf(";", eqIdx - 1) + 1;
           continue;
         }
-        const key = valueSlice(str, index, eqIdx);
+        const keyStartIdx = startIndex(str, index, eqIdx);
+        const keyEndIdx = endIndex(str, eqIdx, keyStartIdx);
+        const key = str.slice(keyStartIdx, keyEndIdx);
         if (obj[key] === void 0) {
-          obj[key] = dec(valueSlice(str, eqIdx + 1, endIdx));
+          let valStartIdx = startIndex(str, eqIdx + 1, endIdx);
+          let valEndIdx = endIndex(str, endIdx, valStartIdx);
+          const value = dec(str.slice(valStartIdx, valEndIdx));
+          obj[key] = value;
         }
         index = endIdx + 1;
       } while (index < len);
       return obj;
     }
-    function stringifyCookie(cookie, options) {
-      const enc = options?.encode || encodeURIComponent;
-      const cookieStrings = [];
-      for (const name of Object.keys(cookie)) {
-        const val = cookie[name];
-        if (val === void 0)
-          continue;
-        if (!cookieNameRegExp.test(name)) {
-          throw new TypeError(`cookie name is invalid: ${name}`);
-        }
-        const value = enc(val);
-        if (!cookieValueRegExp.test(value)) {
-          throw new TypeError(`cookie val is invalid: ${val}`);
-        }
-        cookieStrings.push(`${name}=${value}`);
-      }
-      return cookieStrings.join("; ");
+    function startIndex(str, index, max) {
+      do {
+        const code = str.charCodeAt(index);
+        if (code !== 32 && code !== 9)
+          return index;
+      } while (++index < max);
+      return max;
     }
-    function stringifySetCookie(_name, _val, _opts) {
-      const cookie = typeof _name === "object" ? _name : { ..._opts, name: _name, value: String(_val) };
-      const options = typeof _val === "object" ? _val : _opts;
+    function endIndex(str, index, min) {
+      while (index > min) {
+        const code = str.charCodeAt(--index);
+        if (code !== 32 && code !== 9)
+          return index + 1;
+      }
+      return min;
+    }
+    function serialize2(name, val, options) {
       const enc = options?.encode || encodeURIComponent;
-      if (!cookieNameRegExp.test(cookie.name)) {
-        throw new TypeError(`argument name is invalid: ${cookie.name}`);
+      if (!cookieNameRegExp.test(name)) {
+        throw new TypeError(`argument name is invalid: ${name}`);
       }
-      const value = cookie.value ? enc(cookie.value) : "";
+      const value = enc(val);
       if (!cookieValueRegExp.test(value)) {
-        throw new TypeError(`argument val is invalid: ${cookie.value}`);
+        throw new TypeError(`argument val is invalid: ${val}`);
       }
-      let str = cookie.name + "=" + value;
-      if (cookie.maxAge !== void 0) {
-        if (!Number.isInteger(cookie.maxAge)) {
-          throw new TypeError(`option maxAge is invalid: ${cookie.maxAge}`);
+      let str = name + "=" + value;
+      if (!options)
+        return str;
+      if (options.maxAge !== void 0) {
+        if (!Number.isInteger(options.maxAge)) {
+          throw new TypeError(`option maxAge is invalid: ${options.maxAge}`);
         }
-        str += "; Max-Age=" + cookie.maxAge;
+        str += "; Max-Age=" + options.maxAge;
       }
-      if (cookie.domain) {
-        if (!domainValueRegExp.test(cookie.domain)) {
-          throw new TypeError(`option domain is invalid: ${cookie.domain}`);
+      if (options.domain) {
+        if (!domainValueRegExp.test(options.domain)) {
+          throw new TypeError(`option domain is invalid: ${options.domain}`);
         }
-        str += "; Domain=" + cookie.domain;
+        str += "; Domain=" + options.domain;
       }
-      if (cookie.path) {
-        if (!pathValueRegExp.test(cookie.path)) {
-          throw new TypeError(`option path is invalid: ${cookie.path}`);
+      if (options.path) {
+        if (!pathValueRegExp.test(options.path)) {
+          throw new TypeError(`option path is invalid: ${options.path}`);
         }
-        str += "; Path=" + cookie.path;
+        str += "; Path=" + options.path;
       }
-      if (cookie.expires) {
-        if (!isDate(cookie.expires) || !Number.isFinite(cookie.expires.valueOf())) {
-          throw new TypeError(`option expires is invalid: ${cookie.expires}`);
+      if (options.expires) {
+        if (!isDate(options.expires) || !Number.isFinite(options.expires.valueOf())) {
+          throw new TypeError(`option expires is invalid: ${options.expires}`);
         }
-        str += "; Expires=" + cookie.expires.toUTCString();
+        str += "; Expires=" + options.expires.toUTCString();
       }
-      if (cookie.httpOnly) {
+      if (options.httpOnly) {
         str += "; HttpOnly";
       }
-      if (cookie.secure) {
+      if (options.secure) {
         str += "; Secure";
       }
-      if (cookie.partitioned) {
+      if (options.partitioned) {
         str += "; Partitioned";
       }
-      if (cookie.priority) {
-        const priority = typeof cookie.priority === "string" ? cookie.priority.toLowerCase() : void 0;
+      if (options.priority) {
+        const priority = typeof options.priority === "string" ? options.priority.toLowerCase() : void 0;
         switch (priority) {
           case "low":
             str += "; Priority=Low";
@@ -134,11 +131,11 @@ var require_dist = __commonJS({
             str += "; Priority=High";
             break;
           default:
-            throw new TypeError(`option priority is invalid: ${cookie.priority}`);
+            throw new TypeError(`option priority is invalid: ${options.priority}`);
         }
       }
-      if (cookie.sameSite) {
-        const sameSite = typeof cookie.sameSite === "string" ? cookie.sameSite.toLowerCase() : cookie.sameSite;
+      if (options.sameSite) {
+        const sameSite = typeof options.sameSite === "string" ? options.sameSite.toLowerCase() : options.sameSite;
         switch (sameSite) {
           case true:
           case "strict":
@@ -151,97 +148,10 @@ var require_dist = __commonJS({
             str += "; SameSite=None";
             break;
           default:
-            throw new TypeError(`option sameSite is invalid: ${cookie.sameSite}`);
+            throw new TypeError(`option sameSite is invalid: ${options.sameSite}`);
         }
       }
       return str;
-    }
-    function parseSetCookie(str, options) {
-      const dec = options?.decode || decode2;
-      const len = str.length;
-      const endIdx = endIndex(str, 0, len);
-      const eqIdx = eqIndex(str, 0, endIdx);
-      const setCookie = eqIdx === -1 ? { name: "", value: dec(valueSlice(str, 0, endIdx)) } : {
-        name: valueSlice(str, 0, eqIdx),
-        value: dec(valueSlice(str, eqIdx + 1, endIdx))
-      };
-      let index = endIdx + 1;
-      while (index < len) {
-        const endIdx2 = endIndex(str, index, len);
-        const eqIdx2 = eqIndex(str, index, endIdx2);
-        const attr = eqIdx2 === -1 ? valueSlice(str, index, endIdx2) : valueSlice(str, index, eqIdx2);
-        const val = eqIdx2 === -1 ? void 0 : valueSlice(str, eqIdx2 + 1, endIdx2);
-        switch (attr.toLowerCase()) {
-          case "httponly":
-            setCookie.httpOnly = true;
-            break;
-          case "secure":
-            setCookie.secure = true;
-            break;
-          case "partitioned":
-            setCookie.partitioned = true;
-            break;
-          case "domain":
-            setCookie.domain = val;
-            break;
-          case "path":
-            setCookie.path = val;
-            break;
-          case "max-age":
-            if (val && maxAgeRegExp.test(val))
-              setCookie.maxAge = Number(val);
-            break;
-          case "expires":
-            if (!val)
-              break;
-            const date = new Date(val);
-            if (Number.isFinite(date.valueOf()))
-              setCookie.expires = date;
-            break;
-          case "priority":
-            if (!val)
-              break;
-            const priority = val.toLowerCase();
-            if (priority === "low" || priority === "medium" || priority === "high") {
-              setCookie.priority = priority;
-            }
-            break;
-          case "samesite":
-            if (!val)
-              break;
-            const sameSite = val.toLowerCase();
-            if (sameSite === "lax" || sameSite === "strict" || sameSite === "none") {
-              setCookie.sameSite = sameSite;
-            }
-            break;
-        }
-        index = endIdx2 + 1;
-      }
-      return setCookie;
-    }
-    function endIndex(str, min, len) {
-      const index = str.indexOf(";", min);
-      return index === -1 ? len : index;
-    }
-    function eqIndex(str, min, max) {
-      const index = str.indexOf("=", min);
-      return index < max ? index : -1;
-    }
-    function valueSlice(str, min, max) {
-      let start = min;
-      let end = max;
-      do {
-        const code = str.charCodeAt(start);
-        if (code !== 32 && code !== 9)
-          break;
-      } while (++start < end);
-      while (end > start) {
-        const code = str.charCodeAt(end - 1);
-        if (code !== 32 && code !== 9)
-          break;
-        end--;
-      }
-      return str.slice(start, end);
     }
     function decode2(str) {
       if (str.indexOf("%") === -1)
@@ -441,7 +351,7 @@ var require_set_cookie = __commonJS({
   }
 });
 
-// node_modules/react-router/dist/development/chunk-FGUA77HG.mjs
+// node_modules/react-router/dist/development/chunk-4WY6JWTD.mjs
 var React = __toESM(require_react(), 1);
 var React2 = __toESM(require_react(), 1);
 var React3 = __toESM(require_react(), 1);
@@ -1414,8 +1324,8 @@ var ErrorResponseImpl = class {
 function isRouteErrorResponse(error) {
   return error != null && typeof error.status === "number" && typeof error.statusText === "string" && typeof error.internal === "boolean" && "data" in error;
 }
-function getRoutePattern(matches) {
-  return matches.map((m) => m.route.path).filter(Boolean).join("/").replace(/\/\/*/g, "/") || "/";
+function getRoutePattern(paths) {
+  return paths.filter(Boolean).join("/").replace(/\/\/*/g, "/") || "/";
 }
 var UninstrumentedSymbol = Symbol("Uninstrumented");
 function getRouteInstrumentationUpdates(fns, route) {
@@ -1848,7 +1758,6 @@ function createRouter(init) {
     blockers: /* @__PURE__ */ new Map()
   };
   let pendingAction = "POP";
-  let pendingPopstateNavigationDfd = null;
   let pendingPreventScrollReset = false;
   let pendingNavigationController;
   let pendingViewTransitionEnabled = false;
@@ -1908,8 +1817,6 @@ function createRouter(init) {
               updateState({ blockers });
             }
           });
-          pendingPopstateNavigationDfd?.resolve();
-          pendingPopstateNavigationDfd = null;
           return;
         }
         return startNavigation(historyAction, location2);
@@ -1981,7 +1888,6 @@ function createRouter(init) {
     [...subscribers].forEach(
       (subscriber) => subscriber(state, {
         deletedFetchers: unmountedFetchers,
-        newErrors: newState.errors ?? null,
         viewTransitionOpts: opts.viewTransitionOpts,
         flushSync: opts.flushSync === true
       })
@@ -2079,21 +1985,13 @@ function createRouter(init) {
     pendingViewTransitionEnabled = false;
     isUninterruptedRevalidation = false;
     isRevalidationRequired = false;
-    pendingPopstateNavigationDfd?.resolve();
-    pendingPopstateNavigationDfd = null;
     pendingRevalidationDfd?.resolve();
     pendingRevalidationDfd = null;
   }
   async function navigate(to, opts) {
-    pendingPopstateNavigationDfd?.resolve();
-    pendingPopstateNavigationDfd = null;
     if (typeof to === "number") {
-      if (!pendingPopstateNavigationDfd) {
-        pendingPopstateNavigationDfd = createDeferred();
-      }
-      let promise = pendingPopstateNavigationDfd.promise;
       init.history.go(to);
-      return promise;
+      return;
     }
     let normalizedPath = normalizeTo(
       state.location,
@@ -3033,10 +2931,6 @@ function createRouter(init) {
     preventScrollReset,
     replace: replace2
   } = {}) {
-    if (!isNavigation) {
-      pendingPopstateNavigationDfd?.resolve();
-      pendingPopstateNavigationDfd = null;
-    }
     if (redirect2.response.headers.has("X-Remix-Revalidate")) {
       isRevalidationRequired = true;
     }
@@ -3645,7 +3539,7 @@ function createStaticHandler(routes, opts) {
         let response = await runServerMiddlewarePipeline(
           {
             request,
-            unstable_pattern: getRoutePattern(matches),
+            unstable_pattern: getRoutePattern(matches.map((m) => m.route.path)),
             matches,
             params: matches[0].params,
             // If we're calling middleware then it must be enabled so we can cast
@@ -3791,7 +3685,7 @@ function createStaticHandler(routes, opts) {
       let response = await runServerMiddlewarePipeline(
         {
           request,
-          unstable_pattern: getRoutePattern(matches),
+          unstable_pattern: getRoutePattern(matches.map((m) => m.route.path)),
           matches,
           params: matches[0].params,
           // If we're calling middleware then it must be enabled so we can cast
@@ -4067,7 +3961,7 @@ function createStaticHandler(routes, opts) {
         // Up to but not including the boundary
         matches.findIndex((m) => m.route.id === pendingActionResult[0]) - 1
       ) : void 0;
-      let pattern = getRoutePattern(matches);
+      let pattern = getRoutePattern(matches.map((m) => m.route.path));
       dsMatches = matches.map((match, index) => {
         if (maxIdx != null && index > maxIdx) {
           return getDataStrategyMatch(
@@ -4366,7 +4260,7 @@ function getMatchesToLoad(request, scopedContext, mapRouteProperties2, manifest,
     actionResult,
     actionStatus
   };
-  let pattern = getRoutePattern(matches);
+  let pattern = getRoutePattern(matches.map((m) => m.route.path));
   let dsMatches = matches.map((match, index) => {
     let { route } = match;
     let forceShouldLoad = null;
@@ -4850,7 +4744,7 @@ function runClientMiddlewarePipeline(args, handler) {
         ),
         // or the shallowest route that needs to load data
         Math.max(
-          matches.findIndex((m) => m.shouldCallHandler()),
+          matches.findIndex((m) => m.unstable_shouldCallHandler()),
           0
         )
       );
@@ -4953,7 +4847,7 @@ function getDataStrategyMatchLazyPromises(mapRouteProperties2, manifest, request
     handler: lazyRoutePromises.lazyHandlerPromise
   };
 }
-function getDataStrategyMatch(mapRouteProperties2, manifest, request, unstable_pattern, match, lazyRoutePropertiesToSkip, scopedContext, shouldLoad, shouldRevalidateArgs = null) {
+function getDataStrategyMatch(mapRouteProperties2, manifest, request, unstable_pattern, match, lazyRoutePropertiesToSkip, scopedContext, shouldLoad, unstable_shouldRevalidateArgs = null) {
   let isUsingNewApi = false;
   let _lazyPromises = getDataStrategyMatchLazyPromises(
     mapRouteProperties2,
@@ -4966,19 +4860,19 @@ function getDataStrategyMatch(mapRouteProperties2, manifest, request, unstable_p
     ...match,
     _lazyPromises,
     shouldLoad,
-    shouldRevalidateArgs,
-    shouldCallHandler(defaultShouldRevalidate) {
+    unstable_shouldRevalidateArgs,
+    unstable_shouldCallHandler(defaultShouldRevalidate) {
       isUsingNewApi = true;
-      if (!shouldRevalidateArgs) {
+      if (!unstable_shouldRevalidateArgs) {
         return shouldLoad;
       }
       if (typeof defaultShouldRevalidate === "boolean") {
         return shouldRevalidateLoader(match, {
-          ...shouldRevalidateArgs,
+          ...unstable_shouldRevalidateArgs,
           defaultShouldRevalidate
         });
       }
-      return shouldRevalidateLoader(match, shouldRevalidateArgs);
+      return shouldRevalidateLoader(match, unstable_shouldRevalidateArgs);
     },
     resolve(handlerOverride) {
       let { lazy, loader, middleware } = match.route;
@@ -5005,8 +4899,8 @@ function getTargetedDataStrategyMatches(mapRouteProperties2, manifest, request, 
       return {
         ...match,
         shouldLoad: false,
-        shouldRevalidateArgs,
-        shouldCallHandler: () => false,
+        unstable_shouldRevalidateArgs: shouldRevalidateArgs,
+        unstable_shouldCallHandler: () => false,
         _lazyPromises: getDataStrategyMatchLazyPromises(
           mapRouteProperties2,
           manifest,
@@ -5021,7 +4915,7 @@ function getTargetedDataStrategyMatches(mapRouteProperties2, manifest, request, 
       mapRouteProperties2,
       manifest,
       request,
-      getRoutePattern(matches),
+      getRoutePattern(matches.map((m) => m.route.path)),
       match,
       lazyRoutePropertiesToSkip,
       scopedContext,
@@ -5036,7 +4930,7 @@ async function callDataStrategyImpl(dataStrategyImpl, request, matches, fetcherK
   }
   let dataStrategyArgs = {
     request,
-    unstable_pattern: getRoutePattern(matches),
+    unstable_pattern: getRoutePattern(matches.map((m) => m.route.path)),
     params: matches[0].params,
     context: scopedContext,
     matches
@@ -5219,7 +5113,11 @@ async function convertDataStrategyResultToDataResult(dataStrategyResult) {
       }
       return {
         type: "error",
-        error: dataWithResponseInitToErrorResponse(result),
+        error: new ErrorResponseImpl(
+          result.init?.status || 500,
+          void 0,
+          result.data
+        ),
         statusCode: isRouteErrorResponse(result) ? result.status : void 0,
         headers: result.init?.headers ? new Headers(result.init.headers) : void 0
       };
@@ -6165,7 +6063,6 @@ function _renderMatches(matches, parentMatches = [], dataRouterState = null, uns
     unstable_onError(error, {
       location: dataRouterState.location,
       params: dataRouterState.matches?.[0]?.params ?? {},
-      unstable_pattern: getRoutePattern(dataRouterState.matches),
       errorInfo
     });
   } : void 0;
@@ -6419,7 +6316,7 @@ function useNavigateStable() {
       warning(activeRef.current, navigateEffectWarning);
       if (!activeRef.current) return;
       if (typeof to === "number") {
-        await router2.navigate(to);
+        router2.navigate(to);
       } else {
         await router2.navigate(to, { fromRouteId: id, ...options });
       }
@@ -6458,15 +6355,6 @@ function warnOnce(condition, message) {
   if (!condition && !alreadyWarned2[message]) {
     alreadyWarned2[message] = true;
     console.warn(message);
-  }
-}
-var USE_OPTIMISTIC = "useOptimistic";
-var useOptimisticImpl = React3[USE_OPTIMISTIC];
-function useOptimisticSafe(val) {
-  if (useOptimisticImpl) {
-    return useOptimisticImpl(val);
-  } else {
-    return [val, () => void 0];
   }
 }
 function mapRouteProperties(route) {
@@ -6563,11 +6451,9 @@ var Deferred = class {
 function RouterProvider({
   router: router2,
   flushSync: reactDomFlushSyncImpl,
-  unstable_onError,
-  unstable_useTransitions
+  unstable_onError
 }) {
-  let [_state, setStateImpl] = React3.useState(router2.state);
-  let [state, setOptimisticState] = useOptimisticSafe(_state);
+  let [state, setStateImpl] = React3.useState(router2.state);
   let [pendingState, setPendingState] = React3.useState();
   let [vtContext, setVtContext] = React3.useState({
     isTransitioning: false
@@ -6576,17 +6462,26 @@ function RouterProvider({
   let [transition, setTransition] = React3.useState();
   let [interruption, setInterruption] = React3.useState();
   let fetcherData = React3.useRef(/* @__PURE__ */ new Map());
+  let logErrorsAndSetState = React3.useCallback(
+    (newState) => {
+      setStateImpl((prevState) => {
+        if (newState.errors && unstable_onError) {
+          Object.entries(newState.errors).forEach(([routeId, error]) => {
+            if (prevState.errors?.[routeId] !== error) {
+              unstable_onError(error, {
+                location: newState.location,
+                params: newState.matches[0]?.params ?? {}
+              });
+            }
+          });
+        }
+        return newState;
+      });
+    },
+    [unstable_onError]
+  );
   let setState = React3.useCallback(
-    (newState, { deletedFetchers, newErrors, flushSync: flushSync3, viewTransitionOpts }) => {
-      if (newErrors && unstable_onError) {
-        Object.values(newErrors).forEach(
-          (error) => unstable_onError(error, {
-            location: newState.location,
-            params: newState.matches[0]?.params ?? {},
-            unstable_pattern: getRoutePattern(newState.matches)
-          })
-        );
-      }
+    (newState, { deletedFetchers, flushSync: flushSync3, viewTransitionOpts }) => {
       newState.fetchers.forEach((fetcher, key) => {
         if (fetcher.data !== void 0) {
           fetcherData.current.set(key, fetcher.data);
@@ -6604,23 +6499,16 @@ function RouterProvider({
       );
       if (!viewTransitionOpts || !isViewTransitionAvailable) {
         if (reactDomFlushSyncImpl && flushSync3) {
-          reactDomFlushSyncImpl(() => setStateImpl(newState));
-        } else if (unstable_useTransitions === false) {
-          setStateImpl(newState);
+          reactDomFlushSyncImpl(() => logErrorsAndSetState(newState));
         } else {
-          React3.startTransition(() => {
-            if (unstable_useTransitions === true) {
-              setOptimisticState((s) => getOptimisticRouterState(s, newState));
-            }
-            setStateImpl(newState);
-          });
+          React3.startTransition(() => logErrorsAndSetState(newState));
         }
         return;
       }
       if (reactDomFlushSyncImpl && flushSync3) {
         reactDomFlushSyncImpl(() => {
           if (transition) {
-            renderDfd?.resolve();
+            renderDfd && renderDfd.resolve();
             transition.skipTransition();
           }
           setVtContext({
@@ -6631,7 +6519,7 @@ function RouterProvider({
           });
         });
         let t = router2.window.document.startViewTransition(() => {
-          reactDomFlushSyncImpl(() => setStateImpl(newState));
+          reactDomFlushSyncImpl(() => logErrorsAndSetState(newState));
         });
         t.finished.finally(() => {
           reactDomFlushSyncImpl(() => {
@@ -6645,7 +6533,7 @@ function RouterProvider({
         return;
       }
       if (transition) {
-        renderDfd?.resolve();
+        renderDfd && renderDfd.resolve();
         transition.skipTransition();
         setInterruption({
           state: newState,
@@ -6667,9 +6555,7 @@ function RouterProvider({
       reactDomFlushSyncImpl,
       transition,
       renderDfd,
-      unstable_useTransitions,
-      setOptimisticState,
-      unstable_onError
+      logErrorsAndSetState
     ]
   );
   React3.useLayoutEffect(() => router2.subscribe(setState), [router2, setState]);
@@ -6683,16 +6569,7 @@ function RouterProvider({
       let newState = pendingState;
       let renderPromise = renderDfd.promise;
       let transition2 = router2.window.document.startViewTransition(async () => {
-        if (unstable_useTransitions === false) {
-          setStateImpl(newState);
-        } else {
-          React3.startTransition(() => {
-            if (unstable_useTransitions === true) {
-              setOptimisticState((s) => getOptimisticRouterState(s, newState));
-            }
-            setStateImpl(newState);
-          });
-        }
+        React3.startTransition(() => logErrorsAndSetState(newState));
         await renderPromise;
       });
       transition2.finished.finally(() => {
@@ -6703,13 +6580,7 @@ function RouterProvider({
       });
       setTransition(transition2);
     }
-  }, [
-    pendingState,
-    renderDfd,
-    router2.window,
-    unstable_useTransitions,
-    setOptimisticState
-  ]);
+  }, [pendingState, renderDfd, router2.window, logErrorsAndSetState]);
   React3.useEffect(() => {
     if (renderDfd && pendingState && state.location.key === pendingState.location.key) {
       renderDfd.resolve();
@@ -6760,8 +6631,7 @@ function RouterProvider({
       basename,
       location: state.location,
       navigationType: state.historyAction,
-      navigator,
-      unstable_useTransitions: unstable_useTransitions === true
+      navigator
     },
     React3.createElement(
       MemoizedDataRoutes,
@@ -6773,20 +6643,6 @@ function RouterProvider({
       }
     )
   ))))), null);
-}
-function getOptimisticRouterState(currentState, newState) {
-  return {
-    // Don't surface "current location specific" stuff mid-navigation
-    // (historyAction, location, matches, loaderData, errors, initialized,
-    // restoreScroll, preventScrollReset, blockers, etc.)
-    ...currentState,
-    // Only surface "pending/in-flight stuff"
-    // (navigation, revalidation, actionData, fetchers, )
-    navigation: newState.navigation.state !== "idle" ? newState.navigation : currentState.navigation,
-    revalidation: newState.revalidation !== "idle" ? newState.revalidation : currentState.revalidation,
-    actionData: newState.navigation.state !== "submitting" ? newState.actionData : currentState.actionData,
-    fetchers: newState.fetchers
-  };
 }
 var MemoizedDataRoutes = React3.memo(DataRoutes);
 function DataRoutes({
@@ -6801,8 +6657,7 @@ function MemoryRouter({
   basename,
   children,
   initialEntries,
-  initialIndex,
-  unstable_useTransitions
+  initialIndex
 }) {
   let historyRef = React3.useRef();
   if (historyRef.current == null) {
@@ -6819,13 +6674,9 @@ function MemoryRouter({
   });
   let setState = React3.useCallback(
     (newState) => {
-      if (unstable_useTransitions === false) {
-        setStateImpl(newState);
-      } else {
-        React3.startTransition(() => setStateImpl(newState));
-      }
+      React3.startTransition(() => setStateImpl(newState));
     },
-    [unstable_useTransitions]
+    [setStateImpl]
   );
   React3.useLayoutEffect(() => history.listen(setState), [history, setState]);
   return React3.createElement(
@@ -6835,8 +6686,7 @@ function MemoryRouter({
       children,
       location: state.location,
       navigationType: state.action,
-      navigator: history,
-      unstable_useTransitions: unstable_useTransitions === true
+      navigator: history
     }
   );
 }
@@ -6887,8 +6737,7 @@ function Router({
   location: locationProp,
   navigationType = "POP",
   navigator,
-  static: staticProp = false,
-  unstable_useTransitions
+  static: staticProp = false
 }) {
   invariant(
     !useInRouterContext(),
@@ -6900,10 +6749,9 @@ function Router({
       basename,
       navigator,
       static: staticProp,
-      unstable_useTransitions,
       future: {}
     }),
-    [basename, navigator, staticProp, unstable_useTransitions]
+    [basename, navigator, staticProp]
   );
   if (typeof locationProp === "string") {
     locationProp = parsePath(locationProp);
@@ -6958,8 +6806,7 @@ function Await({
       if (dataRouterContext && dataRouterContext.unstable_onError && dataRouterStateContext) {
         dataRouterContext.unstable_onError(error, {
           location: dataRouterStateContext.location,
-          params: dataRouterStateContext.matches[0]?.params || {},
-          unstable_pattern: getRoutePattern(dataRouterStateContext.matches),
+          params: dataRouterStateContext.matches?.[0]?.params || {},
           errorInfo
         });
       }
@@ -7161,7 +7008,7 @@ function withErrorBoundaryProps(ErrorBoundary) {
 var defaultMethod = "get";
 var defaultEncType = "application/x-www-form-urlencoded";
 function isHtmlElement(object) {
-  return typeof HTMLElement !== "undefined" && object instanceof HTMLElement;
+  return object != null && typeof object.tagName === "string";
 }
 function isButtonElement(object) {
   return isHtmlElement(object) && object.tagName.toLowerCase() === "button";
@@ -8076,7 +7923,7 @@ function getSingleFetchDataStrategyImpl(getRouter, getRouteInfo, fetchAndDecode,
     }
     let foundRevalidatingServerLoader = matches.some((m) => {
       let { hasLoader, hasClientLoader } = getRouteInfo(m);
-      return m.shouldCallHandler() && hasLoader && !hasClientLoader;
+      return m.unstable_shouldCallHandler() && hasLoader && !hasClientLoader;
     });
     if (!ssr && !foundRevalidatingServerLoader) {
       return nonSsrStrategy(args, getRouteInfo, fetchAndDecode, basename);
@@ -8096,7 +7943,7 @@ function getSingleFetchDataStrategyImpl(getRouter, getRouteInfo, fetchAndDecode,
   };
 }
 async function singleFetchActionStrategy(args, fetchAndDecode, basename) {
-  let actionMatch = args.matches.find((m) => m.shouldCallHandler());
+  let actionMatch = args.matches.find((m) => m.unstable_shouldCallHandler());
   invariant2(actionMatch, "No action match found");
   let actionStatus = void 0;
   let result = await actionMatch.resolve(async (handler) => {
@@ -8120,7 +7967,9 @@ async function singleFetchActionStrategy(args, fetchAndDecode, basename) {
   };
 }
 async function nonSsrStrategy(args, getRouteInfo, fetchAndDecode, basename) {
-  let matchesToLoad = args.matches.filter((m) => m.shouldCallHandler());
+  let matchesToLoad = args.matches.filter(
+    (m) => m.unstable_shouldCallHandler()
+  );
   let results = {};
   await Promise.all(
     matchesToLoad.map(
@@ -8153,10 +8002,10 @@ async function singleFetchLoaderNavigationStrategy(args, router2, getRouteInfo, 
         routeDfds[i].resolve();
         let routeId = m.route.id;
         let { hasLoader, hasClientLoader, hasShouldRevalidate } = getRouteInfo(m);
-        let defaultShouldRevalidate = !m.shouldRevalidateArgs || m.shouldRevalidateArgs.actionStatus == null || m.shouldRevalidateArgs.actionStatus < 400;
-        let shouldCall = m.shouldCallHandler(defaultShouldRevalidate);
+        let defaultShouldRevalidate = !m.unstable_shouldRevalidateArgs || m.unstable_shouldRevalidateArgs.actionStatus == null || m.unstable_shouldRevalidateArgs.actionStatus < 400;
+        let shouldCall = m.unstable_shouldCallHandler(defaultShouldRevalidate);
         if (!shouldCall) {
-          foundOptOutRoute || (foundOptOutRoute = m.shouldRevalidateArgs != null && // This is a revalidation,
+          foundOptOutRoute || (foundOptOutRoute = m.unstable_shouldRevalidateArgs != null && // This is a revalidation,
           hasLoader && // for a route with a server loader,
           hasShouldRevalidate === true);
           return;
@@ -8245,7 +8094,7 @@ async function bubbleMiddlewareErrors(singleFetchPromise, matches, routesParams,
   }
 }
 async function singleFetchLoaderFetcherStrategy(args, fetchAndDecode, basename) {
-  let fetcherMatch = args.matches.find((m) => m.shouldCallHandler());
+  let fetcherMatch = args.matches.find((m) => m.unstable_shouldCallHandler());
   invariant2(fetcherMatch, "No fetcher match found");
   let routeId = fetcherMatch.route.id;
   let result = await fetcherMatch.resolve(
@@ -9042,6 +8891,10 @@ function getShouldRevalidateFunction(path, route, manifestRoute, ssr, needsReval
     } else {
       return (opts) => didParamsChange(opts);
     }
+  }
+  if (ssr && route.shouldRevalidate) {
+    let fn = route.shouldRevalidate;
+    return (opts) => fn({ ...opts, defaultShouldRevalidate: true });
   }
   return route.shouldRevalidate;
 }
@@ -9906,7 +9759,7 @@ var isBrowser = typeof window !== "undefined" && typeof window.document !== "und
 try {
   if (isBrowser) {
     window.__reactRouterVersion = // @ts-expect-error
-    "7.10.0";
+    "7.9.6";
   }
 } catch (e) {
 }
@@ -9990,7 +9843,6 @@ function deserializeErrors(errors) {
 function BrowserRouter({
   basename,
   children,
-  unstable_useTransitions,
   window: window2
 }) {
   let historyRef = React10.useRef();
@@ -10004,13 +9856,9 @@ function BrowserRouter({
   });
   let setState = React10.useCallback(
     (newState) => {
-      if (unstable_useTransitions === false) {
-        setStateImpl(newState);
-      } else {
-        React10.startTransition(() => setStateImpl(newState));
-      }
+      React10.startTransition(() => setStateImpl(newState));
     },
-    [unstable_useTransitions]
+    [setStateImpl]
   );
   React10.useLayoutEffect(() => history.listen(setState), [history, setState]);
   return React10.createElement(
@@ -10020,17 +9868,11 @@ function BrowserRouter({
       children,
       location: state.location,
       navigationType: state.action,
-      navigator: history,
-      unstable_useTransitions: unstable_useTransitions === true
+      navigator: history
     }
   );
 }
-function HashRouter({
-  basename,
-  children,
-  unstable_useTransitions,
-  window: window2
-}) {
+function HashRouter({ basename, children, window: window2 }) {
   let historyRef = React10.useRef();
   if (historyRef.current == null) {
     historyRef.current = createHashHistory({ window: window2, v5Compat: true });
@@ -10042,13 +9884,9 @@ function HashRouter({
   });
   let setState = React10.useCallback(
     (newState) => {
-      if (unstable_useTransitions === false) {
-        setStateImpl(newState);
-      } else {
-        React10.startTransition(() => setStateImpl(newState));
-      }
+      React10.startTransition(() => setStateImpl(newState));
     },
-    [unstable_useTransitions]
+    [setStateImpl]
   );
   React10.useLayoutEffect(() => history.listen(setState), [history, setState]);
   return React10.createElement(
@@ -10058,16 +9896,14 @@ function HashRouter({
       children,
       location: state.location,
       navigationType: state.action,
-      navigator: history,
-      unstable_useTransitions: unstable_useTransitions === true
+      navigator: history
     }
   );
 }
 function HistoryRouter({
   basename,
   children,
-  history,
-  unstable_useTransitions
+  history
 }) {
   let [state, setStateImpl] = React10.useState({
     action: history.action,
@@ -10075,13 +9911,9 @@ function HistoryRouter({
   });
   let setState = React10.useCallback(
     (newState) => {
-      if (unstable_useTransitions === false) {
-        setStateImpl(newState);
-      } else {
-        React10.startTransition(() => setStateImpl(newState));
-      }
+      React10.startTransition(() => setStateImpl(newState));
     },
-    [unstable_useTransitions]
+    [setStateImpl]
   );
   React10.useLayoutEffect(() => history.listen(setState), [history, setState]);
   return React10.createElement(
@@ -10091,8 +9923,7 @@ function HistoryRouter({
       children,
       location: state.location,
       navigationType: state.action,
-      navigator: history,
-      unstable_useTransitions: unstable_useTransitions === true
+      navigator: history
     }
   );
 }
@@ -10113,7 +9944,7 @@ var Link = React10.forwardRef(
     viewTransition,
     ...rest
   }, forwardedRef) {
-    let { basename, unstable_useTransitions } = React10.useContext(NavigationContext);
+    let { basename } = React10.useContext(NavigationContext);
     let isAbsolute = typeof to === "string" && ABSOLUTE_URL_REGEX2.test(to);
     let absoluteHref;
     let isExternal = false;
@@ -10148,8 +9979,7 @@ var Link = React10.forwardRef(
       target,
       preventScrollReset,
       relative,
-      viewTransition,
-      unstable_useTransitions
+      viewTransition
     });
     function handleClick(event) {
       if (onClick) onClick(event);
@@ -10259,7 +10089,6 @@ var Form = React10.forwardRef(
     viewTransition,
     ...props
   }, forwardedRef) => {
-    let { unstable_useTransitions } = React10.useContext(NavigationContext);
     let submit = useSubmit();
     let formAction = useFormAction(action, { relative });
     let formMethod = method.toLowerCase() === "get" ? "get" : "post";
@@ -10270,7 +10099,7 @@ var Form = React10.forwardRef(
       event.preventDefault();
       let submitter = event.nativeEvent.submitter;
       let submitMethod = submitter?.getAttribute("formmethod") || method;
-      let doSubmit = () => submit(submitter || event.currentTarget, {
+      submit(submitter || event.currentTarget, {
         fetcherKey,
         method: submitMethod,
         navigate,
@@ -10280,11 +10109,6 @@ var Form = React10.forwardRef(
         preventScrollReset,
         viewTransition
       });
-      if (unstable_useTransitions && navigate !== false) {
-        React10.startTransition(() => doSubmit());
-      } else {
-        doSubmit();
-      }
     };
     return React10.createElement(
       "form",
@@ -10377,8 +10201,7 @@ function useLinkClickHandler(to, {
   state,
   preventScrollReset,
   relative,
-  viewTransition,
-  unstable_useTransitions
+  viewTransition
 } = {}) {
   let navigate = useNavigate();
   let location2 = useLocation();
@@ -10388,18 +10211,13 @@ function useLinkClickHandler(to, {
       if (shouldProcessLinkClick(event, target)) {
         event.preventDefault();
         let replace2 = replaceProp !== void 0 ? replaceProp : createPath(location2) === createPath(path);
-        let doNavigate = () => navigate(to, {
+        navigate(to, {
           replace: replace2,
           state,
           preventScrollReset,
           relative,
           viewTransition
         });
-        if (unstable_useTransitions) {
-          React10.startTransition(() => doNavigate());
-        } else {
-          doNavigate();
-        }
       }
     },
     [
@@ -10412,8 +10230,7 @@ function useLinkClickHandler(to, {
       to,
       preventScrollReset,
       relative,
-      viewTransition,
-      unstable_useTransitions
+      viewTransition
     ]
   );
 }
@@ -10459,8 +10276,6 @@ function useSubmit() {
   );
   let { basename } = React10.useContext(NavigationContext);
   let currentRouteId = useRouteId();
-  let routerFetch = router2.fetch;
-  let routerNavigate = router2.navigate;
   return React10.useCallback(
     async (target, options = {}) => {
       let { action, method, encType, formData, body } = getFormSubmissionInfo(
@@ -10469,7 +10284,7 @@ function useSubmit() {
       );
       if (options.navigate === false) {
         let key = options.fetcherKey || getUniqueFetcherId();
-        await routerFetch(key, currentRouteId, options.action || action, {
+        await router2.fetch(key, currentRouteId, options.action || action, {
           preventScrollReset: options.preventScrollReset,
           formData,
           body,
@@ -10478,7 +10293,7 @@ function useSubmit() {
           flushSync: options.flushSync
         });
       } else {
-        await routerNavigate(options.action || action, {
+        await router2.navigate(options.action || action, {
           preventScrollReset: options.preventScrollReset,
           formData,
           body,
@@ -10492,7 +10307,7 @@ function useSubmit() {
         });
       }
     },
-    [routerFetch, routerNavigate, basename, currentRouteId]
+    [router2, basename, currentRouteId]
   );
 }
 function useFormAction(action, { relative } = {}) {
@@ -10547,17 +10362,16 @@ function useFetcher({
   if (key && key !== fetcherKey) {
     setFetcherKey(key);
   }
-  let { deleteFetcher, getFetcher, resetFetcher, fetch: routerFetch } = router2;
   React10.useEffect(() => {
-    getFetcher(fetcherKey);
-    return () => deleteFetcher(fetcherKey);
-  }, [deleteFetcher, getFetcher, fetcherKey]);
+    router2.getFetcher(fetcherKey);
+    return () => router2.deleteFetcher(fetcherKey);
+  }, [router2, fetcherKey]);
   let load = React10.useCallback(
     async (href2, opts) => {
       invariant(routeId, "No routeId available for fetcher.load()");
-      await routerFetch(fetcherKey, routeId, href2, opts);
+      await router2.fetch(fetcherKey, routeId, href2, opts);
     },
-    [fetcherKey, routeId, routerFetch]
+    [fetcherKey, routeId, router2]
   );
   let submitImpl = useSubmit();
   let submit = React10.useCallback(
@@ -10570,10 +10384,7 @@ function useFetcher({
     },
     [fetcherKey, submitImpl]
   );
-  let reset = React10.useCallback(
-    (opts) => resetFetcher(fetcherKey, opts),
-    [resetFetcher, fetcherKey]
-  );
+  let unstable_reset = React10.useCallback((opts) => router2.resetFetcher(fetcherKey, opts), [router2, fetcherKey]);
   let FetcherForm = React10.useMemo(() => {
     let FetcherForm2 = React10.forwardRef(
       (props, ref) => {
@@ -10590,11 +10401,11 @@ function useFetcher({
       Form: FetcherForm,
       submit,
       load,
-      reset,
+      unstable_reset,
       ...fetcher,
       data: data2
     }),
-    [FetcherForm, submit, load, reset, fetcher, data2]
+    [FetcherForm, submit, load, unstable_reset, fetcher, data2]
   );
   return fetcherWithComponents;
 }
@@ -10809,8 +10620,7 @@ function StaticRouter({
       location: location2,
       navigationType: action,
       navigator: staticNavigator,
-      static: true,
-      unstable_useTransitions: false
+      static: true
     }
   );
 }
@@ -10850,8 +10660,7 @@ function StaticRouterProvider({
       location: state.location,
       navigationType: state.historyAction,
       navigator: dataRouterContext.navigator,
-      static: dataRouterContext.static,
-      unstable_useTransitions: false
+      static: dataRouterContext.static
     },
     React11.createElement(
       DataRoutes2,
@@ -11062,7 +10871,7 @@ function htmlEscape(str) {
   return str.replace(ESCAPE_REGEX2, (match) => ESCAPE_LOOKUP2[match]);
 }
 
-// node_modules/react-router/dist/development/chunk-INCZGKXY.mjs
+// node_modules/react-router/dist/development/chunk-G3INQAYP.mjs
 var React12 = __toESM(require_react(), 1);
 var React22 = __toESM(require_react(), 1);
 var import_cookie = __toESM(require_dist(), 1);
@@ -12628,12 +12437,12 @@ function createMemorySessionStorage({ cookie } = {}) {
 }
 function href(path, ...args) {
   let params = args[0];
-  let result = trimTrailingSplat(path).replace(
+  let result = path.replace(/\/*\*?$/, "").replace(
     /\/:([\w-]+)(\?)?/g,
     // same regex as in .\router\utils.ts: compilePath().
     (_, param, questionMark) => {
       const isRequired = questionMark === void 0;
-      const value = params?.[param];
+      const value = params ? params[param] : void 0;
       if (isRequired && value === void 0) {
         throw new Error(
           `Path '${path}' requires param '${param}' but it was not provided`
@@ -12643,22 +12452,12 @@ function href(path, ...args) {
     }
   );
   if (path.endsWith("*")) {
-    const value = params?.["*"];
+    const value = params ? params["*"] : void 0;
     if (value !== void 0) {
       result += "/" + value;
     }
   }
   return result || "/";
-}
-function trimTrailingSplat(path) {
-  let i = path.length - 1;
-  let char = path[i];
-  if (char !== "*" && char !== "/") return path;
-  i--;
-  for (; i >= 0; i--) {
-    if (path[i] !== "/") break;
-  }
-  return path.slice(0, i + 1);
 }
 var encoder2 = new TextEncoder();
 var trailer = "</body></html>";
@@ -13426,7 +13225,6 @@ function HydratedRouter(props) {
         RouterProvider2,
         {
           router,
-          unstable_useTransitions: props.unstable_useTransitions,
           unstable_onError: props.unstable_onError
         }
       ))
@@ -13566,12 +13364,12 @@ export {
 };
 /*! Bundled license information:
 
-react-router/dist/development/chunk-FGUA77HG.mjs:
-react-router/dist/development/chunk-INCZGKXY.mjs:
+react-router/dist/development/chunk-4WY6JWTD.mjs:
+react-router/dist/development/chunk-G3INQAYP.mjs:
 react-router/dist/development/dom-export.mjs:
 react-router/dist/development/index.mjs:
   (**
-   * react-router v7.10.0
+   * react-router v7.9.6
    *
    * Copyright (c) Remix Software Inc.
    *
@@ -13583,7 +13381,7 @@ react-router/dist/development/index.mjs:
 
 react-router-dom/dist/index.mjs:
   (**
-   * react-router-dom v7.10.0
+   * react-router-dom v7.9.6
    *
    * Copyright (c) Remix Software Inc.
    *
