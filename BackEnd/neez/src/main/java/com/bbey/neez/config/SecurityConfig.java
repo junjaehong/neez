@@ -46,7 +46,7 @@ public class SecurityConfig {
                                 .csrf().disable()
                                 .cors().configurationSource(request -> {
                                         org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
-                                        config.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+                                        config.setAllowedOrigins(Arrays.asList("http://localhost:5175", "http://localhost:5173")); // ← 수정된 부분
                                         config.setAllowedMethods(Arrays.asList("*"));
                                         config.setAllowedHeaders(Arrays.asList("*"));
                                         config.setAllowCredentials(true);
