@@ -7,6 +7,7 @@ import api from '../api/client';
 import { getAuthHeader } from '../api/auth';
 import './CardDetail.css';
 
+
 const CardDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -15,26 +16,6 @@ const CardDetail = () => {
   /////////////////////////////////////
   const [baseURL, setBaseURL] = useState('');
 
-  // config.xml에서 baseURL 가져오기
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const config = await loadConfig();
-        setBaseURL(config.baseURL);
-      } catch (err) {
-        console.error('config 로드 실패:', err);
-      }
-    };
-    fetchConfig();
-  }, []);
-
-  useEffect(() => {
-    if (baseURL) reloadData();
-  }, [id, baseURL]);
-  /////////////////////////////////////
-  
-  // const { addMeetingNote } = useApp();
-  
   const [card, setCard] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
@@ -58,26 +39,28 @@ const CardDetail = () => {
   const [currentMeetingIndex, setCurrentMeetingIndex] = useState(0);
   const [meetingNotes, setMeetingNotes] = useState([]);
 
-  // editMode 변경 시 FAB 표시/숨김
-  useEffect(() => {
-    if (editMode) {
-      setShowFAB(false); // 수정 모드에서 FAB 숨김
-    } else {
-      setShowFAB(true);  // 일반 모드에서 FAB 표시
-    }
 
-    // 컴포넌트 언마운트 시 FAB 다시 표시
-    return () => {
-      setShowFAB(true);
-    };
-  }, [editMode, setShowFAB]);
-
-  // 컴포넌트 언마운트 시 FAB 복원
+  // config.xml에서 baseURL 가져오기
   useEffect(() => {
-    return () => {
-      setShowFAB(true);
+    const fetchConfig = async () => {
+      try {
+        const config = await loadConfig();
+        setBaseURL(config.baseURL);
+      } catch (err) {
+        console.error('config 로드 실패:', err);
+      }
     };
+    fetchConfig();
+  }, []);
+
+  /////////////////////////////////////
+ 
+  useEffect(() => {
+    setShowFAB(false);
+    return () => setShowFAB(true); // 화면 종료될 때 다시 보이게
   }, [setShowFAB]);
+
+  // const { addMeetingNote } = useApp();
 
   // 뒤로가기
   const handleBack = () => {
@@ -163,6 +146,10 @@ const CardDetail = () => {
     }
   };
 
+  useEffect(() => {
+    if (baseURL) reloadData();
+  }, [id, baseURL]);
+
 
   // 입력 변경
   const handleInputChange = (e) => {
@@ -221,6 +208,7 @@ const CardDetail = () => {
 
       alert("수정이 모두 저장되었습니다.");
       setEditMode(false);
+
       reloadData(); // 최신 상태 재조회  
     } catch (err) {
       console.error(err);
