@@ -309,7 +309,7 @@ const CameraCapture = () => {
                   <label>회사</label>
                   <input
                     type="text"
-                    name="company"
+                    name="cardCompanyName"
                     value={extractedData.cardCompanyName}
                     onChange={handleInputChange}
                     placeholder="회사명 입력"
@@ -320,7 +320,7 @@ const CameraCapture = () => {
                   <label>전화번호</label>
                   <input
                     type="tel"
-                    name="phone"
+                    name="phoneNumber"
                     value={extractedData.phoneNumber}
                     onChange={handleInputChange}
                     placeholder="010-0000-0000"
