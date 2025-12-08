@@ -300,70 +300,72 @@ const SttIng = () => {
           </select>
         </div>
 
-        <div className="participants-bar">
-          <span className="participants-label">참석자</span>
-          <div className="participants-chips">
-            {meetingParticipants.length > 0 ? (
-              meetingParticipants.map((participant, index) => (
-                <span key={participant.id || index} className="participant-chip">
-                  {participant.name}
-                </span>
-              ))
-            ) : (
-              <span className="participant-chip empty">참석자를 선택하지 않았어요</span>
-            )}
+        <div className="stt-ing-content">
+          <div className="participants-bar">
+            <span className="participants-label">참석자</span>
+            <div className="participants-chips">
+              {meetingParticipants.length > 0 ? (
+                meetingParticipants.map((participant, index) => (
+                  <span key={participant.id || index} className="participant-chip">
+                    {participant.name}
+                  </span>
+                ))
+              ) : (
+                <span className="participant-chip empty">참석자를 선택하지 않았어요</span>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="recording-control">
-          <div className="recording-status">
-            {isRecording && (
-              <div className="recording-indicator">
-                <span className="recording-dot" />
-                <span>{formatTime(recordingTime)}</span>
+          <div className="recording-control">
+            <div className="recording-status">
+              {isRecording && (
+                <div className="recording-indicator">
+                  <span className="recording-dot" />
+                  <span>{formatTime(recordingTime)}</span>
+                </div>
+              )}
+            </div>
+
+            <button
+              className={`record-button ${isRecording ? 'recording' : ''}`}
+              onClick={isRecording ? stopRecording : startRecording}
+            >
+              <div className={`record-circle ${isRecording ? 'stop' : 'start'}`} />
+            </button>
+          </div>
+
+          <div className="transcript-section">
+            <h3>음성 인식</h3>
+            <div className="transcript-box">
+              {transcriptText || '녹음 버튼을 눌러 회의를 시작하세요'}
+            </div>
+          </div>
+
+          { translatedText && (
+            <div className="translation-section">
+              <div className="translation-head">
+                <h3>
+                  {lastChunkIsKorean 
+                    ? `한국어 → ${selectedLanguage === 'en' ? 'English' : selectedLanguage === 'ja' ? '日本語' : '한국어'}` 
+                    : `입력 언어 → 한국어`}
+                </h3>
               </div>
-            )}
-          </div>
-
-          <button
-            className={`record-button ${isRecording ? 'recording' : ''}`}
-            onClick={isRecording ? stopRecording : startRecording}
-          >
-            <div className={`record-circle ${isRecording ? 'stop' : 'start'}`} />
-          </button>
+              <div className="translation-box">
+                {translatedText ||'번역 중...'}
+                {isTranslating && <span className="translation-loading">번역 중...</span>}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="transcript-section">
-          <h3>음성 인식</h3>
-          <div className="transcript-box">
-            {transcriptText || '녹음 버튼을 눌러 회의를 시작하세요'}
-          </div>
-        </div>
-
-        { translatedText && (
-          <div className="translation-section">
-            <div className="translation-head">
-              <h3>
-                {lastChunkIsKorean 
-                  ? `한국어 → ${selectedLanguage === 'en' ? 'English' : selectedLanguage === 'ja' ? '日本語' : '한국어'}` 
-                  : `입력 언어 → 한국어`}
-              </h3>
-            </div>
-            <div className="translation-box">
-              {translatedText ||'번역 중...'}
-              {isTranslating && <span className="translation-loading">번역 중...</span>}
-            </div>
-          </div>
+        {transcriptText && (
+          // <div className="meeting-end">
+            <button className="save-meeting-button" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? '저장 중...' : '회의 종료'}
+            </button>
+          // </div>
         )}
       </div>
-
-      {transcriptText && (
-        <div className="meeting-end">
-          <button className="save-meeting-button" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? '저장 중...' : '회의 종료'}
-          </button>
-        </div>
-      )}
     </div>
   );
 };

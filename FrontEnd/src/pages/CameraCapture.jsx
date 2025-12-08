@@ -260,7 +260,7 @@ const CameraCapture = () => {
               <div className="camera-frame"></div>
             </div>
             <button className="capture-button" onClick={capturePhoto}>
-              📷
+              <img className="icon-camera" src=".\public\Neez-camera.png" alt="camera" />     
             </button>
           </div>
         ) : (

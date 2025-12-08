@@ -36,12 +36,10 @@ const FAB = () => {
 
   return (
     <div
-      className="fab"
+      className="fab-container"
       style={{
-        position: 'fixed',
-        right: `${style.right}px`,    // 픽셀 단위로 적용
-        bottom: `${style.bottom}px`,
-        zIndex: 900,
+        position: 'absolute',
+        // zIndex: 900,
       }}
     >
       <button className="camera-btn" onClick={handleClick} title="명함 촬영">

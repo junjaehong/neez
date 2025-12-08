@@ -3,11 +3,16 @@
   height: 60px;
   border-radius: 50%;
   border: none;
-  position: fixed;
+  position: absolute;
   /* font-size: 24px; */
   background-color: hsl(52, 7%, 42%);
   cursor: pointer;
-  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  bottom: 10%;
+  left: 78%;
+  z-index: 900;
 }
 
 .camera-btn:hover {
@@ -21,7 +26,7 @@
 
 .icon-camera {
   width: 45px;
-  margin-top: 4px;
+  /* margin-top: 4px; */
   margin-right: 1px;
 }
 
