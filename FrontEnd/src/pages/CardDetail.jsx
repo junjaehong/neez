@@ -552,6 +552,7 @@ const CardDetail = () => {
                       className="meeting-title"
                       onClick={() => handleViewMeeting(meeting, index)}
                     >
+                      {console.log(meeting)}
                       {meeting.summaryText.substring(0, 20)}...
                     </span>
                   {editMode && (
